@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Django / Pretix local config (contains credentials)
+pretix.cfg
+*.cfg
+!setup.cfg
+
+# Dev / scratch files (root-level only)
+/fix_html.py
+/query_db.py
+/test_db.py
+/test_qs_db.py
+/test_url.py
+/qs_out.txt
+/temp.html
+/temp_page.html
+/dashboard.html
+
+# Planning documents (local only)
+Planning/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log

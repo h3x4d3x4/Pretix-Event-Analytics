@@ -1,0 +1,96 @@
+"""
+Country resolver — determines buyer country for an order.
+"""
+
+import pycountry
+
+# Keywords to identify a "country of residence" type question
+_COUNTRY_KEYWORDS = ("country", "land", "paese", "país", "residence")
+
+def _is_country_question(question_text: str) -> bool:
+    lower = question_text.lower()
+    return any(kw in lower for kw in _COUNTRY_KEYWORDS)
+
+def resolve_country(order) -> str:
+    """
+    Return an ISO 3166-1 alpha-2 country code for the order.
+
+    Resolution priority:
+      1. Payment Provider Metadata (Stripe card origin, PayPal country, IBAN prefix)
+      2. InvoiceAddress.country (explicitly provided by buyer)
+      3. Custom question labelled "Country of residence" or similar
+      4. 'UNKNOWN'
+
+    :param order: Pretix Order instance.
+    :returns: Two-letter uppercase country code, or 'UNKNOWN'.
+    """
+    # 1. Payment Provider Metadata (High Confidence)
+    confirmed_payment = order.payments.filter(state="confirmed").order_by("payment_date").last()
+    if confirmed_payment and confirmed_payment.info_data:
+        info = confirmed_payment.info_data
+        provider = confirmed_payment.provider
+
+        if provider == "stripe":
+            # Stripe provides the 2-letter country code of the card's issuing bank
+            stripe_country = info.get("payment_method_details", {}).get("card", {}).get("country")
+            if stripe_country and len(stripe_country) == 2:
+                return stripe_country.upper()
+                
+        elif provider == "paypal":
+            # PayPal provides the registered country code of the buyer's account
+            paypal_country = info.get("payer", {}).get("payer_info", {}).get("country_code")
+            if paypal_country and len(paypal_country) == 2:
+                return paypal_country.upper()
+                
+        elif provider == "banktransfer":
+            # Extract first two letters of the IBAN (always the ISO country code)
+            iban = info.get("iban", "")
+            if iban and len(iban) >= 2:
+                iban_country = iban[:2].upper()
+                if iban_country.isalpha():
+                    return iban_country
+
+    # 2. InvoiceAddress
+    try:
+        ia = order.invoice_address
+        country = str(ia.country) if ia.country else ""
+        if country and len(country) == 2:
+            return country.upper()
+    except Exception:
+        pass
+
+    # 3. Custom question containing country-related keywords
+    for position in order.positions.all():
+        for answer in position.answers.all():
+            question_text = str(answer.question.question)
+            if not _is_country_question(question_text):
+                continue
+            raw = (answer.answer or "").strip()
+            if len(raw) == 2 and raw.isalpha():
+                return raw.upper()
+            
+            # Try to resolve full country names into ISO alpha-2 codes using pycountry
+            try:
+                # pycountry.countries.search_fuzzy() can handle variations and partial matches
+                matches = pycountry.countries.search_fuzzy(raw)
+                if matches:
+                    return matches[0].alpha_2
+            except LookupError:
+                pass
+            
+            continue
+
+    return "UNKNOWN"
+
+
+def resolve_city_and_postal(order) -> tuple:
+    """
+    Extract city and postal code from InvoiceAddress.
+
+    :returns: Tuple of (city: str, postal_code: str).
+    """
+    try:
+        ia = order.invoice_address
+        return (ia.city or "").strip(), (ia.zipcode or "").strip()
+    except Exception:
+        return "", ""

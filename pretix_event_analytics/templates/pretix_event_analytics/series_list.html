@@ -1,0 +1,76 @@
+{% extends "pretixcontrol/organizer/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Analytics Series" %} — {{ request.organizer.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-10">
+
+    <div class="page-header">
+      <h1>
+        <span class="fa fa-bar-chart"></span>
+        {% trans "Analytics Series" %}
+        <a href="{% url 'plugins:pretix_event_analytics:series_create' organizer=request.organizer.slug %}"
+           class="btn btn-primary btn-sm pull-right">
+          <span class="fa fa-plus"></span> {% trans "New series" %}
+        </a>
+      </h1>
+      <p class="text-muted">
+        {% blocktrans %}
+          Series group your events for cross-edition analytics.
+          For example, all yearly editions of "Suti Festival" form one series.
+        {% endblocktrans %}
+      </p>
+    </div>
+
+    {% if series_list %}
+      <div class="panel panel-default">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>{% trans "Name" %}</th>
+              <th>{% trans "Slug" %}</th>
+              <th>{% trans "Editions" %}</th>
+              <th>{% trans "Created" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for series in series_list %}
+              <tr>
+                <td><strong>{{ series.name }}</strong></td>
+                <td><code>{{ series.slug }}</code></td>
+                <td>
+                  {% for cfg in series.event_configs.all %}
+                    <span class="label label-default">{{ cfg.edition_year }} ({{ cfg.event.slug }})</span>
+                  {% empty %}
+                    <span class="text-muted">{% trans "No editions linked" %}</span>
+                  {% endfor %}
+                </td>
+                <td class="text-muted small">{{ series.created_at|date:"Y-m-d" }}</td>
+                <td class="text-right">
+                  <a href="{% url 'plugins:pretix_event_analytics:series_edit' organizer=request.organizer.slug pk=series.pk %}"
+                     class="btn btn-xs btn-default">
+                    <span class="fa fa-edit"></span> {% trans "Edit" %}
+                  </a>
+                  <a href="{% url 'plugins:pretix_event_analytics:series_delete' organizer=request.organizer.slug pk=series.pk %}"
+                     class="btn btn-xs btn-danger">
+                    <span class="fa fa-trash"></span> {% trans "Delete" %}
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-info">
+        <span class="fa fa-info-circle"></span>
+        {% trans "No series yet. Create your first series to enable cross-edition analytics." %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

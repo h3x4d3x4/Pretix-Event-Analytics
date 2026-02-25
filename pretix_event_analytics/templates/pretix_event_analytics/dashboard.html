@@ -1,0 +1,730 @@
+{% extends "pretixcontrol/event/base.html" %}
+{% load i18n %}
+{% load l10n %}
+{% load static %}
+{% load escapejson %}
+{% load analytics_tags %}
+
+{% block title %}{% trans "Analytics" %} — {{ request.event.name }}{% endblock %}
+
+{% block content %}
+<div class="analytics-dashboard">
+
+  <!-- ── Page header ──────────────────────────────────────────────────────── -->
+  <div class="row analytics-header">
+    <div class="col-md-5">
+      <h1>
+        <span class="fa fa-bar-chart"></span>
+        {% trans "Analytics" %}
+        <small class="text-muted">{{ request.event.name }}</small>
+      </h1>
+      {% if config.series %}
+      <p class="text-muted">
+        {% trans "Series" %}: <strong>{{ config.series.name }}</strong>
+        &nbsp;·&nbsp;
+        {% trans "Edition" %}: <strong>{{ config.edition_year }}</strong>
+        {% if last_synced %}
+        &nbsp;·&nbsp;
+        <span class="text-muted small">
+          {% trans "Last synced" %}: {{ last_synced|date:"d M Y H:i" }}
+        </span>
+        {% endif %}
+      </p>
+      {% elif last_synced %}
+      <p class="text-muted small">
+        {% trans "Last synced" %}: {{ last_synced|date:"d M Y H:i" }}
+      </p>
+      {% endif %}
+    </div>
+    <div class="col-md-7 text-right"
+      style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 15px;">
+      <a href="{% url 'plugins:pretix_event_analytics:export_csv' organizer=request.organizer.slug event=request.event.slug %}"
+        class="btn btn-default btn-sm">
+        <span class="fa fa-download"></span> {% trans "Export CSV" %}
+      </a>
+      <a href="{% url 'plugins:pretix_event_analytics:export_pdf' organizer=request.organizer.slug event=request.event.slug %}"
+        class="btn btn-default btn-sm">
+        <span class="fa fa-file-pdf-o"></span> {% trans "Export PDF" %}
+      </a>
+      <a href="{% url 'plugins:pretix_event_analytics:config' organizer=request.organizer.slug event=request.event.slug %}"
+        class="btn btn-default btn-sm">
+        <span class="fa fa-cog"></span> {% trans "Settings" %}
+      </a>
+      {% if can_resync %}
+      <form method="post" action="{{ resync_url }}" class="form-inline-action" style="margin: 0;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning btn-sm"
+          data-confirm="{% trans 'Re-process all orders for this event? This may take a minute.' %}">
+          <span class="fa fa-refresh"></span> {% trans "Resync" %}
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Empty state ───────────────────────────────────────────────────────── -->
+  {% if not has_data %}
+  <div class="alert alert-info analytics-empty-state">
+    <h4>{% trans "No analytics data yet" %}</h4>
+    <p>
+      {% trans "No orders have been processed for this event. This can happen if:" %}
+    </p>
+    <ul>
+      <li>{% trans "No paid orders exist for this event yet." %}</li>
+      <li>{% trans "The plugin was installed after orders were placed (run a resync below)." %}</li>
+    </ul>
+    <form method="post" action="{{ resync_url }}" class="form-inline-action">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary">
+        <span class="fa fa-refresh"></span> {% trans "Run initial resync now" %}
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- ── Filter bar ───────────────────────────────────────────────────────── -->
+  <div class="analytics-filters">
+    <form method="get" class="analytics-filter-form">
+      <div class="form-group">
+        <label>{% trans "From" %}</label>
+        {{ filter_form.date_from }}
+      </div>
+      <div class="form-group">
+        <label>{% trans "To" %}</label>
+        {{ filter_form.date_to }}
+      </div>
+      <div class="form-group">
+        <label>{% trans "Country" %}</label>
+        {{ filter_form.country }}
+      </div>
+      <div class="form-group">
+        <label>{% trans "Age" %}</label>
+        {{ filter_form.age_range }}
+      </div>
+      <div class="form-group">
+        <div class="dropdown">
+          <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownMenuTicketType"
+            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            {% with selected_tickets=filter_form.ticket_type.value %}
+            {% if selected_tickets %}
+            {{ selected_tickets|length }} {% trans "Selected" %}
+            {% else %}
+            {% trans "Ticket Types" %}
+            {% endif %}
+            {% endwith %}
+            <span class="caret"></span>
+          </button>
+          <div class="dropdown-menu editions-dropdown" aria-labelledby="dropdownMenuTicketType">
+            <div class="editions-checkbox-list">
+              {{ filter_form.ticket_type }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="dropdown">
+          <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownMenuEditions"
+            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            {% with selected_events=filter_form.editions.value %}
+            {% if selected_events %}
+            {{ selected_events|length }}
+            {% else %}
+            1
+            {% endif %}
+            {% endwith %}
+            {% trans "event(s)" %}
+            <span class="caret"></span>
+          </button>
+          <div class="dropdown-menu editions-dropdown" aria-labelledby="dropdownMenuEditions">
+            <div class="editions-checkbox-list">
+              {{ filter_form.editions }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group form-check-inline">
+        {{ filter_form.repeat_only }}
+        <label class="form-check-label">{% trans "Returning only" %}</label>
+      </div>
+      <div class="form-group form-check-inline">
+        {{ filter_form.include_refunded }}
+        <label class="form-check-label">{% trans "Include refunded" %}</label>
+      </div>
+      <div class="form-group form-check-inline">
+        {{ filter_form.has_caravan }}
+        <label class="form-check-label">{% trans "Caravan only" %}</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm btn-filter-apply">
+        <span class="fa fa-filter"></span> {% trans "Apply" %}
+      </button>
+      <a href="?" class="btn btn-default btn-sm">{% trans "Clear" %}</a>
+    </form>
+  </div>
+
+  <!-- ────────────────────────────────────────────────────────────────────────
+  SECTION 1: OVERVIEW KPIs
+  ─────────────────────────────────────────────────────────────────────────── -->
+  <h3 class="analytics-section-title">{% trans "Overview" %}</h3>
+  <div class="row analytics-kpi-row">
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Total Revenue" %}</div>
+        <div class="kpi-value">{{ request.event.currency }} {{ total_revenue|floatformat:2 }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Orders" %}</div>
+        <div class="kpi-value">{{ total_orders|localize }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Tickets Sold" %}</div>
+        <div class="kpi-value">{{ total_tickets|localize }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Avg Order Value" %}</div>
+        <div class="kpi-value">{{ request.event.currency }} {{ avg_order_value|floatformat:2 }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Returning Buyers" %}</div>
+        <div class="kpi-value">{{ repeat_count|localize }} <small>({{ repeat_pct }}%)</small></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Return from Prev Edition" %}</div>
+        <div class="kpi-value">{{ from_last_edition|localize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card kpi-highlight-error">
+        <div class="kpi-label">{% trans "Refund Rate" %}</div>
+        <div class="kpi-value text-danger">{{ refund_count|localize }} <small>({{ refund_pct }}%)</small></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card kpi-highlight-green">
+        <div class="kpi-label">{% trans "High Return Score (≥60)" %}</div>
+        <div class="kpi-value">{{ high_score_count|localize }} <small>({{ high_score_pct }}%)</small></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Caravan Passes" %}</div>
+        <div class="kpi-value">{{ caravan_count|localize }} <small>({{ caravan_pct }}%)</small></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Group Orders" %}</div>
+        <div class="kpi-value">{{ group_order_count|localize }} <small>({{ group_order_pct }}%)</small></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="kpi-card {% if secondary_market.name_change_rate > 10 %}kpi-highlight-error{% elif secondary_market.name_change_rate > 5 %}kpi-highlight{% endif %}">
+        <div class="kpi-label">{% trans "Resale Signal" %}</div>
+        <div class="kpi-value">{{ secondary_market.name_change_rate|floatformat:1 }}% <small>({{ secondary_market.orders_with_changes }} {% trans "orders" %})</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────────────────────────────────────
+  SECTION 2: DEMOGRAPHICS
+  ─────────────────────────────────────────────────────────────────────────── -->
+  <h3 class="analytics-section-title">{% trans "Demographics" %}</h3>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Country Breakdown" %}</div>
+        <div class="panel-body">
+          <canvas id="countryChart" height="280"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Age Distribution" %}</div>
+        <div class="panel-body">
+          <canvas id="ageChart" height="280"></canvas>
+          {% if age_confirmed_count %}
+          <p class="text-muted small">
+            {% blocktrans with count=age_confirmed_count %}
+            {{ count }} buyers confirmed age 18+
+            {% endblocktrans %}
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Language Distribution" %}</div>
+        <div class="panel-body">
+          <canvas id="languageChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Payment Providers" %}</div>
+        <div class="panel-body">
+          <canvas id="paymentChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Geographical Lifetime Value (Top 10)" %}</div>
+        <div class="panel-body p-0">
+          <table class="table table-condensed table-hover m-0" style="margin-bottom: 0;">
+            <thead>
+              <tr>
+                <th>{% trans "Country" %}</th>
+                <th class="text-right">{% trans "Orders" %}</th>
+                <th class="text-right">{% trans "Total Revenue" %}</th>
+                <th class="text-right">{% trans "Avg Order Value" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in country_breakdown|slice:":10" %}
+              <tr>
+                <td>{{ c.flag }} {{ c.country_name }}</td>
+                <td class="text-right">{{ c.count }}</td>
+                <td class="text-right">{{ request.event.currency }} {{ c.revenue|floatformat:2 }}</td>
+                <td class="text-right">{{ request.event.currency }} {{ c.aov|floatformat:2 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          {% trans "Buyer Personas (Purchase Timing)" %}
+        </div>
+        <div class="panel-body p-0">
+          <table class="table table-condensed table-hover m-0" style="margin-bottom: 0;">
+            <thead>
+              <tr>
+                <th>{% trans "Persona Segment" %}</th>
+                <th class="text-right">{% trans "Orders" %}</th>
+                <th class="text-right">{% trans "Total Revenue" %}</th>
+                <th class="text-right">{% trans "Avg Order Value" %}</th>
+                <th class="text-right">{% trans "Return Rate" %}</th>
+                <th class="text-right">{% trans "Add-on Rate" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for persona, data in persona_breakdown.items %}
+              <tr>
+                <td><strong>{{ persona }}</strong></td>
+                <td class="text-right">{{ data.count }}</td>
+                <td class="text-right">{{ request.event.currency }} {{ data.revenue|floatformat:2 }}</td>
+                <td class="text-right">{{ request.event.currency }} {{ data.aov|floatformat:2 }}</td>
+                <td class="text-right">{{ data.repeat_pct|floatformat:1 }}%</td>
+                <td class="text-right">{{ data.addon_pct|floatformat:1 }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────────────────────────────────────
+  SECTION 3: SALES TRENDS
+  ─────────────────────────────────────────────────────────────────────────── -->
+  <h3 class="analytics-section-title">{% trans "Sales Trends" %}</h3>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          {% trans "Sales Velocity & Pacing" %}
+          <small class="text-muted pull-right">{% trans "Cumulative revenue by days until event" %}</small>
+        </div>
+        <div class="panel-body">
+          <canvas id="pacingChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Revenue & Orders Over Time" %}</div>
+        <div class="panel-body">
+          <canvas id="dailySalesChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Order Hour Heatmap" %}</div>
+        <div class="panel-body">
+          <canvas id="hourlyChart" height="80"></canvas>
+          <p class="text-muted small">{% trans "Number of orders by hour of day (all times in UTC)" %}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────────────────────────────────────
+  SECTION 4: REPEAT BUYERS
+  ─────────────────────────────────────────────────────────────────────────── -->
+  <h3 class="analytics-section-title">{% trans "Repeat Buyers" %}</h3>
+  <div class="row">
+    <div class="col-md-5">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "New vs Returning" %}</div>
+        <div class="panel-body">
+          <canvas id="repeatDonut" height="260"></canvas>
+        </div>
+      </div>
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Returning Buyer Detail" %}</div>
+        <div class="panel-body">
+          <table class="table table-condensed">
+            <tr>
+              <td>{% trans "New buyers" %}</td>
+              <td class="text-right"><strong>{{ new_buyers|localize }}</strong></td>
+            </tr>
+            <tr>
+              <td>{% trans "Returning (any previous edition)" %}</td>
+              <td class="text-right"><strong>{{ from_any_previous|localize }}</strong></td>
+            </tr>
+            <tr>
+              <td>{% trans "Returning (last edition only)" %}</td>
+              <td class="text-right"><strong>{{ from_last_edition|localize }}</strong></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Repeat Probability Distribution" %}</div>
+        <div class="panel-body">
+          <canvas id="probDistChart" height="220"></canvas>
+          <p class="text-muted small">
+            {% trans "Predicted probability each buyer returns to the next edition (0–100 score)." %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────────────────────────────────────
+  SECTION 5: COHORT RETENTION MATRIX
+  ─────────────────────────────────────────────────────────────────────────── -->
+  <h3 class="analytics-section-title">{% trans "Cohort Retention" %}</h3>
+  {% if config.series %}
+  {% if cohort_matrix %}
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      {% trans "Retention Matrix" %} — {{ config.series.name }}
+      <span class="text-muted small">{% trans "(% of each cohort who returned to later editions)" %}</span>
+    </div>
+    <div class="panel-body">
+      <div class="table-responsive">
+        <table class="table table-bordered cohort-matrix-table">
+          <thead>
+            <tr>
+              <th>{% trans "Cohort" %} ↓ / {% trans "Edition" %} →</th>
+              {% for year in all_cohort_years %}
+              <th class="text-center">{{ year }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for source_year in cohort_years %}
+            <tr>
+              <td>
+                <strong>{{ source_year }}</strong>
+                {% with size=cohort_sizes|get_item:source_year %}
+                {% if size %}
+                <br><small class="text-muted">{{ size }} buyers</small>
+                {% endif %}
+                {% endwith %}
+              </td>
+              {% for target_year in all_cohort_years %}
+              {% if target_year <= source_year %} <td class="cohort-cell cohort-past">—</td>
+                {% else %}
+                {% get_nested cohort_matrix source_year target_year as rate %}
+                {% if rate is not None %}
+                {% with pct=rate|mul:100 %}
+                <td class="cohort-cell text-center" data-bg-color="{{ pct|cohort_color }}"
+                  data-color="{% if pct > 50 %}#fff{% else %}#333{% endif %}">
+                  {{ pct|floatformat:1 }}%
+                </td>
+                {% endwith %}
+                {% else %}
+                <td class="cohort-cell text-center text-muted">—</td>
+                {% endif %}
+                {% endif %}
+                {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    {% trans "Cohort retention requires at least 2 editions in the series to be configured and synced." %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="alert alert-warning">
+    {% trans "This event is not linked to a series. Configure a series to enable cohort retention." %}
+    <a
+      href="{% url 'plugins:pretix_event_analytics:config' organizer=request.organizer.slug event=request.event.slug %}">
+      {% trans "Configure now" %}
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- ────────────────────────────────────────────────────────────────────────
+  SECTION 6: TICKET INSIGHTS
+  ─────────────────────────────────────────────────────────────────────────── -->
+  <h3 class="analytics-section-title">{% trans "Ticket Insights" %}</h3>
+  <div class="row">
+    <div class="col-md-7">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Ticket Type Breakdown" %}</div>
+        <div class="panel-body">
+          {% if ticket_breakdown %}
+          <table class="table table-condensed table-hover">
+            <thead>
+              <tr>
+                <th>{% trans "Ticket type" %}</th>
+                <th class="text-right">{% trans "Sold" %}</th>
+                <th class="text-right">{% trans "Revenue" %}</th>
+                <th class="text-right">{% trans "Avg price" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in ticket_breakdown %}
+              <tr>
+                <td>{{ t.item_name }}</td>
+                <td class="text-right">{{ t.count }}</td>
+                <td class="text-right">{{ request.event.currency }} {{ t.revenue|floatformat:2 }}</td>
+                <td class="text-right">{{ request.event.currency }} {{ t.avg_price|floatformat:2 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="text-muted">{% trans "No ticket data available." %}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-5">
+      {% if addon_breakdown %}
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Add-ons" %}</div>
+        <div class="panel-body">
+          <table class="table table-condensed">
+            <thead>
+              <tr>
+                <th>{% trans "Add-on" %}</th>
+                <th class="text-right">{% trans "Sold" %}</th>
+                <th class="text-right">{% trans "Attach Rate" %}</th>
+                <th class="text-right">{% trans "Revenue" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in addon_breakdown %}
+              <tr>
+                <td>{{ a.item_name }}</td>
+                <td class="text-right">{{ a.count }}</td>
+                <td class="text-right">{{ a.attach_rate|floatformat:1 }}%</td>
+                <td class="text-right">{{ request.event.currency }} {{ a.revenue|floatformat:2 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+      {% if van_length_breakdown %}
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Camper Van Lengths" %}</div>
+        <div class="panel-body">
+          <canvas id="vanLengthChart" height="200"></canvas>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if addon_by_segment %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          {% trans "Add-on Attach Rates by Segment" %}
+          <small class="text-muted pull-right">{% trans "Which buyer segments are most likely to purchase add-ons?" %}</small>
+        </div>
+        <div class="panel-body p-0">
+          <table class="table table-condensed table-hover m-0" style="margin-bottom: 0;">
+            <thead>
+              <tr>
+                <th>{% trans "Segment" %}</th>
+                <th class="text-right">{% trans "Total Orders" %}</th>
+                <th class="text-right">{% trans "With Add-ons" %}</th>
+                <th class="text-right">{% trans "Attach Rate" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for seg in addon_by_segment %}
+              <tr>
+                <td><strong>{{ seg.segment }}</strong></td>
+                <td class="text-right">{{ seg.total }}</td>
+                <td class="text-right">{{ seg.with_addon }}</td>
+                <td class="text-right">
+                  <span class="{% if seg.attach_rate > 30 %}text-success{% elif seg.attach_rate > 15 %}text-info{% endif %}">
+                    {{ seg.attach_rate|floatformat:1 }}%
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ────────────────────────────────────────────────────────────────────────
+  SECTION 7: SECONDARY MARKET TRACKING
+  ─────────────────────────────────────────────────────────────────────────── -->
+  <h3 class="analytics-section-title">{% trans "Secondary Market Tracking" %}</h3>
+  <div class="row">
+    <div class="col-md-5">
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Name Change Summary" %}</div>
+        <div class="panel-body">
+          <table class="table table-condensed">
+            <tr>
+              <td>{% trans "Total name changes detected" %}</td>
+              <td class="text-right"><strong>{{ secondary_market.total_name_changes|localize }}</strong></td>
+            </tr>
+            <tr>
+              <td>{% trans "Orders with name changes" %}</td>
+              <td class="text-right"><strong>{{ secondary_market.orders_with_changes|localize }}</strong></td>
+            </tr>
+            <tr>
+              <td>{% trans "Total paid orders" %}</td>
+              <td class="text-right">{{ secondary_market.total_orders|localize }}</td>
+            </tr>
+            <tr>
+              <td>{% trans "Resale rate estimate" %}</td>
+              <td class="text-right">
+                <strong class="{% if secondary_market.name_change_rate > 10 %}text-danger{% elif secondary_market.name_change_rate > 5 %}text-warning{% endif %}">
+                  {{ secondary_market.name_change_rate|floatformat:1 }}%
+                </strong>
+              </td>
+            </tr>
+          </table>
+          <p class="text-muted small">
+            {% trans "Tracks attendee name changes on paid orders via Pretix audit logs. A high rate may indicate secondary market activity (ticket reselling/scalping)." %}
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7">
+      {% if secondary_market.changes_by_month %}
+      <div class="panel panel-default">
+        <div class="panel-heading">{% trans "Name Changes Over Time" %}</div>
+        <div class="panel-body">
+          <canvas id="nameChangeChart" height="200"></canvas>
+        </div>
+      </div>
+      {% else %}
+      <div class="panel panel-default">
+        <div class="panel-body text-muted text-center" style="padding: 40px;">
+          {% trans "No name change data available for this event." %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if config.series %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          {% trans "Resale Signal by Edition" %}
+          <small class="text-muted pull-right">{% trans "% of orders with a confirmed attendee name change per edition" %}</small>
+        </div>
+        <div class="panel-body">
+          <canvas id="nameChangeByEditionChart" height="100"></canvas>
+          <p class="text-muted small">
+            {% trans "Only substantial name changes are counted — typo corrections and middle-name additions are excluded." %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /analytics-dashboard -->
+
+<!-- ── Inline styles ────────────────────────────────────────────────────────── -->
+<link rel="stylesheet" type="text/css" href="{% static 'pretix_event_analytics/dashboard.css' %}">
+
+<!-- ── Chart.js ─────────────────────────────────────────────────────────────── -->
+<script type="application/json" id="pacing-data"
+  nonce="{{ request.csp_nonce }}">{{ pacing_chart_json|escapejson }}</script>
+<script type="application/json" id="country-data"
+  nonce="{{ request.csp_nonce }}">{{ country_chart_json|escapejson }}</script>
+<script type="application/json" id="age-data" nonce="{{ request.csp_nonce }}">{{ age_chart_json|escapejson }}</script>
+<script type="application/json" id="language-data"
+  nonce="{{ request.csp_nonce }}">{{ language_chart_json|escapejson }}</script>
+<script type="application/json" id="payment-data"
+  nonce="{{ request.csp_nonce }}">{{ payment_chart_json|escapejson }}</script>
+<script type="application/json" id="daily-sales-data"
+  nonce="{{ request.csp_nonce }}">{{ daily_sales_json|escapejson }}</script>
+<script type="application/json" id="hourly-heatmap-data"
+  nonce="{{ request.csp_nonce }}">{{ hourly_heatmap_json|escapejson }}</script>
+<script type="application/json" id="prob-dist-data"
+  nonce="{{ request.csp_nonce }}">{{ prob_distribution_json|escapejson }}</script>
+<script type="application/json" id="van-length-data"
+  nonce="{{ request.csp_nonce }}">{{ van_length_json|escapejson }}</script>
+<script type="application/json" id="name-change-data"
+  nonce="{{ request.csp_nonce }}">{{ secondary_market_chart_json|escapejson }}</script>
+
+<script type="application/json" id="buyer-stats"
+  nonce="{{ request.csp_nonce }}">{{ buyer_stats_json|escapejson }}</script>
+<script type="application/json" id="name-change-by-edition-data"
+  nonce="{{ request.csp_nonce }}">{{ name_changes_by_edition_json|escapejson }}</script>
+
+<script src="{% static 'pretix_event_analytics/chart.umd.min.js' %}" nonce="{{ request.csp_nonce }}"></script>
+<script type="application/javascript" src="{% static 'pretix_event_analytics/dashboard.js' %}"
+  nonce="{{ request.csp_nonce }}" defer></script>
+
+{% endblock %}

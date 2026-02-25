@@ -1,12 +1,19 @@
 """
 Forms for event analytics configuration and series management.
 """
+import pycountry
 from django import forms
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from pretix.base.forms.widgets import DatePickerWidget
 
 from .models import EventAnalyticsConfig, EventSeries
+
+
+def _country_choices():
+    """Return (alpha_2, name) choices sorted by name, with blank first."""
+    countries = sorted(pycountry.countries, key=lambda c: c.name)
+    return [("", _("— Select country —"))] + [(c.alpha_2, c.name) for c in countries]
 
 
 class EventSeriesForm(forms.ModelForm):
@@ -75,15 +82,7 @@ class EventAnalyticsConfigForm(forms.ModelForm):
         widgets = {
             "series": forms.Select(attrs={"class": "form-control"}),
             "edition_year": forms.NumberInput(
-                attrs={"class": "form-control", "min": 1990, "max": 2100}
-            ),
-            "home_country": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "RO",
-                    "maxlength": 2,
-                    "style": "text-transform:uppercase; width:80px;",
-                }
+                attrs={"class": "form-control", "min": 1990, "max": 2100, "style": "width:110px;"}
             ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
@@ -95,16 +94,21 @@ class EventAnalyticsConfigForm(forms.ModelForm):
             self.fields["series"].queryset = EventSeries.objects.filter(
                 organizer=event.organizer
             ).order_by("name")
-        self.fields["series"].empty_label = _("— Select a series —")
+        self.fields["series"].empty_label = _("— Select a series (optional) —")
         self.fields["series"].required = False
+        # Replace home_country with a proper country Select
+        self.fields["home_country"] = forms.ChoiceField(
+            choices=_country_choices(),
+            required=False,
+            label=_("Event Country"),
+            widget=forms.Select(attrs={"class": "form-control", "style": "max-width:320px;"}),
+        )
+        # Pre-select current value if editing
+        if self.instance and self.instance.home_country:
+            self.fields["home_country"].initial = self.instance.home_country
 
     def clean_home_country(self):
-        val = (self.cleaned_data.get("home_country") or "").strip().upper()
-        if val and len(val) != 2:
-            raise forms.ValidationError(
-                _("Enter a valid ISO alpha-2 country code, e.g. RO, DE, FR.")
-            )
-        return val
+        return self.cleaned_data.get("home_country") or ""
 
     def clean_edition_year(self):
         year = self.cleaned_data.get("edition_year")

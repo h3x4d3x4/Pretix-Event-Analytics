@@ -7,23 +7,24 @@ running real orders through the ingestion pipeline.
 
 Usage:
     # Basic — 150 fake orders for one event
-    python -m pretix generate_test_data --organizer suti --event suti-festival-2024
+    python -m pretix generate_test_data --organizer <organizer-slug> --event <event-slug>
 
-    # Full 4-edition scenario (run once per event, same buyer pool ensures cohort data)
-    python -m pretix generate_test_data --organizer suti --event suti-festival-2022 --edition-year 2022 --orders 80
-    python -m pretix generate_test_data --organizer suti --event suti-festival-2023 --edition-year 2023 --orders 120
-    python -m pretix generate_test_data --organizer suti --event suti-festival-2024 --edition-year 2024 --orders 160
-    python -m pretix generate_test_data --organizer suti --event suti-festival-2026 --edition-year 2026 --orders 200
+    # Full 4-edition scenario (run once per event; shared buyer pool ensures cohort data)
+    python -m pretix generate_test_data --organizer <org> --event <event-2022> --edition-year 2022 --orders 80
+    python -m pretix generate_test_data --organizer <org> --event <event-2023> --edition-year 2023 --orders 120
+    python -m pretix generate_test_data --organizer <org> --event <event-2024> --edition-year 2024 --orders 160
+    python -m pretix generate_test_data --organizer <org> --event <event-2025> --edition-year 2025 --orders 200
 
 Options:
     --orders N          Number of fake orders to generate (default: 150)
     --edition-year YYYY Override the edition year (default: inferred from event.date_from)
-    --series SLUG       Series slug to use (default: suti-festival)
+    --series SLUG       Series slug to link to (created if it does not exist)
     --checkin           Mark ~80%% of orders as checked in
     --clear             Delete existing fact data before generating
 """
 import hashlib
 import hmac
+import json
 import random
 from datetime import timedelta
 from decimal import Decimal
@@ -74,6 +75,26 @@ CITIES_BY_COUNTRY = {
     "IT": ["Roma", "Milano", "Napoli", "", ""],
 }
 
+# Realistic name change pairs for secondary market testing.
+# Mix of real transfers (different people) and corrections (should be filtered out).
+NAME_CHANGES = [
+    # Real transfers — substantially different names (will be counted)
+    ("Alice Johnson", "Bob Williams"),
+    ("Maria Ionescu", "Carlos Rodriguez"),
+    ("Hans Mueller", "Sophie Dubois"),
+    ("Anna Kowalski", "Piotr Nowak"),
+    ("Emma Brown", "James Wilson"),
+    ("Luca Ferrari", "Nadia Petrov"),
+    ("Ahmed Hassan", "Yuki Tanaka"),
+    ("Sara Martínez", "Olga Ivanova"),
+    # Typo corrections — should be filtered out by smart detection
+    ("John Doe", "Jon Doe"),
+    ("Sarah Smyth", "Sarah Smith"),
+    ("Michael Johnes", "Michael Jones"),
+    # Middle name additions — should be filtered out
+    ("Thomas Clark", "Thomas Edward Clark"),
+]
+
 
 def _weighted_choice(pool, rng):
     """Pick a value from [(value, weight), ...] using weights."""
@@ -116,8 +137,8 @@ class Command(BaseCommand):
             help="Edition year override (default: inferred from event.date_from).",
         )
         parser.add_argument(
-            "--series", default="suti-festival", metavar="SERIES_SLUG",
-            help="Series slug to link to (default: suti-festival).",
+            "--series", default="my-event-series", metavar="SERIES_SLUG",
+            help="Series slug to link to (created if it does not exist).",
         )
         parser.add_argument(
             "--checkin", action="store_true",
@@ -166,10 +187,11 @@ class Command(BaseCommand):
                 )
 
         # ── Create/get series + config ────────────────────────────────────────
+        series_slug = options["series"]
         series, series_created = EventSeries.objects.get_or_create(
             organizer=organizer,
-            slug=options["series"],
-            defaults={"name": "Suti Festival"},
+            slug=series_slug,
+            defaults={"name": series_slug.replace("-", " ").title()},
         )
         if series_created:
             self.stdout.write(f"  Created series '{series.name}' (slug: {series.slug})")
@@ -179,7 +201,6 @@ class Command(BaseCommand):
             defaults={
                 "series": series,
                 "edition_year": edition_year,
-                "home_country": "RO",
                 "is_active": True,
             },
         )
@@ -258,8 +279,8 @@ class Command(BaseCommand):
 
             payment_dt = order_dt + timedelta(minutes=rng.randint(1, 30))
 
-            # Demographics
-            country = _weighted_choice(COUNTRIES, rng)
+            # Demographics — ~5% of orders have no country (unknown/not provided)
+            country = "" if rng.random() < 0.05 else _weighted_choice(COUNTRIES, rng)
             age_range = _weighted_choice(AGE_RANGES, rng)
             is_age_confirmed = age_range not in ("0-17",)
             language = "ro" if country == "RO" else "en"
@@ -430,6 +451,46 @@ class Command(BaseCommand):
 
         AnalyticsTicketFact.objects.bulk_create(ticket_fact_rows, batch_size=500)
         self.stdout.write(f"  Inserted {len(ticket_fact_rows)} AnalyticsTicketFact rows.")
+
+        # ── Fake name change LogEntry records (secondary market testing) ──────
+        # Creates ~7% name-change log entries pointing to fake order IDs.
+        # Includes a mix of real transfers (counted) and corrections (filtered).
+        try:
+            from django.contrib.contenttypes.models import ContentType
+            from pretix.base.models import LogEntry, Order as PretixOrder
+            order_ct = ContentType.objects.get_for_model(PretixOrder)
+            n_changes = max(3, int(n_orders * 0.09))
+            log_entries = []
+            fake_order_id_base = 9_000_000 + (edition_year * 1000)
+            for i in range(n_changes):
+                old_name, new_name = NAME_CHANGES[i % len(NAME_CHANGES)]
+                data_payload = json.dumps({
+                    "old": {"attendee_name_parts": {"_scheme": "full", "full_name": old_name}},
+                    "new": {"attendee_name_parts": {"_scheme": "full", "full_name": new_name}},
+                })
+                log_entries.append(LogEntry(
+                    event=event,
+                    action_type="pretix.event.order.modified",
+                    content_type=order_ct,
+                    object_id=fake_order_id_base + i,
+                    data=data_payload,
+                ))
+            LogEntry.objects.bulk_create(log_entries, ignore_conflicts=True)
+            # Spread datetimes across the sale window so the monthly chart is useful
+            for j, entry in enumerate(
+                LogEntry.objects.filter(
+                    event=event,
+                    action_type="pretix.event.order.modified",
+                    object_id__gte=fake_order_id_base,
+                    object_id__lt=fake_order_id_base + n_changes,
+                ).order_by("id")
+            ):
+                spread_days = int(j / max(n_changes - 1, 1) * 180)
+                entry.datetime = event_dt - timedelta(days=180 - spread_days)
+                entry.save(update_fields=["datetime"])
+            self.stdout.write(f"  Created {n_changes} fake name-change log entries.")
+        except Exception as exc:
+            self.stdout.write(f"  Warning: could not create LogEntry records: {exc}")
 
         # ── Invalidate cohort cache ───────────────────────────────────────────
         from ...services.cohort_service import invalidate_cohort_cache

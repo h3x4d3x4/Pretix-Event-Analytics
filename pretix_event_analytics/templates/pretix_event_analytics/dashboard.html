@@ -85,86 +85,124 @@
   <!-- ── Filter bar ───────────────────────────────────────────────────────── -->
   <div class="analytics-filters">
     <form method="get" class="analytics-filter-form">
-      <div class="form-group">
-        <label>{% trans "From" %}</label>
-        {{ filter_form.date_from }}
+      <!-- Collapse toggle header -->
+      <div class="filter-header-row">
+        <span class="filter-title">
+          <span class="fa fa-filter"></span> {% trans "Filters" %}
+        </span>
+        <!-- Section nav — always visible in the filter bar header -->
+        <div class="filter-section-nav">
+          <a href="#section-overview">{% trans "Overview" %}</a>
+          <a href="#section-demographics">{% trans "Demographics" %}</a>
+          <a href="#section-sales">{% trans "Sales Trends" %}</a>
+          <a href="#section-repeat">{% trans "Repeat Buyers" %}</a>
+          <a href="#section-cohort">{% trans "Cohort" %}</a>
+          <a href="#section-tickets">{% trans "Tickets" %}</a>
+          <a href="#section-secondary">{% trans "Secondary Market" %}</a>
+        </div>
+        <button type="button" class="btn-filter-toggle" id="filterToggleBtn"
+          aria-expanded="true" title="{% trans 'Hide filters' %}">
+          <span class="fa fa-chevron-up"></span>
+        </button>
       </div>
-      <div class="form-group">
-        <label>{% trans "To" %}</label>
-        {{ filter_form.date_to }}
-      </div>
-      <div class="form-group">
-        <label>{% trans "Country" %}</label>
-        {{ filter_form.country }}
-      </div>
-      <div class="form-group">
-        <label>{% trans "Age" %}</label>
-        {{ filter_form.age_range }}
-      </div>
-      <div class="form-group">
-        <div class="dropdown">
-          <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownMenuTicketType"
-            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-            {% with selected_tickets=filter_form.ticket_type.value %}
-            {% if selected_tickets %}
-            {{ selected_tickets|length }} {% trans "Selected" %}
-            {% else %}
-            {% trans "Ticket Types" %}
-            {% endif %}
-            {% endwith %}
-            <span class="caret"></span>
-          </button>
-          <div class="dropdown-menu editions-dropdown" aria-labelledby="dropdownMenuTicketType">
-            <div class="editions-checkbox-list">
-              {{ filter_form.ticket_type }}
+      <!-- Row 1: date + dropdown filters -->
+      <div class="filter-row filter-row-dropdowns">
+        <div class="form-group">
+          <label>{% trans "From" %}</label>
+          {{ filter_form.date_from }}
+        </div>
+        <div class="form-group">
+          <label>{% trans "To" %}</label>
+          {{ filter_form.date_to }}
+        </div>
+        <div class="form-group">
+          <label>{% trans "Country" %}</label>
+          {{ filter_form.country }}
+        </div>
+        <div class="form-group">
+          <label>{% trans "Age" %}</label>
+          {{ filter_form.age_range }}
+        </div>
+        <div class="form-group">
+          <div class="dropdown">
+            <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownMenuTicketType"
+              data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+              {% with selected_tickets=filter_form.ticket_type.value %}
+              {% if selected_tickets %}
+              {% trans "Ticket Types" %}: {{ selected_tickets|length }} {% trans "selected" %}
+              {% else %}
+              {% trans "Ticket Types" %}
+              {% endif %}
+              {% endwith %}
+              <span class="caret"></span>
+            </button>
+            <div class="dropdown-menu editions-dropdown" aria-labelledby="dropdownMenuTicketType">
+              <div class="editions-checkbox-list">
+                {{ filter_form.ticket_type }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="dropdown">
+            <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownMenuEditions"
+              data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+              {% with selected_events=filter_form.editions.value %}
+              {% if selected_events %}
+              {{ selected_events|length }}
+              {% else %}
+              1
+              {% endif %}
+              {% endwith %}
+              {% trans "event(s)" %}
+              <span class="caret"></span>
+            </button>
+            <div class="dropdown-menu editions-dropdown" aria-labelledby="dropdownMenuEditions">
+              <div class="editions-checkbox-list">
+                {{ filter_form.editions }}
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="form-group">
-        <div class="dropdown">
-          <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownMenuEditions"
-            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-            {% with selected_events=filter_form.editions.value %}
-            {% if selected_events %}
-            {{ selected_events|length }}
-            {% else %}
-            1
-            {% endif %}
-            {% endwith %}
-            {% trans "event(s)" %}
-            <span class="caret"></span>
-          </button>
-          <div class="dropdown-menu editions-dropdown" aria-labelledby="dropdownMenuEditions">
-            <div class="editions-checkbox-list">
-              {{ filter_form.editions }}
-            </div>
+      <!-- Row 2: checkboxes + Apply / Clear -->
+      <div class="filter-row filter-row-actions">
+        <div class="filter-checks">
+          <div class="form-group form-check-inline">
+            {{ filter_form.repeat_only }}
+            <label class="form-check-label">{% trans "Returning only" %}</label>
+          </div>
+          <div class="form-group form-check-inline">
+            {{ filter_form.include_refunded }}
+            <label class="form-check-label">{% trans "Include refunded" %}</label>
+          </div>
+          <div class="form-group form-check-inline">
+            {{ filter_form.has_caravan }}
+            <label class="form-check-label">{% trans "Caravan only" %}</label>
           </div>
         </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <span class="fa fa-filter"></span> {% trans "Apply" %}
+          </button>
+          <a href="?" class="btn btn-default btn-sm">{% trans "Clear" %}</a>
+        </div>
       </div>
-      <div class="form-group form-check-inline">
-        {{ filter_form.repeat_only }}
-        <label class="form-check-label">{% trans "Returning only" %}</label>
-      </div>
-      <div class="form-group form-check-inline">
-        {{ filter_form.include_refunded }}
-        <label class="form-check-label">{% trans "Include refunded" %}</label>
-      </div>
-      <div class="form-group form-check-inline">
-        {{ filter_form.has_caravan }}
-        <label class="form-check-label">{% trans "Caravan only" %}</label>
-      </div>
-      <button type="submit" class="btn btn-primary btn-sm btn-filter-apply">
-        <span class="fa fa-filter"></span> {% trans "Apply" %}
-      </button>
-      <a href="?" class="btn btn-default btn-sm">{% trans "Clear" %}</a>
     </form>
   </div>
+
+  {% if no_results_from_filter %}
+  <div class="alert alert-warning" style="margin-top: 16px;">
+    <strong>{% trans "No orders match your current filters." %}</strong>
+    {% trans "Try adjusting or" %} <a href="?">{% trans "clearing the filters" %}</a>.
+  </div>
+  {% endif %}
 
   <!-- ────────────────────────────────────────────────────────────────────────
   SECTION 1: OVERVIEW KPIs
   ─────────────────────────────────────────────────────────────────────────── -->
-  <h3 class="analytics-section-title">{% trans "Overview" %}</h3>
+  <h3 id="section-overview" class="analytics-section-title">{% trans "Overview" %}</h3>
+  <!-- Row 1: Core revenue metrics -->
   <div class="row analytics-kpi-row">
     <div class="col-sm-6 col-md-3">
       <div class="kpi-card">
@@ -190,6 +228,9 @@
         <div class="kpi-value">{{ request.event.currency }} {{ avg_order_value|floatformat:2 }}</div>
       </div>
     </div>
+  </div>
+  <!-- Row 2: Buyer retention + market health -->
+  <div class="row">
     <div class="col-sm-6 col-md-3">
       <div class="kpi-card">
         <div class="kpi-label">{% trans "Returning Buyers" %}</div>
@@ -202,30 +243,10 @@
         <div class="kpi-value">{{ from_last_edition|localize }}</div>
       </div>
     </div>
-  </div>
-  <div class="row">
     <div class="col-sm-6 col-md-3">
       <div class="kpi-card kpi-highlight-error">
         <div class="kpi-label">{% trans "Refund Rate" %}</div>
         <div class="kpi-value text-danger">{{ refund_count|localize }} <small>({{ refund_pct }}%)</small></div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-md-3">
-      <div class="kpi-card kpi-highlight-green">
-        <div class="kpi-label">{% trans "High Return Score (≥60)" %}</div>
-        <div class="kpi-value">{{ high_score_count|localize }} <small>({{ high_score_pct }}%)</small></div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-md-3">
-      <div class="kpi-card">
-        <div class="kpi-label">{% trans "Caravan Passes" %}</div>
-        <div class="kpi-value">{{ caravan_count|localize }} <small>({{ caravan_pct }}%)</small></div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-md-3">
-      <div class="kpi-card">
-        <div class="kpi-label">{% trans "Group Orders" %}</div>
-        <div class="kpi-value">{{ group_order_count|localize }} <small>({{ group_order_pct }}%)</small></div>
       </div>
     </div>
     <div class="col-sm-6 col-md-3">
@@ -235,11 +256,32 @@
       </div>
     </div>
   </div>
+  <!-- Row 3: Predictive + event-specific metrics -->
+  <div class="row">
+    <div class="col-sm-6 col-md-4">
+      <div class="kpi-card kpi-highlight-green">
+        <div class="kpi-label">{% trans "High Return Score (≥60)" %}</div>
+        <div class="kpi-value">{{ high_score_count|localize }} <small>({{ high_score_pct }}%)</small></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-4">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Caravan Passes" %}</div>
+        <div class="kpi-value">{{ caravan_count|localize }} <small>({{ caravan_pct }}%)</small></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-4">
+      <div class="kpi-card">
+        <div class="kpi-label">{% trans "Group Orders" %}</div>
+        <div class="kpi-value">{{ group_order_count|localize }} <small>({{ group_order_pct }}%)</small></div>
+      </div>
+    </div>
+  </div>
 
   <!-- ────────────────────────────────────────────────────────────────────────
   SECTION 2: DEMOGRAPHICS
   ─────────────────────────────────────────────────────────────────────────── -->
-  <h3 class="analytics-section-title">{% trans "Demographics" %}</h3>
+  <h3 id="section-demographics" class="analytics-section-title">{% trans "Demographics" %}</h3>
   <div class="row">
     <div class="col-md-6">
       <div class="panel panel-default">
@@ -320,6 +362,7 @@
       <div class="panel panel-default">
         <div class="panel-heading">
           {% trans "Buyer Personas (Purchase Timing)" %}
+          {% if persona_window_desc %}<small class="text-muted pull-right">{{ persona_window_desc }}</small>{% endif %}
         </div>
         <div class="panel-body p-0">
           <table class="table table-condensed table-hover m-0" style="margin-bottom: 0;">
@@ -354,7 +397,7 @@
   <!-- ────────────────────────────────────────────────────────────────────────
   SECTION 3: SALES TRENDS
   ─────────────────────────────────────────────────────────────────────────── -->
-  <h3 class="analytics-section-title">{% trans "Sales Trends" %}</h3>
+  <h3 id="section-sales" class="analytics-section-title">{% trans "Sales Trends" %}</h3>
   <div class="row">
     <div class="col-md-12">
       <div class="panel panel-default">
@@ -391,7 +434,7 @@
   <!-- ────────────────────────────────────────────────────────────────────────
   SECTION 4: REPEAT BUYERS
   ─────────────────────────────────────────────────────────────────────────── -->
-  <h3 class="analytics-section-title">{% trans "Repeat Buyers" %}</h3>
+  <h3 id="section-repeat" class="analytics-section-title">{% trans "Repeat Buyers" %}</h3>
   <div class="row">
     <div class="col-md-5">
       <div class="panel panel-default">
@@ -436,7 +479,7 @@
   <!-- ────────────────────────────────────────────────────────────────────────
   SECTION 5: COHORT RETENTION MATRIX
   ─────────────────────────────────────────────────────────────────────────── -->
-  <h3 class="analytics-section-title">{% trans "Cohort Retention" %}</h3>
+  <h3 id="section-cohort" class="analytics-section-title">{% trans "Cohort Retention" %}</h3>
   {% if config.series %}
   {% if cohort_matrix %}
   <div class="panel panel-default">
@@ -473,7 +516,8 @@
                 {% if rate is not None %}
                 {% with pct=rate|mul:100 %}
                 <td class="cohort-cell text-center" data-bg-color="{{ pct|cohort_color }}"
-                  data-color="{% if pct > 50 %}#fff{% else %}#333{% endif %}">
+                  data-color="{% if pct > 50 %}#fff{% else %}#333{% endif %}"
+                  title="{{ rate|mul:size|floatformat:0 }} of {{ size }} {{ source_year }} buyers returned in {{ target_year }}">
                   {{ pct|floatformat:1 }}%
                 </td>
                 {% endwith %}
@@ -507,7 +551,7 @@
   <!-- ────────────────────────────────────────────────────────────────────────
   SECTION 6: TICKET INSIGHTS
   ─────────────────────────────────────────────────────────────────────────── -->
-  <h3 class="analytics-section-title">{% trans "Ticket Insights" %}</h3>
+  <h3 id="section-tickets" class="analytics-section-title">{% trans "Ticket Insights" %}</h3>
   <div class="row">
     <div class="col-md-7">
       <div class="panel panel-default">
@@ -621,7 +665,7 @@
   <!-- ────────────────────────────────────────────────────────────────────────
   SECTION 7: SECONDARY MARKET TRACKING
   ─────────────────────────────────────────────────────────────────────────── -->
-  <h3 class="analytics-section-title">{% trans "Secondary Market Tracking" %}</h3>
+  <h3 id="section-secondary" class="analytics-section-title">{% trans "Secondary Market Tracking" %}</h3>
   <div class="row">
     <div class="col-md-5">
       <div class="panel panel-default">
@@ -726,5 +770,9 @@
 <script src="{% static 'pretix_event_analytics/chart.umd.min.js' %}" nonce="{{ request.csp_nonce }}"></script>
 <script type="application/javascript" src="{% static 'pretix_event_analytics/dashboard.js' %}"
   nonce="{{ request.csp_nonce }}" defer></script>
+
+<button id="backToTop" class="btn-back-to-top" title="Back to top" aria-label="Back to top">
+  <span class="fa fa-chevron-up"></span>
+</button>
 
 {% endblock %}

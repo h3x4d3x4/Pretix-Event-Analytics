@@ -10,15 +10,10 @@
     <h1>
       <span class="fa fa-cog"></span>
       {% trans "Analytics Configuration" %}
+      <small class="text-muted">{{ request.event.name }}</small>
     </h1>
-    <p class="text-muted">
-      {% blocktrans %}
-        Link this event to a series and assign its edition year.
-        This is required for cross-edition repeat buyer detection and cohort retention analysis.
-      {% endblocktrans %}
-    </p>
 
-    {# ── Analytics status panel ── #}
+    {# ── Status panel ─────────────────────────────────────────────────────── #}
     {% if has_analytics_data %}
     <div class="panel panel-success">
       <div class="panel-heading">
@@ -49,134 +44,148 @@
         {% trans "No Analytics Data Yet" %}
       </div>
       <div class="panel-body">
-        <p>{% trans "Save the configuration below, then run a resync to import existing orders." %}</p>
+        <p>{% trans "Save the configuration below, then click Resync on the dashboard to import existing orders." %}</p>
       </div>
     </div>
     {% endif %}
 
+    {# ── Form ─────────────────────────────────────────────────────────────── #}
     <div class="panel panel-default">
-      <div class="panel-heading">{% trans "Event Series & Edition" %}</div>
+      <div class="panel-heading">{% trans "Analytics Settings" %}</div>
       <div class="panel-body">
         <form method="post" class="form-horizontal">
           {% csrf_token %}
 
           {% if form.errors %}
             <div class="alert alert-danger">
-              {% for field in form %}
-                {% for error in field.errors %}
-                  <p>{{ field.label }}: {{ error }}</p>
-                {% endfor %}
-              {% endfor %}
-              {% for error in form.non_field_errors %}
-                <p>{{ error }}</p>
-              {% endfor %}
+              {% for field in form %}{% for error in field.errors %}
+                <p><strong>{{ field.label }}:</strong> {{ error }}</p>
+              {% endfor %}{% endfor %}
+              {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
             </div>
           {% endif %}
 
-          {# Series field #}
+          {# ── Event Series ──────────────────────────────────────────────── #}
           <div class="form-group">
-            <label class="col-md-3 control-label">{{ form.series.label }}</label>
-            <div class="col-md-7">
+            <label class="col-md-3 control-label">
+              {% trans "Event Series" %}
+              <span class="label label-default" style="font-size:10px; font-weight:normal; vertical-align:middle; margin-left:4px;">{% trans "Optional" %}</span>
+            </label>
+            <div class="col-md-8">
+
+              {# Concept explainer — shown only when no series is assigned yet #}
+              {% if not form.instance.series_id %}
+              <div class="alert alert-info" style="margin-bottom:12px; font-size:13px;">
+                <strong><span class="fa fa-info-circle"></span> {% trans "What is an Event Series?" %}</strong>
+                <p style="margin: 6px 0 4px;">
+                  {% blocktrans %}
+                    A <em>series</em> is the brand name of your recurring event — e.g. <strong>"My Festival"</strong>.
+                    Each year you run it is one <em>edition</em>.
+                  {% endblocktrans %}
+                </p>
+                <div style="font-family: monospace; font-size: 12px; background:#fff; border-radius:4px; padding: 8px 12px; color: #555;">
+                  {% trans "My Festival" %} &nbsp;(<em>{% trans "series" %}</em>)<br>
+                  &nbsp;├── {% trans "My Festival 2023" %} — {% trans "edition year: 2023" %}<br>
+                  &nbsp;├── {% trans "My Festival 2024" %} — {% trans "edition year: 2024" %}<br>
+                  &nbsp;└── <strong>{% trans "My Festival 2025" %} — {% trans "edition year: 2025" %}</strong> ← {% trans "this event" %}
+                </div>
+                <p style="margin: 8px 0 0; color: #555;">
+                  {% trans "Linking editions unlocks the Cohort Retention Matrix and cross-edition buyer comparison. You can skip this for a one-off event." %}
+                </p>
+              </div>
+              {% endif %}
+
               {{ form.series }}
-              <p class="help-block">
+
+              <p class="help-block" style="margin-top: 6px;">
                 {% blocktrans %}
-                  Select the series this event belongs to. All events in the same series are
-                  compared for repeat buyer and cohort analysis.
+                  Group this event with other editions of the same recurring event.
+                  All events in the same series are compared for repeat buyer and cohort analysis.
                 {% endblocktrans %}
               </p>
               <p class="help-block">
                 {% trans "Don't have a series yet?" %}
                 <a href="{{ series_create_url }}" target="_blank">
-                  {% trans "Create one here" %} <span class="fa fa-external-link"></span>
+                  {% trans "Create one" %} <span class="fa fa-external-link"></span>
                 </a>
                 {% trans "(then refresh this page)" %}.
                 &nbsp;·&nbsp;
-                <a href="{{ series_list_url }}">
-                  {% trans "Manage all series" %} <span class="fa fa-list"></span>
-                </a>
+                <a href="{{ series_list_url }}">{% trans "Manage series" %} <span class="fa fa-list"></span></a>
               </p>
             </div>
           </div>
 
-          {# Edition year #}
+          {# ── Edition Year ──────────────────────────────────────────────── #}
           <div class="form-group">
-            <label class="col-md-3 control-label">{{ form.edition_year.label }}</label>
-            <div class="col-md-3">
+            <label class="col-md-3 control-label">{% trans "Edition Year" %}</label>
+            <div class="col-md-4">
               {{ form.edition_year }}
               {% if form.edition_year.errors %}
                 <p class="help-block text-danger">{{ form.edition_year.errors|join:", " }}</p>
               {% endif %}
-              <p class="help-block">{% trans "Calendar year of this edition, e.g. 2026. Used to order editions in cohort analysis." %}</p>
+              <p class="help-block">
+                {% trans "The year this event takes place — e.g." %} <strong>2026</strong>
+                {% trans "for a festival happening in 2026. This positions the edition correctly in the cohort retention chart." %}
+              </p>
             </div>
           </div>
 
-          {# Home country #}
+          {# ── Event Country ─────────────────────────────────────────────── #}
           <div class="form-group">
-            <label class="col-md-3 control-label">{{ form.home_country.label }}</label>
-            <div class="col-md-3">
+            <label class="col-md-3 control-label">{% trans "Event Country" %}</label>
+            <div class="col-md-5">
               {{ form.home_country }}
               {% if form.home_country.errors %}
                 <p class="help-block text-danger">{{ form.home_country.errors|join:", " }}</p>
               {% endif %}
               <p class="help-block">
-                {% trans "2-letter ISO code of the event's home country, e.g. RO, DE, FR." %}
-                {% trans "Used to identify local buyers in predictive scoring." %}
+                {% trans "Where this event is based. Buyers from the same country are flagged as 'local' in geographic reports and predictive scoring." %}
               </p>
             </div>
           </div>
 
-          {# Is active #}
+          {# ── Active toggle ─────────────────────────────────────────────── #}
           <div class="form-group">
-            <div class="col-md-7 col-md-offset-3">
+            <div class="col-md-8 col-md-offset-3">
               <div class="checkbox">
-                <label>
-                  {{ form.is_active }}
-                  {{ form.is_active.label }}
-                </label>
+                <label>{{ form.is_active }} {% trans "Enable analytics for this event" %}</label>
               </div>
-              <p class="help-block">{{ form.is_active.help_text }}</p>
+              <p class="help-block">{% trans "Uncheck to pause automatic order processing without deleting existing data." %}</p>
             </div>
           </div>
 
-          <div class="form-group">
-            <div class="col-md-7 col-md-offset-3">
+          <div class="form-group" style="margin-top: 24px;">
+            <div class="col-md-8 col-md-offset-3">
               <button type="submit" class="btn btn-primary">
                 <span class="fa fa-save"></span> {% trans "Save configuration" %}
               </button>
               <a href="{% url 'plugins:pretix_event_analytics:dashboard' organizer=request.organizer.slug event=request.event.slug %}"
-                 class="btn btn-default">
-                {% trans "Cancel" %}
-              </a>
+                 class="btn btn-default">{% trans "Cancel" %}</a>
             </div>
           </div>
         </form>
       </div>
     </div>
 
-    {# Help panel #}
+    {# ── Help panel ───────────────────────────────────────────────────────── #}
     <div class="panel panel-info">
       <div class="panel-heading">
         <span class="fa fa-info-circle"></span>
         {% trans "What happens after saving?" %}
       </div>
       <div class="panel-body">
-        <p>
-          {% trans "New orders will be processed automatically when they are paid." %}
-        </p>
-        <p>
-          {% trans "To import existing orders, use the Resync button on the dashboard or run:" %}
-        </p>
+        <p>{% trans "New orders will be processed automatically when they are paid." %}</p>
+        <p>{% trans "To import existing orders, use the Resync button on the dashboard, or run:" %}</p>
         <pre>python -m pretix analytics_resync --event {{ request.event.slug }} --organizer {{ request.organizer.slug }}</pre>
         <p>
-          {% trans "After your event ends, add" %}
-          <code>--checkin</code>
+          {% trans "After your event ends, add" %} <code>--checkin</code>
           {% trans "to incorporate check-in data into predictive scores:" %}
         </p>
         <pre>python -m pretix analytics_resync --event {{ request.event.slug }} --organizer {{ request.organizer.slug }} --checkin</pre>
         <hr>
         <p class="text-muted small">
           <span class="fa fa-lock"></span>
-          {% trans "No PII is stored. Email addresses are converted to HMAC-SHA256 hashes before storage and are never recoverable." %}
+          {% trans "No personal data is stored. Email addresses are converted to HMAC-SHA256 hashes before storage and are never recoverable." %}
         </p>
       </div>
     </div>

@@ -20,6 +20,9 @@ pretix.cfg
 *.cfg
 !setup.cfg
 
+# Pretix runtime data (SQLite DB, secret key, cache, media, logs)
+.pretix_data/
+
 # Dev / scratch files (root-level only)
 /fix_html.py
 /query_db.py
@@ -38,9 +41,10 @@ Planning/
 .DS_Store
 .AppleDouble
 
-# IDE
+# IDE / editor tooling
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 

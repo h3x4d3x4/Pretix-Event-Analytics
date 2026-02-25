@@ -1,4 +1,6 @@
 (function () {
+    // Disable browser's built-in scroll restoration so we can control it manually
+    if (history.scrollRestoration) history.scrollRestoration = 'manual';
     const palette = [
         '#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6',
         '#1abc9c', '#34495e', '#e67e22', '#95a5a6', '#16a085',
@@ -31,9 +33,19 @@
         buyerStats: loadJson('buyer-stats') || { new_buyers: 0, repeat_count: 0 }
     };
 
+    function noData(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const msg = document.createElement('p');
+        msg.className = 'text-center text-muted';
+        msg.style.cssText = 'padding: 24px 0; margin: 0; font-size: 13px;';
+        msg.textContent = 'No data available';
+        el.parentNode.replaceChild(msg, el);
+    }
+
     function makeBar(id, labels, data, label, color) {
         const ctx = document.getElementById(id);
-        if (!ctx || !labels || !labels.length) return;
+        if (!ctx || !labels || !labels.length) { noData(id); return; }
         new Chart(ctx, {
             type: 'bar',
             data: {
@@ -50,7 +62,7 @@
 
     function makeHBar(id, labels, data, label, singleColor) {
         const ctx = document.getElementById(id);
-        if (!ctx || !labels || !labels.length) return;
+        if (!ctx || !labels || !labels.length) { noData(id); return; }
         new Chart(ctx, {
             type: 'bar',
             data: {
@@ -326,15 +338,83 @@
         });
     });
 
-    // Loading state for filter form
+    // ── Active filter badge ────────────────────────────────────────────────────
     const filterForm = document.querySelector('.analytics-filter-form');
     if (filterForm) {
+        const params = new URLSearchParams(window.location.search);
+        let activeCount = 0;
+        params.forEach(function (val) { if (val && val.trim()) activeCount++; });
+        if (activeCount > 0) {
+            filterForm.classList.add('has-active-filters');
+            const badge = document.createElement('span');
+            badge.className = 'filter-active-badge';
+            badge.textContent = activeCount + ' filter' + (activeCount > 1 ? 's' : '') + ' active';
+            const actionsDiv = filterForm.querySelector('.filter-actions');
+            if (actionsDiv) actionsDiv.insertBefore(badge, actionsDiv.firstChild);
+        }
+
+        // Loading spinner on Apply + save scroll position
         filterForm.addEventListener('submit', function () {
-            const btn = filterForm.querySelector('.btn-filter-apply');
+            sessionStorage.setItem('analytics_scroll_y', window.scrollY);
+            const btn = filterForm.querySelector('.filter-actions button[type="submit"]');
             if (btn) {
-                btn.classList.add('disabled');
-                btn.innerHTML = '<span class="fa fa-spinner fa-spin"></span> ' + btn.textContent.trim();
+                btn.disabled = true;
+                btn.innerHTML = '<span class="fa fa-spinner fa-spin"></span> Applying…';
             }
+        });
+
+        // Restore scroll position after filter reload
+        const savedY = sessionStorage.getItem('analytics_scroll_y');
+        if (savedY !== null) {
+            sessionStorage.removeItem('analytics_scroll_y');
+            // Double rAF ensures the page has laid out before we scroll
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    window.scrollTo(0, parseInt(savedY, 10));
+                });
+            });
+        }
+
+        // ── Collapse toggle ────────────────────────────────────────────────
+        const toggleBtn = document.getElementById('filterToggleBtn');
+        if (toggleBtn) {
+            const STORAGE_KEY = 'analytics_filter_collapsed';
+
+            function applyCollapsed(collapsed) {
+                const icon = toggleBtn.querySelector('.fa');
+                if (collapsed) {
+                    filterForm.classList.add('is-collapsed');
+                    icon.className = 'fa fa-chevron-down';
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                    toggleBtn.title = 'Show filters';
+                } else {
+                    filterForm.classList.remove('is-collapsed');
+                    icon.className = 'fa fa-chevron-up';
+                    toggleBtn.setAttribute('aria-expanded', 'true');
+                    toggleBtn.title = 'Hide filters';
+                }
+            }
+
+            // Restore saved state (but never start collapsed when filters are active)
+            const savedCollapsed = localStorage.getItem(STORAGE_KEY) === '1' && activeCount === 0;
+            applyCollapsed(savedCollapsed);
+
+            toggleBtn.addEventListener('click', function () {
+                const nowCollapsed = !filterForm.classList.contains('is-collapsed');
+                applyCollapsed(nowCollapsed);
+                localStorage.setItem(STORAGE_KEY, nowCollapsed ? '1' : '0');
+            });
+        }
+    }
+
+    // ── Back to top button ─────────────────────────────────────────────────────
+    const backToTop = document.getElementById('backToTop');
+    if (backToTop) {
+        window.addEventListener('scroll', function () {
+            backToTop.classList.toggle('visible', window.scrollY > 300);
+        }, { passive: true });
+        backToTop.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     }
 
@@ -349,6 +429,16 @@
                 // cancels the submit event. So we are safe here.
                 btn.classList.add('disabled');
                 btn.innerHTML = '<span class="fa fa-spinner fa-spin"></span> ' + btn.textContent.trim();
+            }
+        });
+    });
+
+    // ── Empty chart fallback ───────────────────────────────────────────────────
+    // Any <canvas> that didn't get a Chart.js instance shows "No data available"
+    requestAnimationFrame(function () {
+        document.querySelectorAll('canvas[id]').forEach(function (canvas) {
+            if (typeof Chart !== 'undefined' && !Chart.getChart(canvas)) {
+                noData(canvas.id);
             }
         });
     });

@@ -17,24 +17,39 @@ Advanced analytics plugin for [Pretix](https://pretix.eu) with cross-edition rep
 
 ## Requirements
 
-- Pretix 2024.x or later
+- Pretix 2025.x or later (tested on 2026.x)
 - Python 3.10+
 - Django 4.2+
 - Redis (for Celery task queue — optional, falls back to synchronous processing)
 
 ## Installation
 
+### From PyPI (recommended for production)
+
+Install the package into the same Python environment as Pretix:
+
 ```bash
 pip install pretix-event-analytics
 ```
 
-Then add `pretix_event_analytics` to `INSTALLED_APPS` in your Pretix configuration, or install it as a Pretix plugin in the admin panel.
+Pretix auto-discovers the plugin via its entry point — no changes to `INSTALLED_APPS` are needed. Enable the plugin per-organizer in the Pretix admin panel under **Organizer → Plugins**.
 
 Run migrations:
 
 ```bash
 python -m pretix migrate
 ```
+
+### From source (development / self-hosted)
+
+```bash
+git clone https://github.com/your-org/pretix-event-analytics.git
+cd pretix-event-analytics
+pip install -e .
+python -m pretix migrate
+```
+
+Again, enable the plugin per-organizer in **Organizer → Plugins** after installation.
 
 ## Configuration
 

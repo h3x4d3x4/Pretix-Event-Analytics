@@ -21,7 +21,7 @@ from decimal import Decimal
 
 import pycountry
 from django.contrib import messages
-from django.db.models import Avg, Count, Max, Q, Sum
+from django.db.models import Avg, Count, Max, Min, Q, Sum
 from django.db.models.functions import TruncDay, TruncHour
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -288,30 +288,67 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
             })
 
         # ── Buyer Personas (Purchase Timing) ──────────────────────────────────
-        persona_breakdown = {
-            "Early Bird (>180 days)": {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
-            "Regular (60-180 days)": {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
-            "Last Minute (<60 days)": {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
+        # Windows are computed dynamically from each event's sale start date:
+        #   Early Bird  = orders placed in the first 25% of the sale window
+        #   Last Minute = orders placed in the last 30 days before the event
+        #   Regular     = everything in between
+        LAST_MINUTE_DAYS = 30
+
+        # Min order_datetime per event (= when tickets first went on sale)
+        sale_starts = {
+            row["event_id"]: row["sale_start"]
+            for row in base_qs.values("event_id").annotate(sale_start=Min("order_datetime"))
         }
+
+        persona_breakdown = {
+            "Early Bird": {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
+            "Regular":    {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
+            f"Last Minute (last {LAST_MINUTE_DAYS} days)": {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
+        }
+
+        # Track computed cutoffs per event so the template can show them
+        persona_cutoffs = {}
 
         persona_orders = base_qs.values(
             "event_id", "order_datetime", "total_gross", "is_repeat_buyer", "has_caravan_pass"
         )
-        
+
         for p in persona_orders:
             evt = event_dict.get(p["event_id"])
             if not evt or not evt.date_from:
                 continue
-                
-            days_before = (evt.date_from.date() - p["order_datetime"].date()).days
-            
-            if days_before >= 180:
-                key = "Early Bird (>180 days)"
-            elif days_before >= 60:
-                key = "Regular (60-180 days)"
+
+            event_date = evt.date_from.date()
+            order_date = p["order_datetime"].date()
+            days_before = (event_date - order_date).days
+
+            sale_start = sale_starts.get(p["event_id"])
+            if sale_start:
+                sale_start_date = sale_start.date() if hasattr(sale_start, "date") else sale_start
+                sale_window = max(1, (event_date - sale_start_date).days)
+                # First 25% of the sale window, at least 30 days
+                early_bird_window = max(30, sale_window // 4)
+                # "days before event" threshold: orders with more days remaining are Early Bird
+                early_bird_cutoff = sale_window - early_bird_window
             else:
-                key = "Last Minute (<60 days)"
-                
+                sale_window = 0
+                early_bird_window = 0
+                early_bird_cutoff = 180  # fallback
+
+            if p["event_id"] not in persona_cutoffs:
+                persona_cutoffs[p["event_id"]] = {
+                    "sale_window": sale_window,
+                    "early_bird_days": early_bird_window,
+                    "early_bird_cutoff": early_bird_cutoff,
+                }
+
+            if days_before > early_bird_cutoff:
+                key = "Early Bird"
+            elif days_before <= LAST_MINUTE_DAYS:
+                key = f"Last Minute (last {LAST_MINUTE_DAYS} days)"
+            else:
+                key = "Regular"
+
             persona_breakdown[key]["count"] += 1
             persona_breakdown[key]["revenue"] += float(p["total_gross"] or 0)
             if p["is_repeat_buyer"]:
@@ -324,6 +361,16 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
             v["aov"] = round(v["revenue"] / cnt, 2) if cnt else 0
             v["repeat_pct"] = round(v["repeats"] / cnt * 100, 1) if cnt else 0
             v["addon_pct"] = round(v["addons"] / cnt * 100, 1) if cnt else 0
+
+        # Build a human-readable window description for the current event
+        current_cutoffs = persona_cutoffs.get(event.id)
+        if current_cutoffs and current_cutoffs["sale_window"]:
+            persona_window_desc = (
+                f"Early Bird: first {current_cutoffs['early_bird_days']} days of sales · "
+                f"Last Minute: last {LAST_MINUTE_DAYS} days before event"
+            )
+        else:
+            persona_window_desc = f"Last Minute: last {LAST_MINUTE_DAYS} days before event"
 
 
         # ── Repeat buyers ─────────────────────────────────────────────────────
@@ -444,6 +491,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
                 "can_resync": can_resync,
                 "last_synced": last_synced,
                 "resync_url": resync_url,
+                "no_results_from_filter": total_orders == 0 and bool(filter_data),
                 # KPIs
                 "total_revenue": agg["total_revenue"] or 0,
                 "total_orders": total_orders,
@@ -533,6 +581,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
                 "group_order_pct": group_order_pct,
                 # Personas
                 "persona_breakdown": persona_breakdown,
+                "persona_window_desc": persona_window_desc,
                 # Add-on segmentation
                 "addon_by_segment": addon_by_segment,
                 # Secondary market

@@ -19,18 +19,22 @@ logger = logging.getLogger(__name__)
 
 # ── Smart name change helpers ─────────────────────────────────────────────────
 
-def _extract_names_from_log_data(data_str: str):
+def _extract_names_from_log_data(data_input):
     """
-    Try to extract (old_name, new_name) from a Pretix LogEntry.data JSON string.
+    Try to extract (old_name, new_name) from a Pretix LogEntry.data value.
     Returns a (old_name, new_name) tuple or None if the format isn't recognised.
 
     Pretix stores order modification data in a few different formats depending
-    on the version. We try the most common ones.
+    on the version. We handle both JSONField (returns dict) and TextField (returns
+    JSON string) transparently.
     """
-    try:
-        data = json.loads(data_str)
-    except (json.JSONDecodeError, TypeError):
-        return None
+    if isinstance(data_input, dict):
+        data = data_input
+    else:
+        try:
+            data = json.loads(data_input)
+        except (json.JSONDecodeError, TypeError):
+            return None
 
     if not isinstance(data, dict):
         return None
@@ -121,6 +125,13 @@ def get_name_change_stats(event) -> Dict:
 
     with scopes_disabled():
         total_orders = Order.objects.filter(event=event, status=Order.STATUS_PAID).count()
+        if not total_orders:
+            # Fall back to analytics fact table — covers test data / development setups
+            # where real Pretix Order objects were not created.
+            from ..models import AnalyticsOrderFact
+            total_orders = AnalyticsOrderFact.objects.filter(
+                event=event, order_status="p", is_refunded=False
+            ).count()
         result["total_orders"] = total_orders
 
         if not total_orders:

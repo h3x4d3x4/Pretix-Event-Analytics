@@ -165,7 +165,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
                 revenue=Sum("total_gross"),
                 aov=Avg("total_gross")
             )
-            .order_by("-count")[:20]
+            .order_by("-count", "country_code")[:20]
         )
 
         country_breakdown = []
@@ -252,7 +252,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
 
         pacing_orders = base_qs.values(
             "event_id", "order_datetime", "total_gross"
-        ).order_by("order_datetime")
+        ).order_by("order_datetime").iterator(chunk_size=500)
 
         pacing_data_by_edition = defaultdict(lambda: defaultdict(float))
 
@@ -293,6 +293,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
         #   Last Minute = orders placed in the last 30 days before the event
         #   Regular     = everything in between
         LAST_MINUTE_DAYS = 30
+        LAST_MINUTE_KEY = f"Last Minute (last {LAST_MINUTE_DAYS} days)"
 
         # Min order_datetime per event (= when tickets first went on sale)
         sale_starts = {
@@ -303,7 +304,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
         persona_breakdown = {
             "Early Bird": {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
             "Regular":    {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
-            f"Last Minute (last {LAST_MINUTE_DAYS} days)": {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
+            LAST_MINUTE_KEY: {"count": 0, "revenue": 0, "repeats": 0, "addons": 0},
         }
 
         # Track computed cutoffs per event so the template can show them
@@ -311,7 +312,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
 
         persona_orders = base_qs.values(
             "event_id", "order_datetime", "total_gross", "is_repeat_buyer", "has_caravan_pass"
-        )
+        ).iterator(chunk_size=500)
 
         for p in persona_orders:
             evt = event_dict.get(p["event_id"])
@@ -345,7 +346,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
             if days_before > early_bird_cutoff:
                 key = "Early Bird"
             elif days_before <= LAST_MINUTE_DAYS:
-                key = f"Last Minute (last {LAST_MINUTE_DAYS} days)"
+                key = LAST_MINUTE_KEY
             else:
                 key = "Regular"
 
@@ -467,14 +468,24 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
                 })
 
         # ── Secondary market tracking ─────────────────────────────────────────
-        secondary_market = get_name_change_stats(event)
+        try:
+            secondary_market = get_name_change_stats(event)
+        except Exception:
+            logger.exception("analytics: secondary market stats failed for %s", event.slug)
+            secondary_market = {
+                "total_name_changes": 0, "orders_with_changes": 0,
+                "total_orders": 0, "name_change_rate": 0.0, "changes_by_month": [],
+            }
 
         # Cross-edition name change comparison (only if part of a series)
         name_changes_by_edition = []
         if config.series:
-            name_changes_by_edition = get_name_changes_by_edition(
-                config.series, event.organizer
-            )
+            try:
+                name_changes_by_edition = get_name_changes_by_edition(
+                    config.series, event.organizer
+                )
+            except Exception:
+                logger.exception("analytics: cross-edition name changes failed for %s", event.slug)
 
         # ── Editions count (for filter bar label) ─────────────────────────────
         editions_available_count = Event.objects.filter(

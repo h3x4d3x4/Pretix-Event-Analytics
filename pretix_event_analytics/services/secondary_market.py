@@ -112,7 +112,7 @@ def get_name_change_stats(event) -> Dict:
         - changes_by_month: list of {month: str, count: int}
     """
     from django.contrib.contenttypes.models import ContentType
-    from django_scopes import scopes_disabled
+    from django_scopes import scope
     from pretix.base.models import LogEntry, Order
 
     result = {
@@ -123,7 +123,7 @@ def get_name_change_stats(event) -> Dict:
         "changes_by_month": [],
     }
 
-    with scopes_disabled():
+    with scope(organizer=event.organizer):
         total_orders = Order.objects.filter(event=event, status=Order.STATUS_PAID).count()
         if not total_orders:
             # Fall back to analytics fact table — covers test data / development setups
@@ -200,10 +200,10 @@ def get_name_changes_by_edition(series, organizer) -> List[Dict]:
     :returns: List of {edition_year, name_change_rate, orders_with_changes, total_orders}
               sorted by edition_year ascending.
     """
-    from django_scopes import scopes_disabled
+    from django_scopes import scope
     from pretix.base.models import Event
 
-    with scopes_disabled():
+    with scope(organizer=organizer):
         events = list(
             Event.objects.filter(
                 organizer=organizer,

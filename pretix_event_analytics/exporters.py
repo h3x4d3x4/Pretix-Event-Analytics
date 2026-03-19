@@ -10,11 +10,19 @@ PDF export: rendered via WeasyPrint (Pretix's own PDF engine) from a
 """
 import csv
 import logging
+import re
 from datetime import datetime
 
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
+
+
+def _safe_filename(slug: str, ext: str) -> str:
+    """Sanitize a slug for use in Content-Disposition filenames."""
+    clean = re.sub(r'[^\w\-.]', '_', slug)[:100]
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"analytics_{clean}_{timestamp}.{ext}"
 
 from .filters import apply_dashboard_filters
 from .forms import DashboardFilterForm
@@ -38,8 +46,7 @@ def export_csv(request, event) -> HttpResponse:
     """
     qs = _get_filtered_qs(request, event)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"analytics_{event.slug}_{timestamp}.csv"
+    filename = _safe_filename(event.slug, "csv")
 
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -204,8 +211,7 @@ def export_pdf(request, event) -> HttpResponse:
 
     pdf_bytes = weasyprint.HTML(string=html_string).write_pdf()
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"analytics_{event.slug}_{timestamp}.pdf"
+    filename = _safe_filename(event.slug, "pdf")
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'

@@ -9,16 +9,23 @@ All queries are scoped to:
   - Same series slug
   - edition_year < current event's edition year
   - Paid orders that are NOT refunded
+
+Concurrency: callers must wrap evaluate_repeat_status() inside
+transaction.atomic() to serialise concurrent repeat detection for the
+same buyer.
 """
+import logging
 from typing import Optional
 
 from ..models import AnalyticsOrderFact, EventAnalyticsConfig
 
+logger = logging.getLogger(__name__)
+
 
 def evaluate_repeat_status(event, identities: list[dict]) -> dict:
     """
-    Check previous editions for matching identities (Stripe cards, Name+DOB, Emails). 
-    Returns the "best" match—meaning if ANY of the included identities attended 
+    Check previous editions for matching identities (Stripe cards, Name+DOB, Emails).
+    Returns the "best" match—meaning if ANY of the included identities attended
     a previous edition, the overall order is flagged as a repeat.
 
     :param event: Pretix Event instance.
@@ -49,11 +56,13 @@ def evaluate_repeat_status(event, identities: list[dict]) -> dict:
     identity_query = Q()
     for identity in identities:
         identity_query |= Q(
-            identities__identity_type=identity["type"], 
+            identities__identity_type=identity["type"],
             identities__identity_hash=identity["hash"]
         )
 
-    # Find all previous-edition facts for ANY of these identities within the series
+    # Find all previous-edition facts for ANY of these identities within the series.
+    # Caller must wrap this in transaction.atomic() to serialise concurrent
+    # repeat detection for the same buyer.
     previous_facts = (
         AnalyticsOrderFact.objects.filter(
             identity_query,

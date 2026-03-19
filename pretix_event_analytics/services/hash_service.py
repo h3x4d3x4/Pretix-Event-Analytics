@@ -33,8 +33,8 @@ def _get_salt() -> str:
             "Neither PRETIX_ANALYTICS_SECRET_SALT nor SECRET_KEY is configured."
         )
     return hmac.new(
-        b"pretix-event-analytics-salt",
         secret_key.encode("utf-8"),
+        b"pretix-event-analytics-salt",
         hashlib.sha256,
     ).hexdigest()
 

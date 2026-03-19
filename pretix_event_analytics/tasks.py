@@ -14,7 +14,7 @@ from pretix.celery_app import app
 logger = logging.getLogger(__name__)
 
 
-@app.task(bind=True, max_retries=3, default_retry_delay=60, queue="background")
+@app.task(bind=True, max_retries=3, queue="background")
 def process_order_paid(self, order_pk: int):
     """
     Full analytics ingestion pipeline for a newly paid order.
@@ -69,32 +69,35 @@ def process_order_paid(self, order_pk: int):
         order_fact_data, ticket_facts_data = normalize_order(order, config)
     except Exception as exc:
         logger.exception("analytics: normalization failed for order %s", order_pk)
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
 
-    # Extract internal keys before DB operations
+    # Extract internal keys AFTER normalization succeeds (safe to consume)
     identities = order_fact_data.pop("_identities", [])
     order_fact_data.pop("_repeat_hashes", None)
+    is_local_buyer = order_fact_data.pop("_is_local_buyer", False)
+    bought_early = order_fact_data.pop("_bought_early", False)
 
-    # Run repeat detection using identity-based matching
-    if identities:
-        repeat_status = evaluate_repeat_status(order.event, identities)
-        order_fact_data.update(repeat_status)
-
-    # Calculate predictive probability
-    probability = calculate_repeat_probability(
-        {
-            "repeat_count": order_fact_data.get("repeat_count", 0),
-            "ticket_count": order_fact_data.get("ticket_count", 1),
-            "is_group_order": order_fact_data.get("is_group_order", False),
-            "is_local_buyer": order_fact_data.pop("_is_local_buyer", False),
-            "bought_early": order_fact_data.pop("_bought_early", False),
-            "checkin_completed": False,  # Not possible at payment time
-        }
-    )
-    order_fact_data["predicted_repeat_probability"] = probability
-
-    # All DB writes in a single atomic block to prevent partial state
+    # Entire read-compute-write cycle in one transaction to serialise
+    # concurrent repeat detection for the same buyer.
     with transaction.atomic():
+        # Run repeat detection using identity-based matching
+        if identities:
+            repeat_status = evaluate_repeat_status(order.event, identities)
+            order_fact_data.update(repeat_status)
+
+        # Calculate predictive probability
+        probability = calculate_repeat_probability(
+            {
+                "repeat_count": order_fact_data.get("repeat_count", 0),
+                "ticket_count": order_fact_data.get("ticket_count", 1),
+                "is_group_order": order_fact_data.get("is_group_order", False),
+                "is_local_buyer": is_local_buyer,
+                "bought_early": bought_early,
+                "checkin_completed": False,  # Not possible at payment time
+            }
+        )
+        order_fact_data["predicted_repeat_probability"] = probability
+
         # Upsert AnalyticsOrderFact
         fact, created = AnalyticsOrderFact.objects.update_or_create(
             event=order.event,
@@ -103,18 +106,16 @@ def process_order_paid(self, order_pk: int):
         )
 
         # Replace ticket facts entirely (clean + re-insert)
-        if not created:
-            AnalyticsTicketFact.objects.filter(order_fact=fact).delete()
+        AnalyticsTicketFact.objects.filter(order_fact=fact).delete()
 
         ticket_objs = [
             AnalyticsTicketFact(order_fact=fact, event=order.event, **tf_data)
             for tf_data in ticket_facts_data
         ]
-        AnalyticsTicketFact.objects.bulk_create(ticket_objs)
+        AnalyticsTicketFact.objects.bulk_create(ticket_objs, ignore_conflicts=True)
 
-        # Create/replace identity records for repeat detection
-        if not created:
-            AnalyticsIdentity.objects.filter(order_fact=fact).delete()
+        # Replace identity records for repeat detection
+        AnalyticsIdentity.objects.filter(order_fact=fact).delete()
         if identities:
             AnalyticsIdentity.objects.bulk_create(
                 [
@@ -125,8 +126,14 @@ def process_order_paid(self, order_pk: int):
                         identity_hash=i["hash"],
                     )
                     for i in identities
-                ]
+                ],
+                ignore_conflicts=True,
             )
+
+    # Invalidate cohort cache when a new order affects the series
+    if config.series:
+        from .services.cohort_service import invalidate_cohort_cache
+        invalidate_cohort_cache(config.series.slug, order.event.organizer_id)
 
     logger.debug(
         "analytics: ingested order %s (%s), repeat=%s, score=%s, identities=%d",
@@ -138,7 +145,7 @@ def process_order_paid(self, order_pk: int):
     )
 
 
-@app.task(bind=True, max_retries=3, default_retry_delay=60, queue="background")
+@app.task(bind=True, max_retries=3, queue="background")
 def process_order_canceled(self, order_pk: int):
     """
     Update the analytics fact for a canceled or refunded order.
@@ -174,7 +181,7 @@ def process_order_canceled(self, order_pk: int):
         )
 
 
-@app.task(bind=True, max_retries=3, default_retry_delay=60, queue="background")
+@app.task(bind=True, max_retries=3, queue="background")
 def process_checkin_created(self, order_pk: int):
     """
     Mark checkin_completed=True and recompute predictive score.
@@ -225,7 +232,7 @@ def process_checkin_created(self, order_pk: int):
     )
 
 
-@app.task(bind=True, max_retries=3, default_retry_delay=120, queue="background")
+@app.task(bind=True, max_retries=3, queue="background")
 def trigger_event_resync(self, event_pk: int, include_checkin: bool = False):
     """
     UI-triggered full resync for a single event.
@@ -260,4 +267,4 @@ def trigger_event_resync(self, event_pk: int, include_checkin: bool = False):
         )
     except Exception as exc:
         logger.exception("analytics: UI resync failed for event %s", event.slug)
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc, countdown=120 * (2 ** self.request.retries))

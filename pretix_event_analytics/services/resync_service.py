@@ -76,79 +76,88 @@ def resync_event(
         except ImportError:
             log("Warning: Checkin model not available, skipping checkin data.")
 
-    # ── Fetch all paid orders ─────────────────────────────────────────────────
+    # ── Fetch paid order PKs, then process in chunks to avoid OOM ───────────
     with scope(organizer=event.organizer):
-        orders = list(
+        order_pks = list(
             Order.objects.filter(event=event, status=Order.STATUS_PAID)
-            .select_related("event__organizer", "invoice_address")
-            .prefetch_related(
-                "positions__item",
-                "positions__variation",
-                "positions__answers__question",
-                "payments",
-                "refunds",
-            )
+            .order_by("pk")
+            .values_list("pk", flat=True)
         )
 
+    CHUNK_SIZE = 200
     processed = 0
     skipped = 0
 
-    for order in orders:
-        try:
-            order_fact_data, ticket_facts_data = normalize_order(order, config)
-
-            identities = order_fact_data.pop("_identities", [])
-            repeat_hashes = order_fact_data.pop("_repeat_hashes", []) # Clean up legacy key
-            
-            if identities:
-                repeat_status = evaluate_repeat_status(event, identities)
-                order_fact_data.update(repeat_status)
-
-            checkin_done = order.code in checkin_order_codes
-            order_fact_data["checkin_completed"] = checkin_done
-
-            probability = calculate_repeat_probability(
-                {
-                    "repeat_count": order_fact_data.get("repeat_count", 0),
-                    "ticket_count": order_fact_data.get("ticket_count", 1),
-                    "is_group_order": order_fact_data.get("is_group_order", False),
-                    "is_local_buyer": order_fact_data.pop("_is_local_buyer", False),
-                    "bought_early": order_fact_data.pop("_bought_early", False),
-                    "checkin_completed": checkin_done,
-                }
+    for i in range(0, len(order_pks), CHUNK_SIZE):
+        chunk_pks = order_pks[i:i + CHUNK_SIZE]
+        with scope(organizer=event.organizer):
+            chunk_orders = list(
+                Order.objects.filter(pk__in=chunk_pks)
+                .select_related("event__organizer", "invoice_address")
+                .prefetch_related(
+                    "positions__item",
+                    "positions__variation",
+                    "positions__answers__question",
+                    "payments",
+                    "refunds",
+                )
             )
-            order_fact_data["predicted_repeat_probability"] = probability
-            order_fact_data.pop("_bought_early", None)
-            order_fact_data.pop("_is_local_buyer", None)
+        for order in chunk_orders:
+            try:
+                order_fact_data, ticket_facts_data = normalize_order(order, config)
 
-            fact = AnalyticsOrderFact.objects.create(event=event, **order_fact_data)
-            
-            AnalyticsTicketFact.objects.bulk_create(
-                [
-                    AnalyticsTicketFact(order_fact=fact, event=event, **tf)
-                    for tf in ticket_facts_data
-                ]
-            )
-            
-            AnalyticsIdentity.objects.bulk_create(
-                [
-                    AnalyticsIdentity(
-                        order_fact=fact, 
-                        event=event, 
-                        identity_type=i["type"], 
-                        identity_hash=i["hash"]
-                    )
-                    for i in identities
-                ]
-            )
-            
-            processed += 1
+                identities = order_fact_data.pop("_identities", [])
+                order_fact_data.pop("_repeat_hashes", None)
 
-        except Exception as exc:
-            logger.warning(
-                "analytics resync: skipped order %s — %s", order.code, exc
-            )
-            skipped += 1
+                if identities:
+                    repeat_status = evaluate_repeat_status(event, identities)
+                    order_fact_data.update(repeat_status)
+
+                checkin_done = order.code in checkin_order_codes
+                order_fact_data["checkin_completed"] = checkin_done
+
+                probability = calculate_repeat_probability(
+                    {
+                        "repeat_count": order_fact_data.get("repeat_count", 0),
+                        "ticket_count": order_fact_data.get("ticket_count", 1),
+                        "is_group_order": order_fact_data.get("is_group_order", False),
+                        "is_local_buyer": order_fact_data.pop("_is_local_buyer", False),
+                        "bought_early": order_fact_data.pop("_bought_early", False),
+                        "checkin_completed": checkin_done,
+                    }
+                )
+                order_fact_data["predicted_repeat_probability"] = probability
+                order_fact_data.pop("_bought_early", None)
+                order_fact_data.pop("_is_local_buyer", None)
+
+                fact = AnalyticsOrderFact.objects.create(event=event, **order_fact_data)
+
+                AnalyticsTicketFact.objects.bulk_create(
+                    [
+                        AnalyticsTicketFact(order_fact=fact, event=event, **tf)
+                        for tf in ticket_facts_data
+                    ]
+                )
+
+                AnalyticsIdentity.objects.bulk_create(
+                    [
+                        AnalyticsIdentity(
+                            order_fact=fact,
+                            event=event,
+                            identity_type=i["type"],
+                            identity_hash=i["hash"],
+                        )
+                        for i in identities
+                    ]
+                )
+
+                processed += 1
+
+            except Exception as exc:
+                logger.warning(
+                    "analytics resync: skipped order %s — %s", order.code, exc
+                )
+                skipped += 1
 
     # ── Invalidate caches for this series ─────────────────────────────────────
     if config.series:

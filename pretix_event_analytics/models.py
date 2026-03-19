@@ -127,7 +127,7 @@ class AnalyticsOrderFact(models.Model):
     ticket_count = models.IntegerField(default=0)
     unique_attendee_count = models.IntegerField(default=0)
     is_group_order = models.BooleanField(default=False)
-    payment_provider = models.CharField(max_length=100, blank=True)
+    payment_provider = models.CharField(max_length=100, blank=True, db_index=True)
     is_refunded = models.BooleanField(default=False)
 
     # ── Geography ────────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ class AnalyticsOrderFact(models.Model):
     # ── Repeat buyer detection ───────────────────────────────────────────────
     # HMAC-SHA256(email, SECRET_SALT) — never store raw email
     repeat_hash = models.CharField(max_length=64, db_index=True, blank=True)
-    is_repeat_buyer = models.BooleanField(default=False)
+    is_repeat_buyer = models.BooleanField(default=False, db_index=True)
     repeat_from_last_edition = models.BooleanField(default=False)
     repeat_from_any_previous = models.BooleanField(default=False)
     repeat_count = models.IntegerField(default=0)
@@ -236,6 +236,12 @@ class AnalyticsTicketFact(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order_fact", "item_id", "variation_id"],
+                name="unique_ticket_per_order_item",
+            ),
+        ]
         indexes = [
             models.Index(fields=["event", "item_id"]),
             models.Index(fields=["order_fact"]),
@@ -282,7 +288,6 @@ class AnalyticsIdentity(models.Model):
         ]
         indexes = [
             models.Index(fields=["event", "identity_type", "identity_hash"]),
-            models.Index(fields=["identity_hash", "identity_type"]),
         ]
         verbose_name = _("Analytics Identity")
         verbose_name_plural = _("Analytics Identities")

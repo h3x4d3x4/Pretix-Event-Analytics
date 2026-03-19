@@ -28,7 +28,7 @@ def get_nested(dictionary, key1, key2):
     if dictionary is None:
         return None
     inner = dictionary.get(key1)
-    if inner is None:
+    if not isinstance(inner, dict):
         return None
     return inner.get(key2)
 
@@ -50,7 +50,7 @@ def cohort_color(pct):
     Used to give the cohort heatmap table a visual gradient.
     """
     try:
-        pct = float(pct)
+        pct = max(0.0, min(100.0, float(pct)))
     except (TypeError, ValueError):
         return "rgba(245,245,245,1)"
 

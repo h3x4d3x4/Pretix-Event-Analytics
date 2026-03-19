@@ -23,12 +23,15 @@ Caching:
   - build_cohort_matrix and get_cohort_sizes results are cached for
     CACHE_TTL seconds.  Call invalidate_cohort_cache() after any resync.
 """
+import logging
 from typing import Dict
 
 from django.core.cache import cache
 from django.db.models import Count
 
-CACHE_TTL = 30 * 60  # 30 minutes
+logger = logging.getLogger(__name__)
+
+CACHE_TTL = 60 * 60  # 60 minutes
 
 
 def _cache_key(series_slug: str, organizer_id: int, suffix: str) -> str:
@@ -45,9 +48,12 @@ def build_cohort_matrix(series_slug: str, organizer_id: int) -> Dict[int, Dict[i
               Retention rate is 0.0–1.0 (e.g. 0.42 = 42%).
     """
     key = _cache_key(series_slug, organizer_id, "matrix")
-    cached = cache.get(key)
-    if cached is not None:
-        return cached
+    try:
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
+    except Exception:
+        logger.debug("analytics: cache read failed for cohort matrix", exc_info=True)
 
     from ..models import AnalyticsOrderFact
 
@@ -93,7 +99,10 @@ def build_cohort_matrix(series_slug: str, organizer_id: int) -> Dict[int, Dict[i
                 intersection_size / len(source_cohort), 4
             )
 
-    cache.set(key, matrix, CACHE_TTL)
+    try:
+        cache.set(key, matrix, CACHE_TTL)
+    except Exception:
+        logger.debug("analytics: cache write failed for cohort matrix", exc_info=True)
     return matrix
 
 
@@ -103,9 +112,12 @@ def get_cohort_sizes(series_slug: str, organizer_id: int) -> Dict[int, int]:
     Used for the cohort matrix header row.
     """
     key = _cache_key(series_slug, organizer_id, "sizes")
-    cached = cache.get(key)
-    if cached is not None:
-        return cached
+    try:
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
+    except Exception:
+        logger.debug("analytics: cache read failed for cohort sizes", exc_info=True)
 
     from ..models import AnalyticsOrderFact
 
@@ -123,11 +135,17 @@ def get_cohort_sizes(series_slug: str, organizer_id: int) -> Dict[int, int]:
         .order_by("edition_year")
     )
     result = {row["edition_year"]: row["buyer_count"] for row in rows}
-    cache.set(key, result, CACHE_TTL)
+    try:
+        cache.set(key, result, CACHE_TTL)
+    except Exception:
+        logger.debug("analytics: cache write failed for cohort sizes", exc_info=True)
     return result
 
 
 def invalidate_cohort_cache(series_slug: str, organizer_id: int) -> None:
-    """Delete cached cohort data for a series. Call after any resync."""
-    cache.delete(_cache_key(series_slug, organizer_id, "matrix"))
-    cache.delete(_cache_key(series_slug, organizer_id, "sizes"))
+    """Delete cached cohort data for a series. Call after any resync or new order."""
+    try:
+        cache.delete(_cache_key(series_slug, organizer_id, "matrix"))
+        cache.delete(_cache_key(series_slug, organizer_id, "sizes"))
+    except Exception:
+        logger.debug("analytics: cache invalidation failed for cohort data", exc_info=True)

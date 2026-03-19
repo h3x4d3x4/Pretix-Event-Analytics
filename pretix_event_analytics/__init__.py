@@ -17,7 +17,4 @@ class PretixPluginMeta:
         "cohort retention matrix, predictive repeat scoring, and a full analytics dashboard."
     )
     category = "FEATURE"
-    compatibility = "pretix>=4.0.0"
-
-
-default_app_config = "pretix_event_analytics.apps.PluginApp"
+    compatibility = "pretix>=2025.0.0"

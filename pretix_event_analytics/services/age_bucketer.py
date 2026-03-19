@@ -7,8 +7,11 @@ The raw birthdate is NEVER stored.
 
 Question label match: "Birth Date", "Birthdate", "Date of Birth", etc.
 """
+import logging
 from datetime import date, datetime
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 # Question label keywords used to identify the birth date question
@@ -67,6 +70,7 @@ def resolve_age_range(order) -> str:
 
             birthdate = _parse_birthdate(answer.answer)
             if birthdate is None:
+                logger.debug("analytics: unparseable birth date '%s' in order", answer.answer)
                 continue
 
             # Calculate age correctly accounting for birthday not yet passed
@@ -75,6 +79,10 @@ def resolve_age_range(order) -> str:
                 - birthdate.year
                 - ((today.month, today.day) < (birthdate.month, birthdate.day))
             )
+            # Skip unreasonable ages (future dates or impossibly old)
+            if age < 0 or age > 120:
+                logger.debug("analytics: unreasonable age %d from birth date '%s'", age, answer.answer)
+                continue
             return _age_to_bucket(age)
 
     return ""

@@ -1,8 +1,11 @@
 """
 Country resolver — determines buyer country for an order.
 """
+import logging
 
 import pycountry
+
+logger = logging.getLogger(__name__)
 
 # Keywords to identify a "country of residence" type question
 _COUNTRY_KEYWORDS = ("country", "land", "paese", "país", "residence")
@@ -56,8 +59,10 @@ def resolve_country(order) -> str:
         country = str(ia.country) if ia.country else ""
         if country and len(country) == 2:
             return country.upper()
+    except AttributeError:
+        pass  # No invoice_address relationship
     except Exception:
-        pass
+        logger.debug("analytics: failed to read invoice_address for order %s", order.code, exc_info=True)
 
     # 3. Custom question containing country-related keywords
     for position in order.positions.all():
@@ -92,5 +97,8 @@ def resolve_city_and_postal(order) -> tuple:
     try:
         ia = order.invoice_address
         return (ia.city or "").strip(), (ia.zipcode or "").strip()
+    except AttributeError:
+        return "", ""  # No invoice_address relationship
     except Exception:
+        logger.debug("analytics: failed to read city/postal for order %s", order.code, exc_info=True)
         return "", ""

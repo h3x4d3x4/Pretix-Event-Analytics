@@ -40,7 +40,12 @@ def _parse_length_meters(raw: str) -> float:
     if cm_match:
         return float(cm_match.group(1)) / 100.0
 
-    # Handle bare number that looks like centimetres (> 20 → likely cm)
+    # Handle metre-suffixed numbers
+    m_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:m|meter|metre|meters|metres)\b", raw)
+    if m_match:
+        return float(m_match.group(1))
+
+    # Handle bare number: > 20 is almost certainly cm (no van is 20+ metres)
     num_match = re.search(r"(\d+(?:\.\d+)?)", raw)
     if num_match:
         value = float(num_match.group(1))

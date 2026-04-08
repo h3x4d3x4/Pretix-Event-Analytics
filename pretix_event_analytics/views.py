@@ -138,7 +138,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
 
         base_qs = apply_dashboard_filters(base_qs, filter_data)
 
-        # ── Overview KPIs ────────────────────────────────────────────────────
+        # ── Overview KPIs (single aggregate query) ────────────────────────────
         agg = base_qs.aggregate(
             total_revenue=Sum("total_gross"),
             total_orders=Count("id"),
@@ -147,16 +147,25 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
             repeat_count=Count("id", filter=Q(is_repeat_buyer=True)),
             caravan_count=Count("id", filter=Q(has_caravan_pass=True)),
             high_score_count=Count("id", filter=Q(predicted_repeat_probability__gte=60)),
+            age_confirmed_count=Count("id", filter=Q(is_age_confirmed=True)),
+            from_last_edition=Count("id", filter=Q(repeat_from_last_edition=True)),
+            from_any_previous=Count("id", filter=Q(repeat_from_any_previous=True)),
+            group_order_count=Count("id", filter=Q(is_group_order=True)),
         )
 
         total_orders = agg["total_orders"] or 0
         repeat_count = agg["repeat_count"] or 0
         caravan_count = agg["caravan_count"] or 0
         high_score_count = agg["high_score_count"] or 0
+        age_confirmed_count = agg["age_confirmed_count"] or 0
+        from_last_edition = agg["from_last_edition"] or 0
+        from_any_previous = agg["from_any_previous"] or 0
+        group_order_count = agg["group_order_count"] or 0
 
         repeat_pct = round(repeat_count / total_orders * 100, 1) if total_orders else 0
         caravan_pct = round(caravan_count / total_orders * 100, 1) if total_orders else 0
         high_score_pct = round(high_score_count / total_orders * 100, 1) if total_orders else 0
+        group_order_pct = round(group_order_count / total_orders * 100, 1) if total_orders else 0
 
         # ── Demographics ──────────────────────────────────────────────────────
         country_breakdown_raw = list(
@@ -199,8 +208,6 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
             .annotate(count=Count("id"))
             .order_by("age_range")
         )
-        age_confirmed_count = base_qs.filter(is_age_confirmed=True).count()
-
         # ── Languages & Payments ──────────────────────────────────────────────
         language_breakdown = list(
             base_qs.exclude(language="")
@@ -376,8 +383,6 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
 
 
         # ── Repeat buyers ─────────────────────────────────────────────────────
-        from_last_edition = base_qs.filter(repeat_from_last_edition=True).count()
-        from_any_previous = base_qs.filter(repeat_from_any_previous=True).count()
         new_buyers = total_orders - repeat_count
 
         prob_distribution = list(
@@ -421,8 +426,6 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
         )
         for a in addon_breakdown:
             a["attach_rate"] = round(a["count"] / total_orders * 100, 1) if total_orders else 0
-        group_order_count = base_qs.filter(is_group_order=True).count()
-        group_order_pct = round(group_order_count / total_orders * 100, 1) if total_orders else 0
 
         # ── Add-on attach rates by segment ────────────────────────────────────
         addon_by_segment = []

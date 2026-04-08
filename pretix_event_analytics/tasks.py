@@ -14,7 +14,7 @@ from pretix.celery_app import app
 logger = logging.getLogger(__name__)
 
 
-@app.task(bind=True, max_retries=3, queue="background")
+@app.task(bind=True, max_retries=3, acks_late=True, queue="background")
 def process_order_paid(self, order_pk: int):
     """
     Full analytics ingestion pipeline for a newly paid order.
@@ -145,7 +145,7 @@ def process_order_paid(self, order_pk: int):
     )
 
 
-@app.task(bind=True, max_retries=3, queue="background")
+@app.task(bind=True, max_retries=3, acks_late=True, queue="background")
 def process_order_canceled(self, order_pk: int):
     """
     Update the analytics fact for a canceled or refunded order.
@@ -181,7 +181,7 @@ def process_order_canceled(self, order_pk: int):
         )
 
 
-@app.task(bind=True, max_retries=3, queue="background")
+@app.task(bind=True, max_retries=3, acks_late=True, queue="background")
 def process_checkin_created(self, order_pk: int):
     """
     Mark checkin_completed=True and recompute predictive score.
@@ -232,7 +232,7 @@ def process_checkin_created(self, order_pk: int):
     )
 
 
-@app.task(bind=True, max_retries=3, queue="background")
+@app.task(bind=True, max_retries=3, acks_late=True, queue="background")
 def trigger_event_resync(self, event_pk: int, include_checkin: bool = False):
     """
     UI-triggered full resync for a single event.

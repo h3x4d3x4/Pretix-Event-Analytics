@@ -1,0 +1,382 @@
+.analytics-dashboard {
+  padding-bottom: 40px;
+}
+
+.analytics-header {
+  margin-bottom: 20px;
+}
+
+.analytics-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 28px 0 14px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #e5e5e5;
+  color: #333;
+}
+
+.analytics-filters {
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 50;
+  /* Ensure it stays above the absolutely positioned KPI cards */
+}
+
+.analytics-filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Row 1: date pickers + dropdowns */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Row 2: checkboxes left, Apply/Clear right */
+.filter-row-actions {
+  justify-content: space-between;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 10px;
+  margin-top: 2px;
+}
+
+.filter-checks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.analytics-filter-form .form-group {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.analytics-filter-form label {
+  margin: 0;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.analytics-filter-form .form-check-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+.analytics-filter-form .form-check-inline input[type="checkbox"] {
+  margin: 0;
+}
+
+.analytics-empty-state {
+  margin-bottom: 24px;
+}
+
+/* KPI cards */
+.kpi-card {
+  background: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Gradient highlight bars */
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #e0e0e0;
+  /* Default subtle bar */
+}
+
+.kpi-highlight::before {
+  background: linear-gradient(90deg, #3498db, #2980b9);
+}
+
+.kpi-highlight-green::before {
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+}
+
+.kpi-highlight-error::before {
+  background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-top: 8px;
+  line-height: 1.1;
+}
+
+.kpi-value small {
+  font-size: 14px;
+  font-weight: 500;
+  color: #95a5a6;
+}
+
+/* Panels and Charts */
+.analytics-dashboard .panel {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.analytics-dashboard .panel-heading {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #f1f2f6;
+  font-weight: 600;
+  color: #34495e;
+  padding: 14px 20px;
+}
+
+.analytics-dashboard .panel-body {
+  padding: 20px;
+}
+
+/* Cohort matrix */
+.cohort-matrix-table {
+  font-size: 14px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.cohort-matrix-table th {
+  background: #f8f9fa;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom-width: 2px !important;
+  color: #555;
+}
+
+.cohort-cell {
+  min-width: 80px;
+  font-weight: 500;
+}
+
+.cohort-past {
+  background: #f9f9f9;
+  color: #c8c8c8;
+  text-align: center;
+}
+
+/* Form layout polish */
+.analytics-filter-form {
+  background: #fff;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 24px;
+}
+/* end filter form */
+
+.editions-dropdown {
+  padding: 10px;
+  min-width: 220px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1050;
+  /* Ensure dropdown floats above KPIs and charts */
+}
+
+.editions-checkbox-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editions-checkbox-list label {
+  margin: 0;
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.form-inline-action {
+  display: inline;
+}
+
+/* ── Filter bar section nav ───────────────────────────────────────────────── */
+.filter-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
+
+.filter-section-nav a {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #f1f3f5;
+  color: #555;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid #e2e6ea;
+  transition: background 0.15s, color 0.15s;
+}
+
+.filter-section-nav a:hover {
+  background: #3498db;
+  color: #fff;
+  border-color: #3498db;
+  text-decoration: none;
+}
+
+/* ── Sticky filter bar ────────────────────────────────────────────────────── */
+.analytics-filters {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: transparent;
+  padding-top: 4px;
+  margin-bottom: 0;
+}
+
+/* ── Active filter badge ──────────────────────────────────────────────────── */
+.filter-active-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: #3498db;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  align-self: center;
+}
+
+.has-active-filters {
+  border: 2px solid #3498db !important;
+  box-shadow: 0 2px 12px rgba(52, 152, 219, 0.15) !important;
+}
+
+/* ── Filter collapse toggle ───────────────────────────────────────────────── */
+.filter-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+
+.filter-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-filter-toggle {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  color: #999;
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.6;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.btn-filter-toggle:hover {
+  color: #3498db;
+  border-color: #3498db;
+  background: #f0f7fd;
+}
+
+/* Hide the filter rows when collapsed, keep header visible */
+.analytics-filter-form.is-collapsed .filter-row {
+  display: none;
+}
+
+.analytics-filter-form.is-collapsed .filter-header-row {
+  margin-bottom: 0;
+}
+
+/* In collapsed state the sticky bar is thin — add a bottom separator */
+.analytics-filter-form.is-collapsed {
+  padding-bottom: 10px;
+}
+
+
+/* ── Back to top button ───────────────────────────────────────────────────── */
+.btn-back-to-top {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 200;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.btn-back-to-top.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.btn-back-to-top:hover {
+  background: #2980b9;
+  transform: translateY(-2px);
+}

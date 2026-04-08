@@ -1,0 +1,6 @@
+include LICENSE
+include README.md
+recursive-include pretix_event_analytics/templates *
+recursive-include pretix_event_analytics/static *
+recursive-include pretix_event_analytics/locale *
+include pretix_event_analytics/migrations/*.py

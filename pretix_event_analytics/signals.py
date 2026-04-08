@@ -1,0 +1,155 @@
+"""
+Signal handlers — bridges Pretix events to our async analytics tasks.
+
+All handlers are intentionally thin: they validate minimally and dispatch
+a Celery task.  No DB work happens in the signal handler itself.
+
+Signals used:
+  order_paid          — new paid order → full ingestion pipeline
+  order_canceled      — canceled or refunded → update fact record
+  checkin_created     — attendee checked in → update score
+
+Navigation:
+  nav_event           — injects the Analytics link into the event sidebar
+  nav_event_settings  — injects the Analytics Settings link in event Settings tab
+  nav_organizer       — injects Series Management into organiser sidebar
+"""
+import logging
+
+from django.dispatch import receiver
+from django.urls import reverse
+
+from pretix.base.signals import checkin_created, order_canceled, order_paid
+from pretix.control.signals import nav_event, nav_event_settings, nav_organizer
+
+logger = logging.getLogger(__name__)
+
+
+# ── Order lifecycle ───────────────────────────────────────────────────────────
+
+@receiver(order_paid, dispatch_uid="pretix_analytics_order_paid")
+def on_order_paid(sender, order, **kwargs):
+    """Queue analytics ingestion when an order is paid."""
+    from .tasks import process_order_paid
+
+    try:
+        process_order_paid.apply_async(
+            args=[order.pk],
+            countdown=5,  # Brief delay so all related objects are committed
+        )
+    except Exception:
+        logger.exception("analytics: failed to queue order_paid task for order %s", order.pk)
+
+
+@receiver(order_canceled, dispatch_uid="pretix_analytics_order_canceled")
+def on_order_canceled(sender, order, **kwargs):
+    """Update analytics fact when an order is canceled or refunded."""
+    from .tasks import process_order_canceled
+
+    try:
+        process_order_canceled.apply_async(args=[order.pk])
+    except Exception:
+        logger.exception("analytics: failed to queue order_canceled task for order %s", order.pk)
+
+
+@receiver(checkin_created, dispatch_uid="pretix_analytics_checkin_created")
+def on_checkin_created(sender, checkin, **kwargs):
+    """
+    Recompute predictive score when an attendee checks in.
+    checkin.position.order_id gives us the order PK.
+    """
+    from .tasks import process_checkin_created
+
+    try:
+        order_pk = checkin.position.order_id
+        process_checkin_created.apply_async(args=[order_pk])
+    except Exception:
+        logger.exception("analytics: failed to queue checkin update")
+
+
+# ── Navigation ────────────────────────────────────────────────────────────────
+
+@receiver(nav_event, dispatch_uid="pretix_analytics_nav_event")
+def add_analytics_nav(sender, request=None, **kwargs):
+    """
+    Add the Analytics entry to the event control panel main sidebar.
+    Only shown to users with can_view_orders permission.
+    """
+    if not request or not request.event:
+        return []
+    if not request.user.has_event_permission(
+        request.organizer, request.event, "can_view_orders", request
+    ):
+        return []
+
+    url = reverse(
+        "plugins:pretix_event_analytics:dashboard",
+        kwargs={
+            "organizer": request.organizer.slug,
+            "event": request.event.slug,
+        },
+    )
+    return [
+        {
+            "label": "Analytics",
+            "url": url,
+            "icon": "bar-chart",
+            "active": "pretix_event_analytics" in request.path,
+        }
+    ]
+
+
+@receiver(nav_event_settings, dispatch_uid="pretix_analytics_nav_event_settings")
+def add_analytics_settings_nav(sender, request=None, **kwargs):
+    """
+    Add the Analytics Configuration link to the event Settings sidebar tab.
+    Only shown to users with can_change_event_settings permission.
+    """
+    if not request or not request.event:
+        return []
+    if not request.user.has_event_permission(
+        request.organizer, request.event, "can_change_event_settings", request
+    ):
+        return []
+
+    url = reverse(
+        "plugins:pretix_event_analytics:config",
+        kwargs={
+            "organizer": request.organizer.slug,
+            "event": request.event.slug,
+        },
+    )
+    return [
+        {
+            "label": "Analytics",
+            "url": url,
+            "active": request.path.startswith(url),
+        }
+    ]
+
+
+@receiver(nav_organizer, dispatch_uid="pretix_analytics_nav_organizer")
+def add_organizer_nav(sender, request=None, **kwargs):
+    """
+    Add Analytics → Series Management to the organiser sidebar.
+    Only shown to users with can_change_organizer_settings permission.
+    """
+    if not request or not request.organizer:
+        return []
+    if not request.user.has_organizer_permission(
+        request.organizer, "can_change_organizer_settings", request
+    ):
+        return []
+
+    url = reverse(
+        "plugins:pretix_event_analytics:series_list",
+        kwargs={"organizer": request.organizer.slug},
+    )
+    return [
+        {
+            "label": "Analytics Series",
+            "url": url,
+            "icon": "bar-chart",
+            "active": "analytics/series" in request.path,
+        }
+    ]

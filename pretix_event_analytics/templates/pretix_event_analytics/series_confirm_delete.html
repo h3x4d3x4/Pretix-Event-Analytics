@@ -1,0 +1,38 @@
+{% extends "pretixcontrol/organizer/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Delete Series" %} — {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-7 col-md-offset-2">
+    <div class="panel panel-danger">
+      <div class="panel-heading">
+        <span class="fa fa-warning"></span>
+        {% trans "Delete series" %} "{{ object.name }}"?
+      </div>
+      <div class="panel-body">
+        {% if object.event_configs.exists %}
+          <div class="alert alert-warning">
+            {% blocktrans with count=object.event_configs.count %}
+              This series is linked to {{ count }} event(s). Deleting it will unlink those events
+              and disable cross-edition analytics. The analytics data itself will not be deleted.
+            {% endblocktrans %}
+          </div>
+        {% endif %}
+        <p>{% trans "This action cannot be undone." %}</p>
+        <form method="post">
+          {% csrf_token %}
+          <a href="{% url 'plugins:pretix_event_analytics:series_list' organizer=request.organizer.slug %}"
+             class="btn btn-default">
+            {% trans "Cancel" %}
+          </a>
+          <button type="submit" class="btn btn-danger">
+            <span class="fa fa-trash"></span> {% trans "Yes, delete" %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

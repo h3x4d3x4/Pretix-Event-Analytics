@@ -1,0 +1,65 @@
+{% extends "pretixcontrol/organizer/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ action }} — {% trans "Analytics Series" %}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-7 col-md-offset-2">
+
+    <h1>{{ action }}</h1>
+
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <form method="post" class="form-horizontal">
+          {% csrf_token %}
+
+          {% if form.errors %}
+            <div class="alert alert-danger">
+              {% for field in form %}
+                {% for error in field.errors %}
+                  <p>{{ field.label }}: {{ error }}</p>
+                {% endfor %}
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="form-group">
+            <label class="col-md-3 control-label">{{ form.name.label }}</label>
+            <div class="col-md-7">
+              {{ form.name }}
+              {% if form.name.errors %}
+                <p class="help-block text-danger">{{ form.name.errors|join:", " }}</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="col-md-3 control-label">{{ form.slug.label }}</label>
+            <div class="col-md-7">
+              {{ form.slug }}
+              {% if form.slug.errors %}
+                <p class="help-block text-danger">{{ form.slug.errors|join:", " }}</p>
+              {% endif %}
+              <p class="help-block">{{ form.slug.help_text }}</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="col-md-7 col-md-offset-3">
+              <button type="submit" class="btn btn-primary">
+                <span class="fa fa-save"></span> {% trans "Save" %}
+              </button>
+              <a href="{% url 'plugins:pretix_event_analytics:series_list' organizer=request.organizer.slug %}"
+                 class="btn btn-default">
+                {% trans "Cancel" %}
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

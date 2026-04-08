@@ -1,0 +1,149 @@
+{% load analytics_tags %}<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Analytics Report — {{ event.name }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #333; }
+  .page { padding: 30px 36px; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  h2 { font-size: 14px; font-weight: 600; margin: 22px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; color: #222; }
+  .subtitle { color: #888; font-size: 11px; margin-bottom: 24px; }
+  .kpi-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .kpi-box { flex: 0 0 calc(25% - 8px); border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; }
+  .kpi-label { font-size: 9px; text-transform: uppercase; color: #999; letter-spacing: .4px; }
+  .kpi-val { font-size: 18px; font-weight: 700; margin-top: 2px; }
+  .kpi-val small { font-size: 11px; font-weight: normal; color: #888; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { background: #f7f7f7; font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 2px solid #ddd; font-size: 10px; }
+  td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; font-size: 10px; }
+  tr:last-child td { border-bottom: none; }
+  .cohort-table th, .cohort-table td { text-align: center; }
+  .cohort-table th:first-child, .cohort-table td:first-child { text-align: left; }
+  .high { background: #27ae60; color: #fff; }
+  .mid { background: #3498db; color: #fff; }
+  .low { background: #ecf0f1; color: #555; }
+  .footer { margin-top: 40px; font-size: 9px; color: #aaa; border-top: 1px solid #eee; padding-top: 8px; }
+  @page { size: A4; margin: 20mm 15mm; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Analytics Report — {{ event.name }}</h1>
+  <p class="subtitle">
+    {% if config and config.series %}
+      Series: {{ config.series.name }} · Edition: {{ config.edition_year }} ·
+    {% endif %}
+    Generated: {{ generated_at|date:"Y-m-d H:i" }}
+  </p>
+
+  {# Overview KPIs #}
+  <h2>Overview</h2>
+  <div class="kpi-grid">
+    <div class="kpi-box">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-val">{{ event.currency }} {{ total_revenue|floatformat:2 }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Orders</div>
+      <div class="kpi-val">{{ total_orders }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Tickets Sold</div>
+      <div class="kpi-val">{{ total_tickets }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Avg Order Value</div>
+      <div class="kpi-val">{{ event.currency }} {{ avg_order_value|floatformat:2 }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Returning Buyers</div>
+      <div class="kpi-val">{{ repeat_count }} <small>({{ repeat_pct }}%)</small></div>
+    </div>
+  </div>
+
+  {# Country breakdown #}
+  {% if country_breakdown %}
+    <h2>Country Breakdown (Top 20)</h2>
+    <table>
+      <thead>
+        <tr><th>Country</th><th style="text-align:right">Orders</th></tr>
+      </thead>
+      <tbody>
+        {% for row in country_breakdown %}
+          <tr>
+            <td>{{ row.country_code }}</td>
+            <td style="text-align:right">{{ row.count }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {# Age breakdown #}
+  {% if age_breakdown %}
+    <h2>Age Distribution</h2>
+    <table>
+      <thead>
+        <tr><th>Age Range</th><th style="text-align:right">Buyers</th></tr>
+      </thead>
+      <tbody>
+        {% for row in age_breakdown %}
+          <tr>
+            <td>{{ row.age_range }}</td>
+            <td style="text-align:right">{{ row.count }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {# Cohort retention matrix #}
+  {% if cohort_matrix %}
+    <h2>Cohort Retention Matrix — {{ config.series.name }}</h2>
+    <table class="cohort-table">
+      <thead>
+        <tr>
+          <th>Cohort ↓ / Edition →</th>
+          {% for year in all_cohort_years %}<th>{{ year }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for source_year in cohort_years %}
+          <tr>
+            <td><strong>{{ source_year }}</strong>
+              {% if cohort_sizes|get_item:source_year %}
+                <br><small style="color:#aaa">{{ cohort_sizes|get_item:source_year }} buyers</small>
+              {% endif %}
+            </td>
+            {% for target_year in all_cohort_years %}
+              {% if target_year <= source_year %}
+                <td style="color:#ccc;">—</td>
+              {% else %}
+                {% get_nested cohort_matrix source_year target_year as rate %}
+                {% if rate is not None %}
+                  {% with pct=rate|mul:100 %}
+                    <td class="{% if pct >= 40 %}high{% elif pct >= 20 %}mid{% else %}low{% endif %}">
+                      {{ pct|floatformat:1 }}%
+                    </td>
+                  {% endwith %}
+                {% else %}
+                  <td style="color:#ccc;">—</td>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <div class="footer">
+    Report generated by pretix Event Analytics plugin · {{ generated_at|date:"Y-m-d H:i:s" }}
+  </div>
+
+</div>
+</body>
+</html>

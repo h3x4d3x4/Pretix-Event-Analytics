@@ -23,10 +23,21 @@ from .models import AnalyticsOrderFact, EventAnalyticsConfig
 
 
 def _safe_filename(slug: str, ext: str) -> str:
-    """Sanitize a slug for use in Content-Disposition filenames."""
-    clean = re.sub(r'[^\w\-.]', '_', slug)[:100]
+    """
+    Sanitize a slug for use in Content-Disposition filenames.
+
+    Rejects null bytes, quotes, path separators and traversal sequences —
+    these can truncate the header on some clients or be interpreted as
+    filesystem paths by naïve download handlers. The result is strictly
+    [A-Za-z0-9_-]+ truncated to 50 chars, prefixed/suffixed with a fixed
+    timestamp and extension.
+    """
+    if not isinstance(slug, str) or "\0" in slug or ".." in slug or "/" in slug or "\\" in slug:
+        slug = "event"
+    clean = re.sub(r"[^A-Za-z0-9_-]", "_", slug)[:50] or "event"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"analytics_{clean}_{timestamp}.{ext}"
+    safe_ext = re.sub(r"[^A-Za-z0-9]", "", ext)[:8] or "bin"
+    return f"analytics_{clean}_{timestamp}.{safe_ext}"
 
 logger = logging.getLogger(__name__)
 

@@ -17,6 +17,15 @@ logger = logging.getLogger(__name__)
 # Question label keywords used to identify the birth date question
 _BIRTH_KEYWORDS = ("birth", "geboren", "nascita", "nacimiento")  # DE/IT/ES fallbacks
 
+# Keywords used to identify the "I am 18+ / have legal guardian consent"
+# confirmation question. Kept here as the single source of truth — both
+# order-level and position-level age-confirmation checks import from here.
+_CONFIRM_KEYWORDS = ("18", "legal guardian", "volljährig", "maggiorenne")
+
+# Affirmative / negative answer tokens across common locales.
+_YES_TOKENS = frozenset({"true", "yes", "1", "ja", "si", "sì", "oui"})
+_NO_TOKENS = frozenset({"false", "no", "0", "nein", "non"})
+
 # Ordered buckets: (max_age_exclusive, label)
 _BUCKETS = [
     (18, "0-17"),
@@ -27,6 +36,24 @@ _BUCKETS = [
     (65, "55-64"),
     (None, "65+"),
 ]
+
+
+def parse_yes_no(answer_text: str):
+    """Parse a Pretix checkbox/text answer into a tri-state bool."""
+    if not answer_text:
+        return None
+    ans = str(answer_text).lower().strip()
+    if ans in _YES_TOKENS:
+        return True
+    if ans in _NO_TOKENS:
+        return False
+    return None
+
+
+def is_age_confirm_question(question_text: str) -> bool:
+    """True if the question label is the 18+ / legal-guardian confirmation."""
+    lower = (question_text or "").lower()
+    return any(kw in lower for kw in _CONFIRM_KEYWORDS)
 
 
 def _age_to_bucket(age: int) -> str:
@@ -92,20 +119,15 @@ def resolve_age_confirmed(order) -> Optional[bool]:
     """
     Check if the buyer explicitly confirmed they are 18+ years old.
 
-    Looks for a question containing "18" or "legal guardian".
-    Returns True if answered affirmatively, False if not, None if question absent.
+    Looks for a question matching `is_age_confirm_question`. Returns True
+    if answered affirmatively, False if not, None if the question is
+    absent or the answer is unrecognized.
     """
-    _CONFIRM_KEYWORDS = ("18", "legal guardian", "volljährig", "maggiorenne")
-
     for position in order.positions.all():
         for answer in position.answers.all():
-            question_text = str(answer.question.question).lower()
-            if any(kw in question_text for kw in _CONFIRM_KEYWORDS):
-                ans = answer.answer.lower().strip()
-                # Pretix stores checkbox answers as 'True' / 'False'
-                if ans in ("true", "yes", "1", "ja", "si", "sì", "oui"):
-                    return True
-                if ans in ("false", "no", "0"):
-                    return False
-
+            if not is_age_confirm_question(str(answer.question.question)):
+                continue
+            parsed = parse_yes_no(answer.answer)
+            if parsed is not None:
+                return parsed
     return None

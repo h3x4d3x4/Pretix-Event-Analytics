@@ -222,9 +222,13 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
             .order_by("-count")
         )
 
-        unfiltered_qs = AnalyticsOrderFact.objects.filter(event=event)
-        refund_count = unfiltered_qs.filter(is_refunded=True).count()
-        total_all_orders = unfiltered_qs.count()
+        # Single aggregate query covers both counts; previously we ran two.
+        refund_agg = AnalyticsOrderFact.objects.filter(event=event).aggregate(
+            total=Count("id"),
+            refunded=Count("id", filter=Q(is_refunded=True)),
+        )
+        total_all_orders = refund_agg["total"] or 0
+        refund_count = refund_agg["refunded"] or 0
         refund_pct = round(refund_count / total_all_orders * 100, 1) if total_all_orders else 0
 
         # ── Caravan breakdown ─────────────────────────────────────────────────
@@ -430,17 +434,34 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
         # ── Add-on attach rates by segment ────────────────────────────────────
         addon_by_segment = []
         if addon_breakdown:
-            repeat_orders = base_qs.filter(is_repeat_buyer=True)
-            new_orders = base_qs.filter(is_repeat_buyer=False)
-            repeat_total = repeat_orders.count()
-            new_total = new_orders.count()
+            # Order fact ids that have at least one add-on ticket — fetched
+            # once, then membership-tested locally. Avoids a per-segment
+            # subquery over AnalyticsTicketFact.
+            fact_ids_with_addons = set(
+                AnalyticsTicketFact.objects.filter(
+                    event=event, is_addon=True,
+                )
+                .values_list("order_fact_id", flat=True)
+                .distinct()
+            )
 
-            repeat_addon_count = AnalyticsTicketFact.objects.filter(
-                event=event, is_addon=True, order_fact__in=repeat_orders
-            ).values("order_fact").distinct().count()
-            new_addon_count = AnalyticsTicketFact.objects.filter(
-                event=event, is_addon=True, order_fact__in=new_orders
-            ).values("order_fact").distinct().count()
+            # Repeat / new totals + add-on totals in a single aggregate.
+            repeat_agg = base_qs.aggregate(
+                repeat_total=Count("id", filter=Q(is_repeat_buyer=True)),
+                new_total=Count("id", filter=Q(is_repeat_buyer=False)),
+                repeat_with_addon=Count(
+                    "id",
+                    filter=Q(is_repeat_buyer=True, id__in=fact_ids_with_addons),
+                ),
+                new_with_addon=Count(
+                    "id",
+                    filter=Q(is_repeat_buyer=False, id__in=fact_ids_with_addons),
+                ),
+            )
+            repeat_total = repeat_agg["repeat_total"] or 0
+            new_total = repeat_agg["new_total"] or 0
+            repeat_addon_count = repeat_agg["repeat_with_addon"] or 0
+            new_addon_count = repeat_agg["new_with_addon"] or 0
 
             addon_by_segment.append({
                 "segment": "Returning Buyers",
@@ -455,17 +476,24 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
                 "attach_rate": round(new_addon_count / new_total * 100, 1) if new_total else 0,
             })
 
-            # By age range
-            for age in ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"]:
-                age_orders = base_qs.filter(age_range=age)
-                age_total = age_orders.count()
+            # Per-age segment: single GROUP-BY query instead of one query
+            # per age range.
+            age_rows = (
+                base_qs.exclude(age_range="")
+                .values("age_range")
+                .annotate(
+                    total=Count("id"),
+                    with_addon=Count("id", filter=Q(id__in=fact_ids_with_addons)),
+                )
+                .order_by("age_range")
+            )
+            for row in age_rows:
+                age_total = row["total"] or 0
                 if age_total == 0:
                     continue
-                age_addon_count = AnalyticsTicketFact.objects.filter(
-                    event=event, is_addon=True, order_fact__in=age_orders
-                ).values("order_fact").distinct().count()
+                age_addon_count = row["with_addon"] or 0
                 addon_by_segment.append({
-                    "segment": f"Age {age}",
+                    "segment": f"Age {row['age_range']}",
                     "total": age_total,
                     "with_addon": age_addon_count,
                     "attach_rate": round(age_addon_count / age_total * 100, 1) if age_total else 0,
@@ -496,6 +524,43 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
             organizer=request.organizer,
             analytics_config__isnull=False,
         ).count()
+
+        # ── Active filter chips (human-readable summary) ──────────────────────
+        active_filter_chips = []
+        if filter_data:
+            if filter_data.get("date_from"):
+                active_filter_chips.append(
+                    "{}: {}".format(_("From"), filter_data["date_from"])
+                )
+            if filter_data.get("date_to"):
+                active_filter_chips.append(
+                    "{}: {}".format(_("To"), filter_data["date_to"])
+                )
+            if filter_data.get("country"):
+                active_filter_chips.append(
+                    "{}: {}".format(_("Country"), filter_data["country"])
+                )
+            if filter_data.get("age_range"):
+                active_filter_chips.append(
+                    "{}: {}".format(_("Age"), filter_data["age_range"])
+                )
+            if filter_data.get("repeat_only"):
+                active_filter_chips.append(str(_("Returning only")))
+            if filter_data.get("include_refunded"):
+                active_filter_chips.append(str(_("Incl. refunded")))
+            if filter_data.get("has_caravan"):
+                active_filter_chips.append(str(_("Caravan only")))
+            if filter_data.get("ticket_type"):
+                active_filter_chips.append(
+                    "{}: {}".format(
+                        _("Ticket types"),
+                        len(filter_data["ticket_type"]),
+                    )
+                )
+            if filter_data.get("editions"):
+                active_filter_chips.append(
+                    "{}: {}".format(_("Events"), len(filter_data["editions"]))
+                )
 
         # ── Serialise chart data to JSON ──────────────────────────────────────
         ctx.update(
@@ -616,6 +681,7 @@ class DashboardView(EventPermissionRequiredMixin, TemplateView):
                 ),
                 # Filter bar
                 "editions_available_count": editions_available_count,
+                "active_filter_chips": active_filter_chips,
             }
         )
         return ctx
@@ -795,28 +861,45 @@ class TriggerResyncView(EventPermissionRequiredMixin, View):
     """
     permission = "can_change_event_settings"
 
+    # Per-user throttle window — prevents a refresh-loop or scripted client
+    # from queuing an unbounded number of resync tasks. Independent of the
+    # in-progress lock below, which prevents overlapping resyncs on the
+    # same event regardless of which user triggered them.
+    RATE_LIMIT_SECONDS = 60
+
     def post(self, request, *args, **kwargs):
         from django.core.cache import cache
 
         from .tasks import trigger_event_resync
 
-        # Rate limit: prevent triggering a second resync while one is in progress.
-        # Lock expires after 10 minutes — enough time for even a large resync.
+        dashboard_redirect = redirect(
+            reverse(
+                "plugins:pretix_event_analytics:dashboard",
+                kwargs={
+                    "organizer": request.organizer.slug,
+                    "event": request.event.slug,
+                },
+            )
+        )
+
+        # Per-user rate limit
+        rate_key = f"analytics_resync_rate_{request.user.pk}_{request.event.pk}"
+        if cache.get(rate_key):
+            messages.warning(
+                request,
+                _("Please wait a moment before triggering another resync."),
+            )
+            return dashboard_redirect
+        cache.set(rate_key, True, timeout=self.RATE_LIMIT_SECONDS)
+
+        # Prevent overlapping resyncs on the same event
         lock_key = f"analytics_resync_lock_{request.event.pk}"
         if cache.get(lock_key):
             messages.warning(
                 request,
                 _("A resync is already running for this event. Please wait a few minutes."),
             )
-            return redirect(
-                reverse(
-                    "plugins:pretix_event_analytics:dashboard",
-                    kwargs={
-                        "organizer": request.organizer.slug,
-                        "event": request.event.slug,
-                    },
-                )
-            )
+            return dashboard_redirect
         cache.set(lock_key, True, timeout=600)
 
         include_checkin = request.POST.get("include_checkin") == "1"
@@ -828,12 +911,4 @@ class TriggerResyncView(EventPermissionRequiredMixin, View):
             request,
             _("Analytics resync queued. The dashboard will update shortly."),
         )
-        return redirect(
-            reverse(
-                "plugins:pretix_event_analytics:dashboard",
-                kwargs={
-                    "organizer": request.organizer.slug,
-                    "event": request.event.slug,
-                },
-            )
-        )
+        return dashboard_redirect

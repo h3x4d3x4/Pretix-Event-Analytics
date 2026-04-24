@@ -5,11 +5,11 @@ A caravan pass product is identified by the presence of a "camper"/"caravan"
 question on any order position.  Van length answers are bucketed for venue
 capacity planning.  License plates are deliberately ignored (PII).
 
-Bucket definitions:
-  '<6m'  — compact, e.g. small camper vans
-  '6-8m' — mid-size, most caravan vans
-  '>8m'  — large, requires extended pitch
-  ''     — not provided / not applicable
+Bucket definitions (boundaries are inclusive on the lower bound):
+  '<6m'   — length < 6.0 metres
+  '6–8m'  — 6.0 ≤ length ≤ 8.0 metres
+  '>8m'   — length > 8.0 metres
+  ''      — not provided / not applicable
 """
 import re
 from typing import Tuple
@@ -49,6 +49,8 @@ def _parse_length_meters(raw: str) -> float:
     num_match = re.search(r"(\d+(?:\.\d+)?)", raw)
     if num_match:
         value = float(num_match.group(1))
+        if value < 0:
+            raise ValueError(f"negative length: {raw!r}")
         if value > 20:
             return value / 100.0
         return value

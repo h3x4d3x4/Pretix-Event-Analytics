@@ -191,6 +191,17 @@
     </form>
   </div>
 
+  {# Active-filter chip bar — visible only when something is filtered. #}
+  {% if active_filter_chips %}
+  <div class="analytics-filter-chips" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+    <span class="text-muted small" style="margin-right:4px;">{% trans "Active filters" %}:</span>
+    {% for chip in active_filter_chips %}
+      <span class="label label-info" style="padding:4px 8px; font-weight:normal;">{{ chip }}</span>
+    {% endfor %}
+    <a href="?" class="small" style="margin-left:4px;">{% trans "clear all" %}</a>
+  </div>
+  {% endif %}
+
   {% if no_results_from_filter %}
   <div class="alert alert-warning" style="margin-top: 16px;">
     <strong>{% trans "No orders match your current filters." %}</strong>
@@ -488,6 +499,14 @@
       <span class="text-muted small">{% trans "(% of each cohort who returned to later editions)" %}</span>
     </div>
     <div class="panel-body">
+      <div class="cohort-legend" style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; font-size:12px;">
+        <span class="text-muted">{% trans "Legend" %}:</span>
+        <span style="background:rgba(39,174,96,1); color:#fff; padding:2px 8px; border-radius:3px;">≥ 50%</span>
+        <span style="background:rgba(52,152,219,0.8); color:#fff; padding:2px 8px; border-radius:3px;">25–49%</span>
+        <span style="background:rgba(243,156,18,0.6); color:#333; padding:2px 8px; border-radius:3px;">10–24%</span>
+        <span style="background:rgba(236,240,241,1); color:#333; padding:2px 8px; border-radius:3px;">&lt; 10%</span>
+        <span class="text-muted" style="margin-left:8px;">— <em>—</em> {% trans "means the cohort pair has no data yet" %}.</span>
+      </div>
       <div class="table-responsive">
         <table class="table table-bordered cohort-matrix-table">
           <thead>

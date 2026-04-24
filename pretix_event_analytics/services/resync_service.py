@@ -7,11 +7,42 @@ UI-triggered task so there is only one code path to maintain.
 
 log_fn(message: str) is an optional callback for progress reporting.
 If None, progress is silently discarded.
+
+READ-ONLY AGAINST PRETIX CORE
+-----------------------------
+This module reads Pretix orders, positions, answers, payments, refunds
+and check-ins — it never writes to them. All writes go to the plugin's
+own analytics tables.
+
+CONCURRENCY
+-----------
+During resync we delete every AnalyticsOrderFact row for the event and
+rebuild. If a new paid order arrives mid-rebuild, its ingestion task
+would otherwise query an empty analytics table and wrongly mark the
+buyer as non-repeat. We publish a shared cache flag (``resync_lock_key``)
+while a resync is in flight; ``tasks.process_order_paid`` checks it and
+requeues itself until the flag clears. Resync itself runs its per-order
+update inside ``transaction.atomic()`` so concurrent repeat-detection
+reads are serialised.
 """
 import logging
 from typing import Callable, Dict, Optional
 
+from django.core.cache import cache
+
 logger = logging.getLogger(__name__)
+
+# Shared between resync_service and signal-triggered tasks. Held for the
+# duration of a resync; any order_paid task that sees this key requeues.
+RESYNC_LOCK_TTL_SECONDS = 30 * 60  # upper bound; resync clears it on exit
+
+
+def resync_lock_key(event_pk: int) -> str:
+    return f"pretix_analytics:resync_in_progress:{event_pk}"
+
+
+def is_resync_in_progress(event_pk: int) -> bool:
+    return bool(cache.get(resync_lock_key(event_pk)))
 
 
 def resync_event(
@@ -29,6 +60,7 @@ def resync_event(
     :param log_fn: Optional callable for progress messages.
     :returns: {'processed': n, 'skipped': m}
     """
+    from django.db import transaction
     from pretix.base.models import Order
 
     from ..models import (
@@ -55,6 +87,34 @@ def resync_event(
             "Configure it first at /control/event/<org>/<event>/analytics/config/"
         )
 
+    # ── Publish resync-in-progress flag ───────────────────────────────────────
+    # Signal-triggered order_paid tasks check this and requeue themselves
+    # so they don't race against the table rebuild.
+    lock_key = resync_lock_key(event.pk)
+    cache.set(lock_key, True, timeout=RESYNC_LOCK_TTL_SECONDS)
+    try:
+        return _resync_event_unlocked(
+            event, config, include_checkin, log,
+            Order=Order,
+            AnalyticsOrderFact=AnalyticsOrderFact,
+            AnalyticsTicketFact=AnalyticsTicketFact,
+            AnalyticsIdentity=AnalyticsIdentity,
+            normalize_order=normalize_order,
+            evaluate_repeat_status=evaluate_repeat_status,
+            calculate_repeat_probability=calculate_repeat_probability,
+            invalidate_cohort_cache=invalidate_cohort_cache,
+            transaction=transaction,
+        )
+    finally:
+        cache.delete(lock_key)
+
+
+def _resync_event_unlocked(
+    event, config, include_checkin, log,
+    *, Order, AnalyticsOrderFact, AnalyticsTicketFact, AnalyticsIdentity,
+    normalize_order, evaluate_repeat_status, calculate_repeat_probability,
+    invalidate_cohort_cache, transaction,
+):
     # ── Clear existing facts ──────────────────────────────────────────────────
     deleted_facts, _ = AnalyticsOrderFact.objects.filter(event=event).delete()
     log(f"Deleted {deleted_facts} existing order facts.")
@@ -109,47 +169,51 @@ def resync_event(
                 identities = order_fact_data.pop("_identities", [])
                 order_fact_data.pop("_repeat_hashes", None)
 
-                if identities:
-                    repeat_status = evaluate_repeat_status(event, identities)
-                    order_fact_data.update(repeat_status)
-
                 checkin_done = order.code in checkin_order_codes
                 order_fact_data["checkin_completed"] = checkin_done
+                is_local_buyer = order_fact_data.pop("_is_local_buyer", False)
+                bought_early = order_fact_data.pop("_bought_early", False)
 
-                probability = calculate_repeat_probability(
-                    {
-                        "repeat_count": order_fact_data.get("repeat_count", 0),
-                        "ticket_count": order_fact_data.get("ticket_count", 1),
-                        "is_group_order": order_fact_data.get("is_group_order", False),
-                        "is_local_buyer": order_fact_data.pop("_is_local_buyer", False),
-                        "bought_early": order_fact_data.pop("_bought_early", False),
-                        "checkin_completed": checkin_done,
-                    }
-                )
-                order_fact_data["predicted_repeat_probability"] = probability
-                order_fact_data.pop("_bought_early", None)
-                order_fact_data.pop("_is_local_buyer", None)
+                # Serialise repeat-detection + insert. Two concurrent writers
+                # (resync and a signal-triggered task) would otherwise both
+                # see "no prior edition" and mark each other as non-repeat.
+                with transaction.atomic():
+                    if identities:
+                        repeat_status = evaluate_repeat_status(event, identities)
+                        order_fact_data.update(repeat_status)
 
-                fact = AnalyticsOrderFact.objects.create(event=event, **order_fact_data)
+                    probability = calculate_repeat_probability(
+                        {
+                            "repeat_count": order_fact_data.get("repeat_count", 0),
+                            "ticket_count": order_fact_data.get("ticket_count", 1),
+                            "is_group_order": order_fact_data.get("is_group_order", False),
+                            "is_local_buyer": is_local_buyer,
+                            "bought_early": bought_early,
+                            "checkin_completed": checkin_done,
+                        }
+                    )
+                    order_fact_data["predicted_repeat_probability"] = probability
 
-                AnalyticsTicketFact.objects.bulk_create(
-                    [
-                        AnalyticsTicketFact(order_fact=fact, event=event, **tf)
-                        for tf in ticket_facts_data
-                    ]
-                )
+                    fact = AnalyticsOrderFact.objects.create(event=event, **order_fact_data)
 
-                AnalyticsIdentity.objects.bulk_create(
-                    [
-                        AnalyticsIdentity(
-                            order_fact=fact,
-                            event=event,
-                            identity_type=i["type"],
-                            identity_hash=i["hash"],
-                        )
-                        for i in identities
-                    ]
-                )
+                    AnalyticsTicketFact.objects.bulk_create(
+                        [
+                            AnalyticsTicketFact(order_fact=fact, event=event, **tf)
+                            for tf in ticket_facts_data
+                        ]
+                    )
+
+                    AnalyticsIdentity.objects.bulk_create(
+                        [
+                            AnalyticsIdentity(
+                                order_fact=fact,
+                                event=event,
+                                identity_type=i["type"],
+                                identity_hash=i["hash"],
+                            )
+                            for i in identities
+                        ]
+                    )
 
                 processed += 1
 

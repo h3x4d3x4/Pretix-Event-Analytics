@@ -161,24 +161,57 @@ Scores are computed at payment time (without check-in) and recomputed post-event
 
 These are standard Pretix team permissions.
 
+## Safety Guarantee: Read-Only Against the Ticketing Database
+
+This plugin is an analytics overlay. It reads Pretix orders, positions,
+answers, payments, refunds and check-ins — it **never writes** to any
+Pretix core table. All persistence happens in the plugin's own analytics
+tables (`AnalyticsOrderFact`, `AnalyticsTicketFact`, `AnalyticsIdentity`,
+`EventSeries`, `EventAnalyticsConfig`).
+
+The invariant is enforced two ways:
+
+1. **Static check** — [`scripts/check_isolation.py`](scripts/check_isolation.py)
+   greps the plugin source for any `.save()`, `.delete()`, `.create()`,
+   `.update()`, `.bulk_create()`, `.bulk_update()`, or `.raw()` call
+   targeting a Pretix core model and exits non-zero if it finds one. Run
+   it any time; it requires no database and no Django setup.
+2. **Signal-path discipline** — signal handlers do zero DB work inline;
+   they dispatch a Celery task. All task code is read-only against
+   `pretix.base.models.*`. Failures in analytics never block, delay, or
+   roll back a ticket checkout or payment.
+
 ## Privacy & GDPR
 
-- Email addresses and payment fingerprints are converted to HMAC-SHA256 hashes &mdash; never stored in plain text and not reversible.
-- Birth dates are converted to age buckets (e.g. "25-34") &mdash; the raw date is never stored.
+- Email addresses, card fingerprints, and other identity signals are
+  converted to HMAC-SHA256 hashes — never stored in plain text and not
+  reversible.
+- Birth dates are converted to age buckets (e.g. `25-34`) — the raw date
+  is never stored.
 - Names are never stored in analytics tables.
-- The HMAC salt is derived from Django's `SECRET_KEY` by default, or from `PRETIX_ANALYTICS_SECRET_SALT` if explicitly configured.
-- A **data shredder** is registered so organisers can delete all analytics data for an event through Pretix's built-in GDPR data export/deletion interface.
+- The HMAC salt (`PRETIX_ANALYTICS_SECRET_SALT`) is loaded from Django
+  settings. In production it is **required**; the plugin refuses to
+  operate without it. In `DEBUG=True` development environments the salt
+  falls back to a `SECRET_KEY`-derived value, with a clear log warning.
+- A **data shredder** is registered, so organisers can delete all
+  analytics data for an event through Pretix's built-in GDPR data
+  export / deletion interface.
 
-> **Note:** Changing `SECRET_KEY` or `PRETIX_ANALYTICS_SECRET_SALT` after orders have been ingested will break repeat buyer detection for existing records. Run a full resync (`--all`) after any salt change.
+> **Important:** `PRETIX_ANALYTICS_SECRET_SALT` must be set once and
+> never changed. Rotating it invalidates every historical repeat-buyer
+> hash — repeat detection silently starts over from scratch. If you have
+> to rotate (e.g. after a security incident), run a full resync
+> (`analytics_resync --all`) immediately after.
 
 ## Configuration
 
-Add to your `pretix.cfg` or Django settings:
+Add to your Pretix settings (via environment variable, `pretix.cfg`, or
+Django settings file, depending on your deployment):
 
 ```ini
-# Custom HMAC salt for identity hashing (optional).
-# If not set, a salt is automatically derived from SECRET_KEY.
-# Minimum 16 characters. Do not change after orders are ingested.
+# HMAC salt for identity hashing. Required in production.
+# Minimum 16 characters; 32+ random characters recommended.
+# Set once and never change it.
 PRETIX_ANALYTICS_SECRET_SALT = "your-long-random-string-here-32-chars-minimum"
 ```
 
@@ -223,6 +256,25 @@ pretix_event_analytics/
 |-- templatetags/              # Custom template filters
 +-- static/                    # Dashboard CSS/JS, Chart.js
 ```
+
+## Verifying a build
+
+Before deploying, a couple of quick sanity checks never hurt:
+
+```bash
+# 1. Confirm the plugin has not grown any writes to Pretix core tables.
+python scripts/check_isolation.py
+
+# 2. Run Django's standard system checks against your Pretix install.
+python -m pretix check
+```
+
+Both should complete silently with no warnings.
+
+## Versioning & Changelog
+
+Releases follow [Semantic Versioning](https://semver.org). See
+[CHANGELOG.md](CHANGELOG.md) for the history of user-visible changes.
 
 ## License
 

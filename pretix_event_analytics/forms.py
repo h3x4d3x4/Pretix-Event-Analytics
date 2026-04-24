@@ -188,6 +188,9 @@ class DashboardFilterForm(forms.Form):
     )
 
     def __init__(self, *args, event=None, **kwargs):
+        # Retained for clean() — enforces organizer scope for any submitted
+        # edition ids regardless of client-side choices tampering.
+        self._event = event
         super().__init__(*args, **kwargs)
         if event:
             from .models import AnalyticsTicketFact
@@ -232,3 +235,35 @@ class DashboardFilterForm(forms.Form):
                 (str(e.id), f"{e.name} ({e.analytics_config.edition_year})")
                 for e in all_events
             ]
+
+    def clean_editions(self):
+        """
+        Defence in depth: even if a client posts arbitrary event ids,
+        only ids that belong to this event's organizer and have an
+        analytics config are accepted. Anything else is silently dropped.
+        """
+        submitted = self.cleaned_data.get("editions") or []
+        if not submitted or not self._event:
+            return submitted
+        from pretix.base.models import Event
+        try:
+            submitted_ids = [int(e) for e in submitted]
+        except (TypeError, ValueError):
+            return []
+        valid_ids = set(
+            Event.objects.filter(
+                organizer=self._event.organizer,
+                id__in=submitted_ids,
+                analytics_config__isnull=False,
+            ).values_list("id", flat=True)
+        )
+        return [str(i) for i in submitted_ids if i in valid_ids]
+
+    def clean(self):
+        data = super().clean()
+        if data.get("date_from") and data.get("date_to"):
+            if data["date_from"] > data["date_to"]:
+                raise forms.ValidationError(
+                    _("‘From’ date must be on or before ‘To’ date.")
+                )
+        return data

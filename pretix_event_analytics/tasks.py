@@ -6,6 +6,14 @@ This prevents request-cycle timeouts on large events (50k+ orders).
 
 If Celery is not configured (single-server dev setups), Pretix falls back
 to synchronous execution automatically.
+
+READ-ONLY AGAINST PRETIX CORE
+-----------------------------
+Every query against pretix.base.models in this module must be read-only.
+Writes, updates, and deletes are allowed ONLY against the plugin's own
+models (AnalyticsOrderFact, AnalyticsTicketFact, AnalyticsIdentity,
+EventSeries, EventAnalyticsConfig). This invariant is enforced statically
+by ``scripts/check_isolation.py``.
 """
 import logging
 
@@ -20,12 +28,13 @@ def process_order_paid(self, order_pk: int):
     Full analytics ingestion pipeline for a newly paid order.
 
     Steps:
-      1. Load order with all related data in a single query
-      2. Check EventAnalyticsConfig exists (silently skip if not configured)
-      3. Normalize order into fact dicts
-      4. Run repeat detection
-      5. Calculate predictive score
-      6. Upsert AnalyticsOrderFact + AnalyticsTicketFact
+      1. If a resync is in flight for this event, requeue and return
+      2. Load order with all related data in a single query
+      3. Check EventAnalyticsConfig exists (silently skip if not configured)
+      4. Normalize order into fact dicts (ValueError → skip; other → retry)
+      5. Run repeat detection (inside an atomic block)
+      6. Calculate predictive score
+      7. Upsert AnalyticsOrderFact + AnalyticsTicketFact
     """
     from django.db import transaction
 
@@ -36,6 +45,7 @@ def process_order_paid(self, order_pk: int):
     from .services.normalizer import normalize_order
     from .services.predictor import calculate_repeat_probability
     from .services.repeat_detector import evaluate_repeat_status
+    from .services.resync_service import is_resync_in_progress
 
     with scopes_disabled():
         try:
@@ -54,8 +64,21 @@ def process_order_paid(self, order_pk: int):
                 .get(pk=order_pk)
             )
         except Order.DoesNotExist:
-            logger.warning("analytics: Order %s not found, skipping.", order_pk)
+            logger.info(
+                "analytics: Order %s not found (may have been deleted), skipping.",
+                order_pk,
+            )
             return
+
+    # Defer ingestion while a full resync is rebuilding this event's facts.
+    # Otherwise we'd read an empty table mid-rebuild and set is_repeat_buyer
+    # to False incorrectly.
+    if is_resync_in_progress(order.event.pk):
+        logger.info(
+            "analytics: resync in progress for event %s — requeueing order %s in 60s.",
+            order.event.slug, order_pk,
+        )
+        raise self.retry(countdown=60, max_retries=20)
 
     try:
         config = EventAnalyticsConfig.objects.select_related("series").get(
@@ -67,7 +90,15 @@ def process_order_paid(self, order_pk: int):
 
     try:
         order_fact_data, ticket_facts_data = normalize_order(order, config)
+    except ValueError as exc:
+        # Expected: malformed / unsupported order — skip, do not retry.
+        logger.warning(
+            "analytics: skipping order %s (normalization rejected): %s",
+            order_pk, exc,
+        )
+        return
     except Exception as exc:
+        # Unexpected: transient DB / code bug — retry with backoff.
         logger.exception("analytics: normalization failed for order %s", order_pk)
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
 
@@ -157,12 +188,16 @@ def process_order_canceled(self, order_pk: int):
     from pretix.base.models import Order
 
     from .models import AnalyticsOrderFact
+    from .services.resync_service import is_resync_in_progress
 
     with scopes_disabled():
         try:
             order = Order.objects.prefetch_related("refunds").get(pk=order_pk)
         except Order.DoesNotExist:
             return
+
+    if is_resync_in_progress(order.event.pk):
+        raise self.retry(countdown=60, max_retries=20)
 
     is_refunded = order.refunds.filter(state__in=("done", "transit")).exists()
 
@@ -186,22 +221,47 @@ def process_checkin_created(self, order_pk: int):
     """
     Mark checkin_completed=True and recompute predictive score.
     Triggered when an attendee checks in at the event.
+
+    If the AnalyticsOrderFact does not yet exist — e.g. the check-in
+    arrives before the order_paid task has finished — we requeue with a
+    small backoff so the check-in isn't lost.
     """
     from django_scopes import scopes_disabled
     from pretix.base.models import Order
 
     from .models import AnalyticsOrderFact, EventAnalyticsConfig
     from .services.predictor import calculate_repeat_probability
+    from .services.resync_service import is_resync_in_progress
 
     with scopes_disabled():
         try:
             order = Order.objects.select_related("event").get(pk=order_pk)
         except Order.DoesNotExist:
+            logger.info(
+                "analytics: checkin task for order %s — order not found, skipping.",
+                order_pk,
+            )
             return
+
+    if is_resync_in_progress(order.event.pk):
+        raise self.retry(countdown=60, max_retries=20)
 
     try:
         fact = AnalyticsOrderFact.objects.get(event=order.event, order_code=order.code)
     except AnalyticsOrderFact.DoesNotExist:
+        # Fact hasn't been created yet — most likely a race with the
+        # paid-order ingestion task. Requeue with exponential backoff so
+        # the checkin eventually lands once the fact is in place.
+        if self.request.retries < self.max_retries:
+            logger.info(
+                "analytics: fact not yet created for order %s — requeueing checkin update.",
+                order.code,
+            )
+            raise self.retry(countdown=60 * (2 ** self.request.retries))
+        logger.warning(
+            "analytics: gave up updating checkin for order %s — no AnalyticsOrderFact after %d retries.",
+            order.code, self.max_retries,
+        )
         return
 
     try:

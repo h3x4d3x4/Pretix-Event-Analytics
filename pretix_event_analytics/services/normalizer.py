@@ -13,7 +13,12 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Dict, List, Tuple
 
-from .age_bucketer import resolve_age_confirmed, resolve_age_range
+from .age_bucketer import (
+    is_age_confirm_question,
+    parse_yes_no,
+    resolve_age_confirmed,
+    resolve_age_range,
+)
 from .country_resolver import resolve_city_and_postal, resolve_country
 from .hash_service import generate_repeat_hash
 from .van_length_bucketer import resolve_caravan_data, resolve_caravan_data_for_position
@@ -30,6 +35,13 @@ def normalize_order(order, config) -> Tuple[Dict, List[Dict]]:
     positions = list(order.positions.all())
     main_positions = [p for p in positions if p.addon_to_id is None]
 
+    if not positions:
+        # An order with zero positions is either malformed or a cancelled
+        # reservation. We bail out here rather than writing a degenerate
+        # fact row with ticket_count=0 (which would show up as free
+        # revenue in the dashboard and break "orders with add-ons" math).
+        raise ValueError(f"order {order.code} has no positions")
+
     # ── Financials ────────────────────────────────────────────────────────────
     total_gross = order.total or Decimal("0")
     total_net = sum(
@@ -45,13 +57,16 @@ def normalize_order(order, config) -> Tuple[Dict, List[Dict]]:
     payment_datetime = confirmed_payment.payment_date if confirmed_payment else None
 
     # ── Order structure ───────────────────────────────────────────────────────
-    ticket_count = len(main_positions)
+    ticket_count = max(len(main_positions), 1)
     attendee_emails = {
         p.attendee_email.lower().strip()
         for p in positions
         if p.attendee_email and p.attendee_email.strip()
     }
-    unique_attendee_count = len(attendee_emails) if attendee_emails else ticket_count
+    unique_attendee_count = max(
+        len(attendee_emails) if attendee_emails else ticket_count,
+        1,
+    )
     is_group_order = ticket_count > 1
 
     # ── Geography ─────────────────────────────────────────────────────────────
@@ -191,15 +206,12 @@ def _position_age_range(position) -> str:
 
 def _position_age_confirmed(position):
     """18+ confirmation for a single position's answers."""
-    _CONFIRM_KEYWORDS = ("18", "legal guardian", "volljährig", "maggiorenne")
     for answer in position.answers.all():
-        qt = str(answer.question.question).lower()
-        if any(kw in qt for kw in _CONFIRM_KEYWORDS):
-            ans = answer.answer.lower().strip()
-            if ans in ("true", "yes", "1", "ja", "si", "sì", "oui"):
-                return True
-            if ans in ("false", "no", "0"):
-                return False
+        if not is_age_confirm_question(str(answer.question.question)):
+            continue
+        parsed = parse_yes_no(answer.answer)
+        if parsed is not None:
+            return parsed
     return None
 
 def _extract_identities(order, positions) -> List[Dict]:

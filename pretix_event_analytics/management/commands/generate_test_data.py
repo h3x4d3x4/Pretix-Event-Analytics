@@ -1,12 +1,27 @@
 """
 Management command: generate_test_data
 
-Injects realistic fake AnalyticsOrderFact and AnalyticsTicketFact rows for
-a specific Pretix event so you can preview the analytics dashboard without
-running real orders through the ingestion pipeline.
+DEVELOPMENT ONLY. Injects realistic fake AnalyticsOrderFact and
+AnalyticsTicketFact rows for a specific Pretix event so you can preview the
+analytics dashboard without running real orders through the ingestion
+pipeline.
+
+SAFETY INVARIANT
+----------------
+This command writes ONLY to the plugin's own tables (AnalyticsOrderFact,
+AnalyticsTicketFact, AnalyticsIdentity, EventAnalyticsConfig, EventSeries).
+It must NEVER touch Pretix core tables (Order, OrderPosition, OrderPayment,
+LogEntry, Event, Item, ...). Refuse to add code here that mutates any
+pretix.base.* or pretix.control.* model.
+
+SAFETY GATES
+------------
+  - Refuses to run unless settings.DEBUG is True, OR the explicit
+    ``--i-understand-this-is-fake-data`` flag is passed.
+  - ``--clear`` prompts for confirmation if real fact rows already exist.
 
 Usage:
-    # Basic — 150 fake orders for one event
+    # Basic — 150 fake orders for one event (dev only)
     python -m pretix generate_test_data --organizer <organizer-slug> --event <event-slug>
 
     # Full 4-edition scenario (run once per event; shared buyer pool ensures cohort data)
@@ -20,15 +35,17 @@ Options:
     --edition-year YYYY Override the edition year (default: inferred from event.date_from)
     --series SLUG       Series slug to link to (created if it does not exist)
     --checkin           Mark ~80%% of orders as checked in
-    --clear             Delete existing fact data before generating
+    --clear             Delete existing fact data before generating (will prompt)
+    --i-understand-this-is-fake-data  Required outside DEBUG mode
 """
 import hashlib
 import hmac
-import json
 import random
+import sys
 from datetime import timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
@@ -74,27 +91,6 @@ CITIES_BY_COUNTRY = {
     "NL": ["Amsterdam", "Rotterdam", "Den Haag", "", ""],
     "IT": ["Roma", "Milano", "Napoli", "", ""],
 }
-
-# Realistic name change pairs for secondary market testing.
-# Mix of real transfers (different people) and corrections (should be filtered out).
-NAME_CHANGES = [
-    # Real transfers — substantially different names (will be counted)
-    ("Alice Johnson", "Bob Williams"),
-    ("Maria Ionescu", "Carlos Rodriguez"),
-    ("Hans Mueller", "Sophie Dubois"),
-    ("Anna Kowalski", "Piotr Nowak"),
-    ("Emma Brown", "James Wilson"),
-    ("Luca Ferrari", "Nadia Petrov"),
-    ("Ahmed Hassan", "Yuki Tanaka"),
-    ("Sara Martínez", "Olga Ivanova"),
-    # Typo corrections — should be filtered out by smart detection
-    ("John Doe", "Jon Doe"),
-    ("Sarah Smyth", "Sarah Smith"),
-    ("Michael Johnes", "Michael Jones"),
-    # Middle name additions — should be filtered out
-    ("Thomas Clark", "Thomas Edward Clark"),
-]
-
 
 def _weighted_choice(pool, rng):
     """Pick a value from [(value, weight), ...] using weights."""
@@ -148,8 +144,39 @@ class Command(BaseCommand):
             "--clear", action="store_true",
             help="Delete existing fact data for this event first.",
         )
+        parser.add_argument(
+            "--i-understand-this-is-fake-data",
+            action="store_true",
+            dest="force_non_debug",
+            help=(
+                "Required to run outside DEBUG mode. Confirms the operator "
+                "understands this command injects synthetic analytics data."
+            ),
+        )
+
+    def _assert_safe_to_run(self, options):
+        """
+        Refuse to run in a non-DEBUG environment unless the operator
+        explicitly opts in. Defence-in-depth: this command injects synthetic
+        rows that would pollute real analytics if run in production.
+        """
+        if settings.DEBUG:
+            return
+        if options.get("force_non_debug"):
+            self.stdout.write(self.style.WARNING(
+                "WARNING: generate_test_data running with DEBUG=False "
+                "because --i-understand-this-is-fake-data was passed. "
+                "Synthetic rows will be inserted into the analytics tables."
+            ))
+            return
+        raise CommandError(
+            "generate_test_data refuses to run with DEBUG=False. "
+            "Either set DEBUG=True in settings or pass "
+            "--i-understand-this-is-fake-data to override."
+        )
 
     def handle(self, *args, **options):
+        self._assert_safe_to_run(options)
         from pretix.base.models import Event, Organizer
 
         from ...models import (
@@ -210,6 +237,15 @@ class Command(BaseCommand):
 
         # ── Optionally clear existing data ────────────────────────────────────
         if options["clear"]:
+            existing_count = AnalyticsOrderFact.objects.filter(event=event).count()
+            if existing_count > 0 and sys.stdin.isatty():
+                self.stdout.write(self.style.WARNING(
+                    f"  About to delete {existing_count} existing AnalyticsOrderFact rows "
+                    f"for event '{event.slug}'."
+                ))
+                confirm = input("  Type YES to confirm: ").strip()
+                if confirm != "YES":
+                    raise CommandError("Aborted by operator.")
             deleted, _ = AnalyticsOrderFact.objects.filter(event=event).delete()
             self.stdout.write(f"  Cleared {deleted} existing fact rows.")
 
@@ -452,45 +488,12 @@ class Command(BaseCommand):
         AnalyticsTicketFact.objects.bulk_create(ticket_fact_rows, batch_size=500)
         self.stdout.write(f"  Inserted {len(ticket_fact_rows)} AnalyticsTicketFact rows.")
 
-        # ── Fake name change LogEntry records (secondary market testing) ──────
-        # Creates ~7% name-change log entries pointing to fake order IDs.
-        # Includes a mix of real transfers (counted) and corrections (filtered).
-        try:
-            from django.contrib.contenttypes.models import ContentType
-            from pretix.base.models import LogEntry, Order as PretixOrder
-            order_ct = ContentType.objects.get_for_model(PretixOrder)
-            n_changes = max(3, int(n_orders * 0.09))
-            log_entries = []
-            fake_order_id_base = 9_000_000 + (edition_year * 1000)
-            for i in range(n_changes):
-                old_name, new_name = NAME_CHANGES[i % len(NAME_CHANGES)]
-                data_payload = json.dumps({
-                    "old": {"attendee_name_parts": {"_scheme": "full", "full_name": old_name}},
-                    "new": {"attendee_name_parts": {"_scheme": "full", "full_name": new_name}},
-                })
-                log_entries.append(LogEntry(
-                    event=event,
-                    action_type="pretix.event.order.modified",
-                    content_type=order_ct,
-                    object_id=fake_order_id_base + i,
-                    data=data_payload,
-                ))
-            LogEntry.objects.bulk_create(log_entries, ignore_conflicts=True)
-            # Spread datetimes across the sale window so the monthly chart is useful
-            for j, entry in enumerate(
-                LogEntry.objects.filter(
-                    event=event,
-                    action_type="pretix.event.order.modified",
-                    object_id__gte=fake_order_id_base,
-                    object_id__lt=fake_order_id_base + n_changes,
-                ).order_by("id")
-            ):
-                spread_days = int(j / max(n_changes - 1, 1) * 180)
-                entry.datetime = event_dt - timedelta(days=180 - spread_days)
-                entry.save(update_fields=["datetime"])
-            self.stdout.write(f"  Created {n_changes} fake name-change log entries.")
-        except Exception as exc:
-            self.stdout.write(f"  Warning: could not create LogEntry records: {exc}")
+        # Previously this command also inserted synthetic LogEntry rows into
+        # the Pretix core audit log to populate the secondary-market panel
+        # with test data. That was removed to preserve the read-only-against-
+        # core invariant — the synthetic rows referenced non-existent order
+        # IDs and polluted production audit logs. Secondary-market test data
+        # should come from real attendee-name-change workflows.
 
         # ── Invalidate cohort cache ───────────────────────────────────────────
         from ...services.cohort_service import invalidate_cohort_cache

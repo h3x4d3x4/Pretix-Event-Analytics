@@ -7,6 +7,22 @@ wheel, allows only analytics migrations (3rd arg = expected analytics migration 
 shared folder. **TicketSwap belongs to Sena — never modify its wheel or Dockerfile line.**
 Coordinate with whoever is working on the theme before building or restarting.
 
+## 2026-09-25 19:31 UTC — analytics 2.1.1 (on SUTI theme 1.0.4) — deployed and verified by dev-84
+
+Resale showed 0 TicketSwap resales: prod runs TicketSwap **1.0.4**, which records swaps in its own `TicketSwapSwap`
+table, not on the ticket (`meta_info`, TicketSwap 2.x). Now reads both (read-only: position, date, success only).
+Resale counts admission tickets only. No migration (stays at 0009), no resync needed.
+
+- Prod copy: fingerprint identical, all analytics pages 200 + themed, widgets safe, derived countries 0 leaks /
+  0 of 197 contradicting.
+- Resale vs TicketSwap's own table (admission tickets): 2026 TicketSwap 79 = 79, manual 26, both 4;
+  2024 / 2023 / 2022: TicketSwap 0, manual 31 / 39 / 34. Monthly chart 2026-04 → 2026-08.
+- Live: switch 19:31:08 UTC, image `:2026.7.0-analytics2.1.1-theme1.0.4`; revert target
+  `:2026.7.0-analytics2.1.0-theme1.0.4` (nothing to undo); dump `~/suti-upgrade/backup/pretix-pre-analytics211-*.dump`.
+  `~/suti-upgrade/build` = 2.1.1 + theme 1.0.4 + TicketSwap 1.0.4.
+- ID-document country is now on for 2026: 382 orders from it; exact-unknown countries 2026 = 163 (was 347 on 2.1.0).
+- **suti0 disk at 93% (2.9 GB free)** — old images/dumps need cleaning up (Andrei).
+
 ## 2026-09-25 19:00 UTC — analytics 2.1.0 (on SUTI theme 1.0.4) — deployed and verified by dev-a2
 
 People matched on name + birth date only (when in doubt unknown); customers on order e-mail only; country with

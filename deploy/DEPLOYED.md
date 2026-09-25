@@ -7,6 +7,14 @@ wheel, refuses if migrations are planned, dump + fingerprint + page checks + aut
 shared folder. **TicketSwap belongs to Sena — never modify its wheel or Dockerfile line.**
 Coordinate with whoever is working on the theme before building or restarting.
 
+## 2026-09-25 16:58 UTC — analytics 2.0.3 (on SUTI theme 1.0.4)
+
+Stripe card country + fingerprint now read from the PaymentIntent (`charges.data[]`): before, none of the
+1,214 Stripe payments yielded them. Resync after deploy: 2,553 orders, 0 skipped. Orders with a known
+country 56% (was ~15%); 1,217 card identities link people across e-mail changes. First-timer share 2026:
+77.9% of people / 76.4% of buyers (unchanged — the gap to the ~50% survey is real).
+Image `:2026.7.0-analytics2.0.3`, rollback `:rollback-pre-analytics2.0.3`; `~/suti-upgrade/build` holds 2.0.3.
+
 ## 2026-09-25 16:44 / 16:47 UTC — analytics 2.0.1 and 2.0.2
 
 Theme-proof colours (all `--pa-*` variables, settings/series pages scoped), author "Hexadexa", and a

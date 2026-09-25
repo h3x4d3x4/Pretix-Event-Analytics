@@ -207,3 +207,47 @@
 .pa-capacity-bar i { display: block; height: 100%; }
 .pa-capacity-bar i.paid { background: var(--pa-s1); }
 .pa-capacity-bar i.pending { background: var(--pa-seq-2); }
+
+/* ── Settings page ──────────────────────────────────────────────────────── */
+.pa-settings { max-width: 860px; margin: 0 auto 48px; }
+.pa-settings-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.pa-settings-head h1 { margin: 0 0 4px; }
+.pa-settings-status { margin: 0; color: #52514e; font-size: 13px; }
+.pa-card { display: block; background: #fff; border: 1px solid #e3e2de; border-radius: 6px; padding: 16px 20px; margin-bottom: 12px; }
+.pa-card > header h2, .pa-card > summary h2 { font-size: 16px; font-weight: 600; margin: 0; }
+.pa-card > header p { color: #7a7974; font-size: 13px; margin: 4px 0 12px; }
+.pa-card > summary { display: flex; align-items: baseline; gap: 12px; cursor: pointer; list-style: none; }
+.pa-card > summary::-webkit-details-marker { display: none; }
+.pa-card > summary::before { content: "▸"; color: #7a7974; font-size: 12px; width: 10px; }
+.pa-card[open] > summary::before { content: "▾"; }
+.pa-card > summary .pa-summary { color: #7a7974; font-size: 13px; margin-left: auto; }
+.pa-card[open] > summary { margin-bottom: 4px; }
+.pa-card-intro { color: #7a7974; font-size: 13px; margin: 4px 0 12px 22px; }
+.pa-field { display: grid; grid-template-columns: 170px 1fr; gap: 6px 16px; padding: 10px 0; border-top: 1px solid #f0efec; }
+.pa-field:first-of-type { border-top: 0; }
+.pa-field > label { font-weight: 600; padding-top: 6px; margin: 0; }
+@media (max-width: 640px) { .pa-field { grid-template-columns: 1fr; } }
+.pa-hint { color: #7a7974; font-size: 12px; margin: 6px 0 0; }
+.pa-sublabel { display: block; font-size: 12px; font-weight: 600; color: #52514e; margin: 10px 0 4px; }
+.pa-inline-fields { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
+.pa-inline-fields .form-control { display: inline-block; vertical-align: middle; }
+.pa-unit { color: #52514e; font-size: 13px; }
+.pa-explain { margin-top: 8px; font-size: 13px; }
+.pa-explain summary { cursor: pointer; color: #52514e; }
+.pa-explain p { margin: 6px 0 0; color: #52514e; }
+.pa-question-list ul { list-style: none; padding: 0; margin: 0 0 0 22px; columns: 2; }
+.pa-question-list li { break-inside: avoid; padding: 2px 0; }
+.pa-question-list label { font-weight: normal; }
+.pa-settings-save { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 16px; }
+.pa-settings-save .pa-hint { margin: 0; }
+
+/* ── Filter bar: secondary filters ──────────────────────────────────────── */
+.pa-filter-row .pa-filter-buttons { margin-left: auto; align-self: flex-end; }
+.pa-more-filters { margin-top: 8px; border-top: 1px solid var(--pa-border); padding-top: 6px; }
+.pa-more-filters > summary { cursor: pointer; font-size: 12px; color: var(--pa-text-2); font-weight: 600; }
+.pa-more-filters[open] > summary { margin-bottom: 8px; }
+.pa-more-filters .pa-dot { width: 7px; height: 7px; vertical-align: middle; }
+/* ── In-page jump bar for long pages ───────────────────────────────────── */
+.pa-jump { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; margin: -4px 0 14px; color: var(--pa-text-3); }
+.pa-jump a { color: var(--pa-text-2); }
+.pa-toggle-form > summary { cursor: pointer; font-size: 13px; color: var(--pa-s1); margin-top: 10px; }

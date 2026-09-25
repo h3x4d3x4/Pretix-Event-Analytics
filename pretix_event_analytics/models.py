@@ -87,6 +87,20 @@ class EventAnalyticsConfig(models.Model):
         verbose_name=_("Ticket target"),
         help_text=_("Optional goal shown on the sales forecast, e.g. venue capacity."),
     )
+    # Pace alert: e-mail when sales trail the previous edition (at the same
+    # number of days before the event) by at least this many percent.
+    pace_alert_threshold = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        verbose_name=_("Pace alert threshold (%)"),
+        help_text=_("Send an alert when tickets sold are this far behind the previous edition at the same point. "
+                    "Leave empty to disable."),
+    )
+    pace_alert_recipients = models.TextField(
+        blank=True, default="",
+        verbose_name=_("Pace alert recipients"),
+        help_text=_("E-mail addresses, one per line or comma-separated."),
+    )
+    pace_alert_last_sent = models.DateTimeField(null=True, blank=True)
     # When the series identity resolver last covered this edition; the
     # periodic task compares it with the newest fact to find dirty series.
     people_resolved_at = models.DateTimeField(null=True, blank=True)

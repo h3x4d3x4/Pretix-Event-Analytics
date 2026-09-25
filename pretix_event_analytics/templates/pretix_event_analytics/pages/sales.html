@@ -29,6 +29,17 @@
   <div><button type="button" class="btn btn-default btn-sm" data-cumulative-all="sales"><span class="fa fa-area-chart"></span> {% trans "Cumulative" %}</button></div>
 </div>
 
+<nav class="pa-jump" aria-label="{% trans 'On this page' %}">
+  <span>{% trans "On this page:" %}</span>
+  <a href="#over-time">{% trans "Over time" %}</a>
+  <a href="#annotations">{% trans "Moments" %}</a>
+  {% if f %}<a href="#forecast">{% trans "Forecast" %}</a>{% endif %}
+  {% if data.pacing_tickets %}<a href="#editions">{% trans "Editions compared" %}</a>{% endif %}
+  <a href="#when">{% trans "When people buy" %}</a>
+  <a href="#periods">{% trans "By period" %}</a>
+</nav>
+<div id="over-time"></div>
+
 {% if data.series_empty %}
   <div class="pa-panel"><div class="pa-empty">{% trans "No sales match the current filters." %}</div></div>
 {% else %}
@@ -51,6 +62,8 @@
     </ul>
     {% else %}<p class="text-muted small">{% trans "No moments recorded yet." %}</p>{% endif %}
     {% if can_annotate %}
+    <details class="pa-toggle-form" {% if not annotations %}open{% endif %}>
+    <summary><span class="fa fa-plus"></span> {% trans "Add a moment" %}</summary>
     <form method="post" action="{{ annotation_url }}" class="pa-annotation-form">
       {% csrf_token %}
       <div><label class="small text-muted" for="pa-ann-date">{% trans "Date" %}</label>
@@ -59,12 +72,13 @@
         <input type="text" id="pa-ann-label" name="label" maxlength="120" class="form-control input-sm" placeholder="{% trans 'Line-up announced' %}" required></div>
       <button type="submit" class="btn btn-default btn-sm"><span class="fa fa-plus"></span> {% trans "Add" %}</button>
     </form>
+    </details>
     {% endif %}
   </div>
 </div>
 
 {% if f %}
-<h3 class="pa-section-title">{% trans "Forecast" %}<small>{% blocktrans with d=f.days_left %}{{ d }} days to go{% endblocktrans %}</small></h3>
+<h3 class="pa-section-title" id="forecast">{% trans "Forecast" %}<small>{% blocktrans with d=f.days_left %}{{ d }} days to go{% endblocktrans %}</small></h3>
 <div class="pa-kpis">
   <div class="pa-kpi">
     <div class="pa-kpi-label">{% trans "Projected tickets" %}</div>
@@ -97,7 +111,7 @@
 {% endif %}
 
 {% if data.pacing_tickets %}
-<h3 class="pa-section-title">{% trans "Editions compared" %}<small>{% trans "same days-before-event timeline" %}</small></h3>
+<h3 class="pa-section-title" id="editions">{% trans "Editions compared" %}<small>{% trans "same days-before-event timeline" %}</small></h3>
 <div class="pa-controls" data-switch-group="pace">
   <span class="pa-seg">
     <button type="button" class="active" data-switch="tickets">{% trans "Tickets" %}</button>
@@ -148,7 +162,7 @@
 {% endif %}
 {% endif %}
 
-<h3 class="pa-section-title">{% trans "When people buy" %}</h3>
+<h3 class="pa-section-title" id="when">{% trans "When people buy" %}</h3>
 <div class="pa-grid">
   {% trans "How far ahead tickets were bought" as tt %}
   {% include "pretix_event_analytics/_chart.html" with chart=data.timing.chart title=tt size="short" %}
@@ -170,7 +184,7 @@
   </div>
 </div>
 
-<h3 class="pa-section-title">{% trans "By period" %}</h3>
+<h3 class="pa-section-title" id="periods">{% trans "By period" %}</h3>
 <div class="pa-panel">
   <div class="pa-panel-body flush pa-table-wrap pa-scroll">
     <table class="table pa-table">

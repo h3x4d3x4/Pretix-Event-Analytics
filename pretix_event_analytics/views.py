@@ -126,6 +126,8 @@ class AnalyticsPageView(EventPermissionRequiredMixin, TemplateView):
             "currency": scope.currency,
             "export_qs": f"?{filter_qs}" if filter_qs else "",
             "date_presets": _date_presets(request, scope),
+            "more_filters_active": any(scope.filters.get(k) for k in
+                                       ("country", "age_range", "provider", "include_refunded", "has_caravan")),
             "can_annotate": can_resync,
         })
         return ctx
@@ -301,6 +303,25 @@ class EventConfigView(EventPermissionRequiredMixin, FormView):
         ctx["analytics_order_count"] = qs.count()
         ctx["analytics_last_synced"] = qs.aggregate(last=Max("updated_at"))["last"]
         ctx["has_analytics_data"] = ctx["analytics_order_count"] > 0
+        ctx["resync_url"] = _event_url(self.request, "trigger_resync")
+
+        # One-line summaries for the collapsed optional sections.
+        from django.utils.translation import gettext, ngettext
+        cfg = ctx["form"].instance
+        goals = []
+        if cfg.ticket_target:
+            goals.append(gettext("target %(n)s tickets") % {"n": cfg.ticket_target})
+        if cfg.revenue_target:
+            goals.append(gettext("target %(n)s %(cur)s") % {"n": cfg.revenue_target, "cur": self.request.event.currency})
+        if cfg.pace_alert_threshold:
+            goals.append(gettext("alert at %(n)s%% behind") % {"n": cfg.pace_alert_threshold})
+        ctx["goals_summary"] = " · ".join(goals) or gettext("Not set")
+        form = ctx["form"]
+        ctx["goals_open"] = bool(form.errors.get("pace_alert_threshold") or form.errors.get("pace_alert_recipients")
+                                 or form.errors.get("ticket_target") or form.errors.get("revenue_target"))
+        n = len(cfg.tracked_question_ids or [])
+        ctx["questions_summary"] = (ngettext("%(n)s question analysed", "%(n)s questions analysed", n) % {"n": n}
+                                    if n else gettext("None selected"))
         return ctx
 
 

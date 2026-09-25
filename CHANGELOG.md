@@ -73,6 +73,15 @@ resync runs, the dashboard shows a notice for rows produced by 1.x.
 - **Quick date ranges** (7 / 30 / 90 days, all time) in the filter bar.
 - **Pretix dashboard widgets:** returning buyers and first-time attendees
   on the event's main dashboard.
+- **Pace alerts:** e-mail chosen addresses when ticket sales trail the
+  previous edition (same number of days before the event) by a chosen
+  percentage; at most once a week while behind. Runs from Pretix's cron.
+- **Calmer settings and filters:** the settings page is grouped into
+  *This edition* (required) and collapsible *Goals & alerts*, *Question
+  insights* and *Advanced* sections, each with a one-line summary; the
+  dashboard filter bar keeps the common filters visible and folds the rest
+  under *More filters* (opens automatically when one is in use); long pages
+  get an "On this page" jump bar.
 
 ### Security
 - The "merge editions" filter and all series-wide figures (Loyalty,

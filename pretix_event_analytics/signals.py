@@ -119,12 +119,17 @@ def on_periodic_task(sender, **kwargs):
     without a Celery worker stay correct without doing heavy work inside a
     buyer's payment request.
     """
+    from .services.alerts import run_pace_alerts
     from .services.people import resolve_dirty_scopes
 
     try:
         resolve_dirty_scopes()
     except Exception:
         logger.exception("analytics: periodic people resolution failed")
+    try:
+        run_pace_alerts()
+    except Exception:
+        logger.exception("analytics: pace alerts failed")
 
 
 # ── Pretix event dashboard ─────────────────────────────────────────────────

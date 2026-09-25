@@ -111,7 +111,7 @@ Check-ins are always included; the old `--checkin` flag is accepted but no longe
 
 - **Past editions:** on the series page, import attendee e-mail lists of editions that predate Pretix.
 - **Questions:** in the event's Analytics settings, choose yes/no or multiple-choice questions to analyse, then resync.
-- **Targets:** set a ticket and/or revenue target to see progress next to the forecast.
+- **Targets & pace alert:** under *Goals & alerts*, set a ticket and/or revenue target to see progress next to the forecast, and optionally have e-mails sent when sales fall a chosen percentage behind the previous edition.
 
 ## Architecture
 
@@ -245,6 +245,10 @@ python -m pretix check
 ```
 
 Both should complete silently with no warnings.
+
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md).
 
 ## Versioning & Changelog
 

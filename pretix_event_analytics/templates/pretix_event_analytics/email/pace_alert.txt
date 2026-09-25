@@ -1,0 +1,7 @@
+{% load i18n %}{% blocktrans with event=event.name days=status.days_left current=status.current previous=status.previous label=status.previous_label gap=status.gap_pct %}Hello,
+
+with {{ days }} days to go, {{ event }} has sold {{ current }} tickets. At the same point, {{ label }} had sold {{ previous }} — that is {{ gap }}% behind.{% endblocktrans %}
+
+{% blocktrans with threshold=threshold %}You receive this because the pace alert threshold is set to {{ threshold }}%. While sales stay behind, this reminder is repeated at most once a week.{% endblocktrans %}
+
+{% trans "Sales and forecast:" %} {{ url }}

@@ -79,15 +79,19 @@ class EventAnalyticsConfigForm(forms.ModelForm):
 
     class Meta:
         model = EventAnalyticsConfig
-        fields = ["series", "edition_year", "home_country", "is_active", "ticket_target", "revenue_target"]
+        fields = ["series", "edition_year", "home_country", "is_active", "ticket_target", "revenue_target",
+                  "pace_alert_threshold", "pace_alert_recipients"]
         widgets = {
-            "series": forms.Select(attrs={"class": "form-control"}),
+            "series": forms.Select(attrs={"class": "form-control pa-input-lg"}),
             "edition_year": forms.NumberInput(
                 attrs={"class": "form-control pa-input-sm", "min": 1990, "max": 2100}
             ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "ticket_target": forms.NumberInput(attrs={"class": "form-control pa-input-md"}),
             "revenue_target": forms.NumberInput(attrs={"class": "form-control pa-input-md"}),
+            "pace_alert_threshold": forms.NumberInput(attrs={"class": "form-control pa-input-sm", "min": 1, "max": 100}),
+            "pace_alert_recipients": forms.Textarea(attrs={"class": "form-control", "rows": 2,
+                                                           "placeholder": "team@example.org"}),
         }
 
     def __init__(self, *args, event=None, **kwargs):
@@ -133,8 +137,27 @@ class EventAnalyticsConfigForm(forms.ModelForm):
         if self.instance and self.instance.tracked_question_ids:
             self.fields["tracked_questions"].initial = [str(i) for i in self.instance.tracked_question_ids]
 
+    def clean_pace_alert_recipients(self):
+        from django.core.validators import validate_email
+
+        from .services.alerts import _recipients
+
+        raw = self.cleaned_data.get("pace_alert_recipients") or ""
+        addresses = _recipients(raw)
+        for a in addresses:
+            validate_email(a)
+        return "\n".join(addresses)
+
+    def clean(self):
+        data = super().clean()
+        if data.get("pace_alert_threshold") and not data.get("pace_alert_recipients"):
+            self.add_error("pace_alert_recipients", _("Add at least one address to receive pace alerts."))
+        return data
+
     def save(self, commit=True):
         instance = super().save(commit=False)
+        if (self.instance.pk and "pace_alert_threshold" in self.changed_data):
+            instance.pace_alert_last_sent = None  # new threshold: allow an alert right away
         instance.tracked_question_ids = [int(i) for i in self.cleaned_data.get("tracked_questions") or []]
         if commit:
             instance.save()

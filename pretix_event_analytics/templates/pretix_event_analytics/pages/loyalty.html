@@ -25,8 +25,17 @@
   </div>
 </div>
 
+<nav class="pa-jump" aria-label="{% trans 'On this page' %}">
+  <span>{% trans "On this page:" %}</span>
+  {% if fo %}<a href="#this-edition">{% trans "This edition" %}</a>{% endif %}
+  {% if data.segments %}<a href="#first-timers">{% trans "Who the first-timers are" %}</a>{% endif %}
+  <a href="#compare">{% trans "Compare editions" %}</a>
+  <a href="#flow">{% trans "Edition by edition" %}</a>
+  {% if data.scores %}<a href="#scores">{% trans "Likely to return" %}</a>{% endif %}
+</nav>
+
 {% if fo %}
-<p class="pa-headline">
+<p class="pa-headline" id="this-edition">
   {% blocktrans with pct=fo.first_timer_pct n=fo.first_timers total=fo.participants %}<strong>{{ pct }}%</strong> of this edition's {{ total }} identified people are first-timers ({{ n }}).{% endblocktrans %}
   {% if fo.editions_so_far > 1 %}
     {% blocktrans with pct=fo.returning_pct %}<strong>{{ pct }}%</strong> have been before.{% endblocktrans %}
@@ -93,7 +102,7 @@
 {% endif %}
 
 {% if data.segments %}
-<h3 class="pa-section-title">{% trans "Who are the first-timers?" %}<small>{% trans "this edition · dashboard filters apply" %}</small></h3>
+<h3 class="pa-section-title" id="first-timers">{% trans "Who are the first-timers?" %}<small>{% trans "this edition · dashboard filters apply" %}</small></h3>
 <div class="pa-grid">
 {% for seg in data.segments %}
   <div class="pa-panel">
@@ -171,7 +180,7 @@
 </div>
 {% endif %}
 
-<h3 class="pa-section-title">{% trans "Edition by edition" %}<small>{% trans "all editions of the series" %}</small></h3>
+<h3 class="pa-section-title" id="flow">{% trans "Edition by edition" %}<small>{% trans "all editions of the series" %}</small></h3>
 {% trans "Who made up each edition" as fl %}
 {% include "pretix_event_analytics/_chart.html" with chart=data.flow.chart title=fl %}
 <div class="pa-panel">
@@ -204,7 +213,7 @@
 {% endif %}
 
 {% if data.scores %}
-<h3 class="pa-section-title">{% trans "Likely to return" %}<small>{% trans "predictive score, this selection" %}</small></h3>
+<h3 class="pa-section-title" id="scores">{% trans "Likely to return" %}<small>{% trans "predictive score, this selection" %}</small></h3>
 {% trans "Return score distribution" as st %}
 {% blocktrans with n=data.scores.high p=data.scores.high_pct asvar sn %}{{ n }} orders ({{ p }}%) score 60 or more. The score adds points for past visits (+40), check-in (+20), buying 30+ days ahead (+15), 3+ tickets (+10), being local (+10) and group orders (+5).{% endblocktrans %}
 {% include "pretix_event_analytics/_chart.html" with chart=data.scores.chart title=st foot=sn size="short" %}

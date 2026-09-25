@@ -27,6 +27,8 @@
     const TEXT2 = tok('--pa-text-2');
     const TEXT3 = tok('--pa-text-3');
     const SURFACE = tok('--pa-surface');
+    const TOOLTIP_BG = tok('--pa-tooltip-bg');
+    const TOOLTIP_TEXT = tok('--pa-tooltip-text');
     const locale = document.documentElement.lang || navigator.language || 'en';
     const currency = root.dataset.currency || 'EUR';
 
@@ -198,7 +200,10 @@
                     legend: { display: false },
                     paMarkers: { markers: spec.markers },
                     tooltip: {
-                        backgroundColor: '#1d1d1b',
+                        backgroundColor: TOOLTIP_BG,
+                        titleColor: TOOLTIP_TEXT,
+                        bodyColor: TOOLTIP_TEXT,
+                        footerColor: TOOLTIP_TEXT,
                         padding: 10,
                         boxPadding: 4,
                         usePointStyle: true,

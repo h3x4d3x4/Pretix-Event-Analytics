@@ -3,6 +3,21 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] — 2026-09-25
+
+### Fixed
+- Themed (e.g. dark) control panels: every colour is now a CSS variable and
+  every surface sets its own text colour, while text placed directly on the
+  page follows the host theme. Previously the settings page used fixed white
+  cards, so headings and labels became invisible under a dark theme with
+  light text, and some dashboard text was drawn dark on a dark page.
+- The settings and series pages share the dashboard's variable scope, so a
+  theme that remaps `--pa-*` variables styles them too.
+- Chart tooltips take their colours from variables.
+
+### Changed
+- Plugin author shown in Pretix is now "Hexadexa".
+
 ## [2.0.0] — 2026-09-25
 
 A rebuild into a full analytics suite. **Upgrade steps:** update the

@@ -106,15 +106,9 @@ def write_order(order, config, *, checkins: Optional[Dict[int, object]] = None, 
             .first()
         )
         if quick_repeat:
-            # Look up only signals that belong to *this* buyer (their own
-            # identities and tickets they hold themself) — the friends on a
-            # group order must not make the buyer "returning". Earlier
-            # editions are matched on every signal, attendee ones included:
-            # someone who came as a friend's guest last year *has* been before.
-            lookup = list(buyer_ids)
-            for t in tickets_data:
-                if t["attendee_is_buyer"]:
-                    lookup.extend(t["_identities"])
+            # Buyers are identified by the order e-mail only (payment
+            # methods are shared with friends and family).
+            lookup = [i for i in buyer_ids if i["type"] == "email"]
             order_data.update(evaluate_repeat_status(order.event, lookup))
         elif existing:
             # Keep series-resolved values until the resolver runs again.

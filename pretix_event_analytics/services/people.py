@@ -1,25 +1,34 @@
 """
-Series-wide identity resolution ("people").
+Series-wide identity resolution ("people" and "buyers").
 
-Repeat detection used to be decided once, when an order was ingested, by
-looking *backwards* at whatever was already in the fact table. That made the
-answer depend on the order in which editions were synced, ignored attendee
-e-mails, and disagreed with the cohort matrix (which only used the buyer
-e-mail).
+Repeat detection is resolved for a whole series in one pass, so the answer
+never depends on the order in which editions were synced. Two separate
+questions are answered:
 
-This module resolves identities for a whole series in one pass:
+Buyers — "returning customers"
+    An order's buyer is identified by the order e-mail only (plus e-mails
+    of imported legacy lists). Stored on the order fact (``person_key``,
+    ``is_repeat_buyer`` …).
 
-1. Every buyer (order fact), every admission ticket (ticket fact) and every
-   entry of an imported legacy list is an *entity*.
-2. Each identity signal (``type:hash``) is a node; entities are linked to the
-   signals they carry. A ticket held by the buyer is linked to its order.
-3. Connected components are people. ``person_key`` is a stable hash of the
-   smallest signal in the component, so it survives re-runs.
-4. A person *participated* in an edition when they bought a paid,
-   non-refunded order or held a ticket in one.
+People — "have you been here before?"
+    A person is a *ticket holder*, matched on name + birth date
+    (``services.identity_keys``). Sharing a card, a PayPal account or an
+    e-mail never makes two ticket holders the same person — people buy for
+    friends. Two tiers:
 
-From that, every fact gets exact repeat fields regardless of sync order, and
-the loyalty dashboards read attendance sets straight from the stored keys.
+    certain   same name (accents/case/word order ignored) and same birth
+              date, or same first + last name and same birth date.
+              Different birth dates are always different people.
+    probable  the ticket has a name but no birth date, and exactly one
+              known person has that name *and* shares an e-mail or a card
+              with it. Anything less clear-cut is left unknown.
+
+    ``attendee_person_key`` / ``is_returning_attendee`` use certain matches
+    only; the ``*_incl`` fields add probable ones. Tickets without a usable
+    name + birth date have no key: they are "unknown", never guessed.
+
+A person *participated* in an edition when they held a ticket of a paid,
+non-refunded order (or appear on an imported legacy list).
 
 READ-ONLY AGAINST PRETIX CORE: only plugin tables are written.
 """
@@ -29,12 +38,21 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set
 
+from .identity_keys import CERTAIN_TYPES, NAME_TYPES
+
 logger = logging.getLogger(__name__)
 
 BATCH = 1000
 DEBOUNCE_SECONDS = 120
 PAYMENT_SIGNALS = ("stripe_card", "paypal_payer", "bank_iban")
+# A payment fingerprint used by more orders than this within one edition is
+# a shared account (agency, box office, family card) — not even supporting
+# evidence.
 MAX_ORDERS_PER_PAYMENT_SIGNAL = 4
+# More admission tickets than this for one "person" in one edition means the
+# name + birth date is a placeholder or was copied across a group order.
+# Such matches are doubtful: the tickets are left unknown.
+MAX_TICKETS_PER_EDITION = 2
 
 
 # ── Editions ──────────────────────────────────────────────────────────────────
@@ -120,20 +138,30 @@ def _person_key(signal: str) -> str:
 @dataclass
 class Resolution:
     editions: List[Edition]
-    order_person: Dict[int, str] = field(default_factory=dict)
-    ticket_person: Dict[int, str] = field(default_factory=dict)
+    order_person: Dict[int, str] = field(default_factory=dict)      # buyer key per order
+    ticket_person: Dict[int, str] = field(default_factory=dict)     # certain key per ticket
+    ticket_incl: Dict[int, str] = field(default_factory=dict)       # certain or probable key
+    ticket_match: Dict[int, str] = field(default_factory=dict)      # "certain" / "probable" / ""
     legacy_person: Dict[int, str] = field(default_factory=dict)
-    # person_key → set of edition ranks participated in (people / buyers only)
+    # key → edition ranks participated in
     person_ranks: Dict[str, Set[int]] = field(default_factory=lambda: defaultdict(set))
+    incl_ranks: Dict[str, Set[int]] = field(default_factory=lambda: defaultdict(set))
     buyer_ranks: Dict[str, Set[int]] = field(default_factory=lambda: defaultdict(set))
     ticket_rows: list = field(default_factory=list)
     order_rows: list = field(default_factory=list)
     order_counts: Dict[int, bool] = field(default_factory=dict)
 
 
+def _components(dsu: "_DSU", nodes) -> Dict[str, List[str]]:
+    out: Dict[str, List[str]] = defaultdict(list)
+    for n in nodes:
+        out[dsu.find(n)].append(n)
+    return out
+
+
 def resolve(organizer_id: int, series_slug: str, event_ids: Optional[List[int]] = None) -> Resolution:
     """
-    Build person keys and participation for a series (or, when
+    Build buyer and person keys and participation for a series (or, when
     ``series_slug`` is empty, for the given standalone events).
     """
     from ..models import AnalyticsIdentity, AnalyticsOrderFact, AnalyticsTicketFact, LegacyIdentity
@@ -147,8 +175,6 @@ def resolve(organizer_id: int, series_slug: str, event_ids: Optional[List[int]] 
     active_rank = {e.rank for e in editions if e.active}
     if not rank_by_event and not any(e.is_legacy for e in editions):
         return res
-
-    dsu = _DSU()
     ev_ids = list(rank_by_event)
 
     res.order_rows = list(
@@ -160,84 +186,213 @@ def resolve(organizer_id: int, series_slug: str, event_ids: Optional[List[int]] 
     # commit in between. Tickets whose order was not loaded are skipped
     # (the next debounced run picks them up) rather than crashing the run.
     loaded_orders = {oid for oid, _e, _s, _r in res.order_rows}
+    res.order_counts = {oid: status == "p" and not refunded for oid, _e, status, refunded in res.order_rows}
     res.ticket_rows = [
         row for row in AnalyticsTicketFact.objects.filter(event_id__in=ev_ids, is_addon=False).values_list(
             "id", "order_fact_id", "attendee_is_buyer", "event_id",
         )
         if row[1] in loaded_orders
     ]
-    for oid in loaded_orders:
-        dsu.find(f"o{oid}")
-    for tid, oid, is_buyer, _ev in res.ticket_rows:
-        dsu.find(f"t{tid}")
-        if is_buyer:
-            dsu.union(f"t{tid}", f"o{oid}")
+    ticket_ids = {tid for tid, *_ in res.ticket_rows}
 
     identity_rows = [
         r for r in AnalyticsIdentity.objects.filter(event_id__in=ev_ids).values_list(
             "order_fact_id", "ticket_fact_id", "identity_type", "identity_hash", "event_id",
         ).iterator(chunk_size=5000)
-        if r[3] and r[0] in loaded_orders
+        if r[3] and r[0] in loaded_orders and (r[1] is None or r[1] in ticket_ids)
     ]
-    # A payment fingerprint used by many orders within one edition is a
-    # shared account (agency, company IBAN, box office, a family card), not
-    # a person. Linking through it would merge strangers transitively.
     per_edition = defaultdict(set)
     for oid, _tid, itype, ihash, ev in identity_rows:
         if itype in PAYMENT_SIGNALS:
             per_edition[(itype, ihash, ev)].add(oid)
     shared = {(t, h) for (t, h, _ev), orders in per_edition.items() if len(orders) > MAX_ORDERS_PER_PAYMENT_SIGNAL}
 
-    has_signal: Set[str] = set()
+    # Per-entity signal sets.
+    order_email: Dict[int, str] = {}
+    order_support: Dict[int, Set[str]] = defaultdict(set)
+    t_certain: Dict[int, Set[str]] = defaultdict(set)
+    t_names: Dict[int, Set[str]] = defaultdict(set)
+    t_support: Dict[int, Set[str]] = defaultdict(set)
     for oid, tid, itype, ihash, _ev in identity_rows:
-        if (itype, ihash) in shared:
-            continue
-        entity = f"t{tid}" if tid else f"o{oid}"
-        signal = f"#{itype}:{ihash}"
-        dsu.union(entity, signal)
-        has_signal.add(signal)
+        sig = f"#{itype}:{ihash}"
+        if tid is None:
+            if itype == "email":
+                order_email[oid] = sig
+                order_support[oid].add(sig)
+            elif itype in PAYMENT_SIGNALS and (itype, ihash) not in shared:
+                order_support[oid].add(sig)
+        elif itype in CERTAIN_TYPES:
+            t_certain[tid].add(sig)
+        elif itype in NAME_TYPES:
+            t_names[tid].add(sig)
+        elif itype == "email":
+            t_support[tid].add(f"#email:{ihash}")
+    ticket_order = {tid: oid for tid, oid, _b, _ev in res.ticket_rows}
+    for tid, oid in ticket_order.items():
+        t_support[tid] |= order_support.get(oid, set())
 
     legacy_rank = {e.legacy_id: e.rank for e in editions if e.is_legacy}
-    legacy_entities = []
+    legacy_rows = []
     if legacy_rank:
-        for lid, le_id, itype, ihash in LegacyIdentity.objects.filter(
-            legacy_edition_id__in=list(legacy_rank)
-        ).values_list("id", "legacy_edition_id", "identity_type", "identity_hash").iterator(chunk_size=5000):
-            signal = f"#{itype}:{ihash}"
-            dsu.union(f"l{lid}", signal)
-            has_signal.add(signal)
-            legacy_entities.append((f"l{lid}", legacy_rank[le_id]))
+        legacy_rows = list(LegacyIdentity.objects.filter(legacy_edition_id__in=list(legacy_rank)).values_list(
+            "id", "legacy_edition_id", "identity_type", "identity_hash", "entry",
+        ))
 
-    # Components are rooted at their smallest node. Signals start with "#"
-    # and entities with "l"/"o"/"t", so an identified component's root is
-    # always a signal — which makes person keys stable across runs.
-    def key_for(entity: str) -> str:
-        root = dsu.find(entity)
-        return _person_key(root) if root in has_signal else ""
+    # ── Buyers: order e-mail (+ legacy e-mails) ──────────────────────────────
+    buyers = _DSU()
+    for oid in loaded_orders:
+        buyers.find(f"o{oid}")
+        if oid in order_email:
+            buyers.union(f"o{oid}", order_email[oid])
+    for lid, _le, itype, ihash, _entry in legacy_rows:
+        if itype == "email":
+            buyers.union(f"l{lid}", f"#email:{ihash}")
 
-    order_counts = {}
-    for oid, ev, status, refunded in res.order_rows:
-        k = key_for(f"o{oid}")
+    def buyer_key(node: str) -> str:
+        root = buyers.find(node)
+        return _person_key(root) if root.startswith("#") else ""
+
+    for oid, ev, _status, _refunded in res.order_rows:
+        k = buyer_key(f"o{oid}")
         res.order_person[oid] = k
-        counts = status == "p" and not refunded
-        order_counts[oid] = counts
-        res.order_counts[oid] = counts
         rank = rank_by_event[ev]
-        if k and counts and rank in active_rank:
-            res.person_ranks[k].add(rank)
+        if k and res.order_counts[oid] and rank in active_rank:
             res.buyer_ranks[k].add(rank)
+
+    # ── People: certain tier (name + birth date) ─────────────────────────────
+    people = _DSU()
+    entity_rank: Dict[str, int] = {}
+    entity_names: Dict[str, Set[str]] = defaultdict(set)
+    entity_support: Dict[str, Set[str]] = defaultdict(set)
+    certain_entities: List[str] = []
+    certain_set: Set[str] = set()
     for tid, oid, _b, ev in res.ticket_rows:
-        k = key_for(f"t{tid}")
-        res.ticket_person[tid] = k
+        ent = f"t{tid}"
+        entity_rank[ent] = rank_by_event[ev]
+        entity_names[ent] = t_names.get(tid, set())
+        entity_support[ent] = t_support.get(tid, set())
+        if t_certain.get(tid):
+            certain_entities.append(ent)
+            certain_set.add(ent)
+            for sig in t_certain[tid]:
+                people.union(ent, sig)
+    legacy_entity: Dict[int, str] = {}
+    for lid, le, itype, ihash, entry in legacy_rows:
+        ent = f"l{le}:{entry or lid}"
+        legacy_entity[lid] = ent
+        entity_rank[ent] = legacy_rank[le]
+        sig = f"#{itype}:{ihash}"
+        if itype in CERTAIN_TYPES:
+            people.union(ent, sig)
+            if ent not in certain_set:
+                certain_entities.append(ent)
+                certain_set.add(ent)
+        elif itype in NAME_TYPES:
+            entity_names[ent].add(sig)
+        elif itype == "email":
+            entity_support[ent].add(sig)
+
+    # A component with too many tickets in one edition is doubtful → unknown.
+    doubtful: Set[str] = set()
+    components = _components(people, certain_entities)
+    for root, members in components.items():
+        per_rank = defaultdict(int)
+        for m in members:
+            if m.startswith("t"):
+                per_rank[entity_rank[m]] += 1
+        if any(n > MAX_TICKETS_PER_EDITION for n in per_rank.values()):
+            doubtful.add(root)
+
+    certain_key: Dict[str, str] = {}
+    comp_members: Dict[str, List[str]] = defaultdict(list)
+    for ent in certain_entities:
+        root = people.find(ent)
+        if root in doubtful:
+            continue
+        certain_key[ent] = _person_key(root)
+        comp_members[root].append(ent)
+
+    # ── People: probable tier (name without birth date + shared evidence) ────
+    name_index: Dict[str, Set[str]] = defaultdict(set)
+    comp_support: Dict[str, Set[str]] = defaultdict(set)
+    for root, members in comp_members.items():
+        for m in members:
+            for n in entity_names[m]:
+                name_index[n].add(root)
+            comp_support[root] |= entity_support[m]
+    names_of_doubtful = set()
+    for root in doubtful:
+        for m in components[root]:
+            names_of_doubtful |= entity_names[m]
+
+    probable_key: Dict[str, str] = {}
+    loose = []  # named, no birth date, no known person with that name
+    for ent, names in entity_names.items():
+        # Entities with a birth date are decided by the certain tier alone
+        # (a doubtful one stays unknown).
+        if ent in certain_set or not names:
+            continue
+        if names & names_of_doubtful:
+            continue
+        candidates = set().union(*(name_index.get(n, set()) for n in names))
+        if not candidates:
+            loose.append(ent)
+            continue
+        matching = [r for r in candidates if comp_support[r] & entity_support[ent]]
+        if len(matching) == 1:
+            probable_key[ent] = _person_key(matching[0])
+
+    # Named tickets without birth date and without a known person: link to
+    # each other only on the full name *and* shared evidence.
+    grouped = _DSU()
+    for ent in loose:
+        grouped.find(ent)
+        full = [n for n in entity_names[ent] if n.startswith("#nm:")]
+        for n in full:
+            for s_ in entity_support[ent]:
+                grouped.union(ent, f"{n}{s_}")
+    for root, members in _components(grouped, loose).items():
+        if len(members) < 2 or not root.startswith("#"):
+            continue
+        per_rank = defaultdict(int)
+        for m in members:
+            per_rank[entity_rank[m]] += 1
+        if len(per_rank) < 2 or any(n > MAX_TICKETS_PER_EDITION for n in per_rank.values()):
+            continue
+        k = _person_key(root)
+        for m in members:
+            probable_key[m] = k
+
+    # ── Participation ────────────────────────────────────────────────────────
+    for tid, oid, _b, ev in res.ticket_rows:
+        ent = f"t{tid}"
+        strict = certain_key.get(ent, "")
+        incl = strict or probable_key.get(ent, "")
+        res.ticket_person[tid] = strict
+        res.ticket_incl[tid] = incl
+        res.ticket_match[tid] = "certain" if strict else ("probable" if incl else "")
         rank = rank_by_event[ev]
-        if k and order_counts.get(oid) and rank in active_rank:
-            res.person_ranks[k].add(rank)
-    for entity, rank in legacy_entities:
-        k = key_for(entity)
-        res.legacy_person[int(entity[1:])] = k
-        if k and rank in active_rank:
-            res.person_ranks[k].add(rank)
-            res.buyer_ranks[k].add(rank)
+        if res.order_counts.get(oid) and rank in active_rank:
+            if strict:
+                res.person_ranks[strict].add(rank)
+            if incl:
+                res.incl_ranks[incl].add(rank)
+    for lid, le, itype, _h, _entry in legacy_rows:
+        ent = legacy_entity[lid]
+        rank = legacy_rank[le]
+        if itype == "email":
+            k = buyer_key(f"l{lid}")
+            if k and rank in active_rank:
+                res.buyer_ranks[k].add(rank)
+        else:
+            k = certain_key.get(ent, "")
+            incl = k or probable_key.get(ent, "")
+            if rank in active_rank:
+                if k:
+                    res.person_ranks[k].add(rank)
+                if incl:
+                    res.incl_ranks[incl].add(rank)
+        res.legacy_person[lid] = k
     return res
 
 
@@ -331,7 +486,7 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
             continue  # arrived after the resolver read the table; next run
         k = res.order_person[fact.pk]
         own = rank_by_event[fact.event_id].rank
-        rf = _repeat_fields(res.person_ranks.get(k, set()) if k else set(), own, editions,
+        rf = _repeat_fields(res.buyer_ranks.get(k, set()) if k else set(), own, editions,
                             counts=res.order_counts.get(fact.pk, False))
         home = (home_country.get(fact.event_id) or "").upper()
         new = {
@@ -361,6 +516,7 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
     ticket_fields = [
         "attendee_person_key", "is_returning_attendee", "attendee_previous_editions",
         "attendee_first_seen_year", "attendee_editions_attended",
+        "attendee_person_key_incl", "is_returning_attendee_incl", "attendee_match",
     ]
     tq = AnalyticsTicketFact.objects.filter(event_id__in=list(rank_by_event), is_addon=False).only(
         "id", "event_id", "order_fact_id", *ticket_fields,
@@ -371,15 +527,20 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
         if t.pk not in res.ticket_person:
             continue
         k = res.ticket_person[t.pk]
+        ki = res.ticket_incl[t.pk]
         own = rank_by_event[t.event_id].rank
-        rf = _repeat_fields(res.person_ranks.get(k, set()) if k else set(), own, editions,
-                            counts=res.order_counts.get(t.order_fact_id, False))
+        counts = res.order_counts.get(t.order_fact_id, False)
+        rf = _repeat_fields(res.person_ranks.get(k, set()) if k else set(), own, editions, counts=counts)
+        rfi = _repeat_fields(res.incl_ranks.get(ki, set()) if ki else set(), own, editions, counts=counts)
         before = tuple(getattr(t, f) for f in ticket_fields)
         t.attendee_person_key = k
         t.is_returning_attendee = rf["count"] > 0
         t.attendee_previous_editions = rf["count"]
         t.attendee_first_seen_year = rf["first_year"]
         t.attendee_editions_attended = rf["attended"]
+        t.attendee_person_key_incl = ki
+        t.is_returning_attendee_incl = rfi["count"] > 0
+        t.attendee_match = res.ticket_match[t.pk]
         if tuple(getattr(t, f) for f in ticket_fields) != before:
             pending.append(t)
         if len(pending) >= BATCH:

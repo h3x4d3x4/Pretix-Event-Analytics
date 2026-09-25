@@ -14,7 +14,7 @@ from typing import Dict, List, Optional
 from django.db.models import Count, Q
 from django.utils.translation import gettext as _
 
-from ..attendance import UNITS, Attendance, load_attendance
+from ..attendance import PEOPLE_INCL, UNITS, Attendance, first_timers, load_attendance
 from .charts import serie, spec
 from .scope import ReportScope, pct
 
@@ -58,6 +58,10 @@ def _build(scope: ReportScope, opts: Dict) -> Dict:
     }
     if focus in att.sets:
         out["focus"] = _focus(att, focus)
+        if opts["unit"] == "people":
+            incl = first_timers(load_attendance(scope.organizer_id, scope.series.slug, PEOPLE_INCL), focus)
+            if incl and (incl["pct"], incl["people"]) != (out["focus"]["first_timer_pct"], out["focus"]["participants"]):
+                out["focus"]["incl"] = incl
     else:
         out["focus_inactive"] = True
     out.update(_frequency(att, selected, by_key, editions))

@@ -13,6 +13,7 @@
 {% if ft %}
 <p class="pa-headline">
   {% blocktrans with pct=ft.pct count=ft.count people=ft.people %}<strong>{{ pct }}%</strong> of the {{ people }} identified people at this edition are here for the first time ({{ count }} people).{% endblocktrans %}
+  {% if ft.incl %}<span class="text-muted">{% blocktrans with pct=ft.incl.pct %}Including probable matches: {{ pct }}%.{% endblocktrans %}</span>{% endif %}
   {% if ft.editions_before %}
     <span class="text-muted small">{% blocktrans with year=ft.history_start %}Based on editions since {{ year }}.{% endblocktrans %}</span>
   {% else %}
@@ -84,8 +85,9 @@
 {% include "pretix_event_analytics/_chart.html" with chart=data.pacing_tickets title=pace_title note=pace_note size="tall" %}
 
 <p class="small text-muted">
-  {% blocktrans with pct=data.coverage.identified_pct %}{{ pct }}% of tickets can be linked to a person (buyer e-mail, attendee e-mail, name + birth date or payment fingerprint).{% endblocktrans %}
-  {% if data.coverage.unidentified %}{% trans "Tickets without any of these are counted in totals but not in returning-people figures." %}{% endif %}
+  {% blocktrans with pct=data.coverage.identified_pct %}{{ pct }}% of tickets are matched to a person with certainty (attendee name + birth date).{% endblocktrans %}
+  {% if data.coverage.unidentified %}{% trans "The rest are counted in totals but left out of returning-people figures rather than guessed. Sharing an e-mail or a card never makes two ticket holders the same person." %}{% endif %}
+  {% if data.coverage.probable %}{% blocktrans count n=data.coverage.probable %}{{ n }} ticket without a birth date matches a known person by name and a shared e-mail or card (“probable”).{% plural %}{{ n }} tickets without a birth date match a known person by name and a shared e-mail or card (“probable”).{% endblocktrans %}{% endif %}
 </p>
 {% endwith %}
 {% endblock %}

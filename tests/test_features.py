@@ -20,15 +20,20 @@ def _csv(response):
     return list(csv.reader(io.StringIO(b"".join(response.streaming_content).decode())))
 
 
+def _t(kit, name, birth, email=None):
+    return [{"item": kit.ga, "attendee_name": name, "birth": birth, "attendee_email": email}]
+
+
 @pytest.fixture
 def three_editions(make_edition, series):
     e23, e24, e25 = make_edition(2023), make_edition(2024), make_edition(2025)
-    e23.order("lapsed@example.org", code="L23")
-    e23.order("loyal@example.org", code="Y23")
-    e24.order("loyal@example.org", code="Y24")
-    e24.order("gone@example.org", code="G24")
-    e24.order("buyer@example.org", [{"item": e24.ga, "attendee_email": "guest@example.org"}], code="B24")
-    e25.order("loyal@example.org", code="Y25")
+    e23.order("lapsed@example.org", _t(e23, "Lara Pinto", "1990-01-01"), code="L23")
+    e23.order("loyal@example.org", _t(e23, "Luis Moura", "1985-05-05"), code="Y23")
+    e24.order("loyal@example.org", _t(e24, "Luis Moura", "1985-05-05"), code="Y24")
+    e24.order("gone@example.org", _t(e24, "Gil Santos", "1992-02-02"), code="G24")
+    e24.order("buyer@example.org", _t(e24, "Bruno Alves", "1980-03-03", "buyer@example.org")
+              + _t(e24, "Gina Rocha", "1981-04-04"), code="B24")
+    e25.order("loyal@example.org", _t(e25, "Luis Moura", "1985-05-05"), code="Y25")
     resync_series(series)
     return e25
 
@@ -135,5 +140,7 @@ def test_dashboard_widgets(make_edition, series):
     with scopes_disabled():
         widgets = [w for _r, ws in event_dashboard_widgets.send(e26.event, subevent=None, lazy=False)
                    for w in ws if str(w.get("lazy", "")).startswith("analytics-")]
+    from django.utils.safestring import SafeString
+    assert widgets and all(isinstance(w["content"], SafeString) for w in widgets)  # else Pretix 2026.7 escapes the HTML
     contents = " ".join(w["content"] for w in widgets)
     assert "50%" in contents and "Returning buyers" in contents

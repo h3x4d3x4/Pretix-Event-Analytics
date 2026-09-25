@@ -1,7 +1,7 @@
 # Pretix Event Analytics
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Pretix](https://img.shields.io/badge/Pretix-2025.x%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.0.3-green.svg)
+[![Pretix](https://img.shields.io/badge/Pretix-2025.x%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.1.0-green.svg)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://python.org)
 
 Analytics suite for [Pretix](https://pretix.eu): sales over time and against previous editions, first-timers and returning people across every edition of a recurring event, audience, tickets, check-in and refunds — without storing personal data.
@@ -13,29 +13,54 @@ Analytics suite for [Pretix](https://pretix.eu): sales over time and against pre
 - **Overview** — revenue, tickets, orders, average order, returning buyers, refunds and check-in, each compared like-for-like with the previous edition *at the same number of days before the event*; first-timer headline; sales pace of every edition; forecast.
 - **Sales** — tickets sold **and** revenue as two aligned charts (day / week / month, daily or cumulative), split by product, category, new vs returning or country, by order or payment date. Price-tier changes and your own **moments** ("line-up announced") are marked on the timeline and on the edition comparison. Editions compared on a days-before-event axis with a same-point table and a forecast (with range and optional ticket/revenue targets). Weekday × hour heatmap and how far ahead people buy.
 - **Loyalty** — **win-back lists** (people from the last edition not back yet, and lapsed visitors, as order codes), the share of first-timers, how many times people have been before, who came back after a gap, who from the last edition has not (yet) returned, who has been to every edition. Pick **any set of editions** to see how many people attended once, twice, three times…, an overlap matrix, the most common attendance patterns, edition-by-edition flow and whether first-timers come back. Counts *people* (buyers and ticket holders) or buyers only. Segments show who the first-timers are (product, country, age, purchase timing).
-- **Audience** — countries and top cities (orders, revenue, average order, returning share), age on the event date, checkout language, payment methods, buyer personas (early bird / regular / last minute), group size, caravans.
+- **Audience** — countries (with how each country is known), "travelling from" and ID-document countries when available, and top cities (orders, revenue, average order, returning share), age on the event date, checkout language, payment methods, buyer personas (early bird / regular / last minute), group size, caravans.
 - **Tickets** — capacity per quota, product performance (returning share, check-in rate), categories, variations, price tiers, add-on attach rates and who buys them, voucher and discount-code usage.
 - **Operations** — payment completion by method (paid vs expired unpaid), check-in rate, no-shows, arrival curve, check-in by product and by first-time/returning; cancellations and refunds over time and by product; opt-in breakdowns of yes/no and multiple-choice questions (e.g. "How did you hear about us?") split by first-time and returning attendees.
 - **Pretix dashboard widgets** — returning buyers and first-time attendees on each event's main dashboard.
-- **Resale** — attendee-name changes as a secondary-market signal, per month and per edition.
-- **Series overview** (organizer level) — every edition side by side, edition flow and first-timer cohorts, plus **import of past attendee lists** (e.g. a 2019 mailing list) so people from before Pretix count as returning. Only hashes of the addresses are kept.
+- **Resale** — one "changed hands" figure combining TicketSwap resales (read from the TicketSwap plugin, when installed) and manual name changes, counted once per ticket; breakdown by channel, product and current holder; per month and per edition; order codes as CSV.
+- **Series overview** (organizer level) — every edition side by side, edition flow and first-timer cohorts, plus **import of past attendee lists** — a CSV with name + birth date (people) or any file with e-mail addresses (customers) — so visitors from before Pretix count as returning. Only hashes are kept.
 - **Exports** — orders, tickets and "returning buyers by order code" as CSV (respecting filters), a full PDF report, and two exporters in Pretix's own *Export* menu (CSV/Excel).
 
 ### How returning people are detected
 
-Every buyer and every ticket holder is linked through identity signals — order e-mail, attendee e-mail, name + date of birth, Stripe card fingerprint, PayPal payer ID, IBAN — all stored only as HMAC-SHA256 hashes. Signals are grouped per series into *people*, so:
+A **person** is a ticket holder, matched across editions on **name + date of birth** (accents, letter case, word
+order, middle names and added second surnames are ignored; different birth dates are always different people).
+Paying with the same card or buying from the same e-mail **never** makes two ticket holders the same person —
+people buy for friends. Everything is stored only as HMAC-SHA256 hashes.
 
-- an attendee who got a ticket from a friend in 2024 and buys their own in 2026 is recognised;
-- a group order for five friends counts as five people, not one;
-- the result is the same no matter in which order editions were synced.
+- **Certain** matches drive every figure.
+- **Probable** matches — a ticket without a birth date whose name matches exactly one known person *and* shares an
+  e-mail or card with them — are shown only as a secondary "including probable" figure.
+- **When in doubt, unknown:** tickets without a usable name + birth date, ambiguous names and placeholder data
+  (the same name + birth date on many tickets of one edition) are left out of returning-people figures and shown
+  as coverage — never guessed.
+- **Customers** (the order e-mail) are a separate view: "returning customers" on the Loyalty page and in the
+  Overview tiles.
 
-Tickets without any signal (group tickets with no attendee e-mail or birth date) are counted in totals and shown as a coverage figure, but never guessed.
+A group order for five friends counts as five people, and the result is the same no matter in which order editions
+were synced.
+
+### Where people come from
+
+Each order's country of residence comes from the first available source: a "Country of residence" question →
+invoice address → PayPal address / account → card billing address → ID-document country (opt-in) → IBAN → the
+card's issuing bank. The source is stored with the country and shown on the Audience page. Nothing else is guessed
+(no e-mail domains, names or phone formats). A "travelling from" question is reported separately.
+
+The most accurate data comes from asking: add **"Country of residence"** and **"Which country are you travelling
+from?"** (question type *Country*) at checkout. Ask for residence, not "origin" or nationality, and mention the
+purpose in your privacy notice.
+
+**ID-document country (opt-in):** if checkout asks for an ID number, the issuing country can be derived from
+national formats with a valid check digit (Spanish DNI/NIE, Portuguese Cartão de Cidadão and civil number,
+Belgian, Italian, UK licence). Ambiguous formats yield nothing. The number is read in memory and never stored.
+Reusing ID numbers for statistics is a new purpose under the GDPR — update your privacy notice first.
 
 ## Requirements
 
 | Component | Version |
 |-----------|---------|
-| Pretix    | 2026.2 or later (tested on 2026.2.0 and 2026.3.1) |
+| Pretix    | 2026.2 or later (tested on 2026.2.0, 2026.3.1 and 2026.7.0) |
 | Python    | 3.10, 3.11, or 3.12 |
 | Django    | 4.2 LTS (ships with Pretix) |
 | Redis     | Recommended (for caching and Celery task queue) |
@@ -169,9 +194,10 @@ The invariant is enforced two ways:
 - Email addresses, card fingerprints, and other identity signals are
   converted to HMAC-SHA256 hashes — never stored in plain text and not
   reversible.
-- Birth dates are converted to age buckets (e.g. `25-34`) — the raw date
-  is never stored.
-- Names are never stored in analytics tables.
+- Names and birth dates are only kept inside those hashes (for matching
+  returning people) and as age buckets (e.g. `25-34`) — never in plain text.
+- ID-document numbers (opt-in) are read in memory; only the derived country
+  is stored.
 - Question answers are only collected for questions an organiser opts in
   to, only for yes/no and multiple-choice questions, and only as the
   chosen option — free text never reaches the analytics tables.

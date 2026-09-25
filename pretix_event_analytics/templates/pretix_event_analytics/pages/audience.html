@@ -20,6 +20,40 @@
   </div>
 </div>
 
+<div class="pa-grid">
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "How the country is known" %}</div>
+      <div class="pa-panel-note">{% trans "First available source per order. Italic sources describe the bank or document, not necessarily where the buyer lives." %}</div></div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Source" %}</th><th class="num">{% trans "Orders" %}</th></tr></thead>
+      <tbody>{% for r in data.country_sources %}<tr><td>{% if r.indirect %}<em>{{ r.label }}</em>{% else %}{{ r.label }}{% endif %}</td>
+        <td class="num"><span class="pa-bar-cell">{{ r.orders }} <span class="text-muted">{{ r.share }}%</span><span class="pa-minibar"><i data-bar="{{ r.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% if data.travel %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Travelling from" %}</div>
+      <div class="pa-panel-note">{% blocktrans with p=data.travel_coverage %}Answers to the “travelling from” question ({{ p }}% of orders){% endblocktrans %}</div></div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Country" %}</th><th class="num">{% trans "Orders" %}</th></tr></thead>
+      <tbody>{% for c in data.travel %}<tr><td>{{ c.flag }} {{ c.name }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ c.n }} <span class="text-muted">{{ c.share }}%</span><span class="pa-minibar"><i data-bar="{{ c.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
+  {% if data.documents %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "ID-document country" %}</div>
+      <div class="pa-panel-note">{% blocktrans with p=data.document_coverage %}Issuing country of recognisable ID numbers ({{ p }}% of tickets) — usually nationality, not residence.{% endblocktrans %}</div></div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Country" %}</th><th class="num">{% trans "Tickets" %}</th></tr></thead>
+      <tbody>{% for c in data.documents %}<tr><td>{{ c.flag }} {{ c.name }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ c.n }} <span class="text-muted">{{ c.share }}%</span><span class="pa-minibar"><i data-bar="{{ c.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
+</div>
+
 {% if data.cities %}
 <div class="pa-panel">
   <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Top cities" %}</div>

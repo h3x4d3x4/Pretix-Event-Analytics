@@ -27,11 +27,11 @@ def test_stripe_shapes():
     assert payment_country("stripe", "not a dict") is None
 
 
-def test_payment_intent_links_people_and_sets_country(make_edition, series):
+def test_payment_intent_sets_country_but_never_links_buyers(make_edition, series):
     e24, e26 = make_edition(2024), make_edition(2026)
     e24.order("old-mail@example.org", provider="stripe", payment_info=PAYMENT_INTENT, country="")
     o = e26.order("new-mail@example.org", provider="stripe", payment_info=PAYMENT_INTENT, country="")
     resync_series(series)
     fact = AnalyticsOrderFact.objects.get(event=e26.event, order_code=o.code)
     assert fact.country_code == "ES"
-    assert fact.is_repeat_buyer  # same card, different e-mail
+    assert fact.is_repeat_buyer is False  # same card, different e-mail: not proof of one person

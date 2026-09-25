@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 # Bump when the ingestion pipeline starts writing new/changed fact fields.
-FACT_VERSION = 2
+FACT_VERSION = 3
 
 
 class EventSeries(models.Model):
@@ -101,6 +101,9 @@ class EventAnalyticsConfig(models.Model):
         help_text=_("E-mail addresses, one per line or comma-separated."),
     )
     pace_alert_last_sent = models.DateTimeField(null=True, blank=True)
+    # Opt-in: text question holding an ID-document number. Its answers are read
+    # in memory to derive the document's issuing country; never stored.
+    id_question_id = models.IntegerField(null=True, blank=True)
     # When the series identity resolver last covered this edition; the
     # periodic task compares it with the newest fact to find dirty series.
     people_resolved_at = models.DateTimeField(null=True, blank=True)
@@ -175,6 +178,11 @@ class AnalyticsOrderFact(models.Model):
 
     # ── Geography ────────────────────────────────────────────────────────────
     country_code = models.CharField(max_length=2, blank=True, db_index=True)
+    # Where country_code came from: question, invoice, paypal_address, paypal_account,
+    # card_billing, id_document, iban, email_domain, card_issuer (see country_resolver).
+    country_source = models.CharField(max_length=20, blank=True, default="")
+    # Answer to a "travelling from" question, when the event asks one.
+    travel_country_code = models.CharField(max_length=2, blank=True, default="")
     city = models.CharField(max_length=100, blank=True)
     postal_code = models.CharField(max_length=20, blank=True)
 
@@ -299,6 +307,15 @@ class AnalyticsTicketFact(models.Model):
     attendee_previous_editions = models.IntegerField(default=0)
     attendee_first_seen_year = models.IntegerField(null=True, blank=True)
     attendee_editions_attended = models.IntegerField(default=1)
+    # attendee_person_key / is_returning_attendee use certain matches only
+    # (name + birth date); these also include probable matches (same name,
+    # birth date missing, plus a shared e-mail or card, unambiguous).
+    attendee_person_key_incl = models.CharField(max_length=64, blank=True, default="")
+    is_returning_attendee_incl = models.BooleanField(default=False)
+    # How this ticket was linked to its person: "certain", "probable" or "".
+    attendee_match = models.CharField(max_length=10, blank=True, default="")
+    # Issuing country derived from the ID-document number (opt-in; the number itself is never stored).
+    document_country = models.CharField(max_length=2, blank=True, default="")
 
     # Attendee demographics (per-ticket, no PII)
     age_range = models.CharField(max_length=10, blank=True)
@@ -356,7 +373,8 @@ class AnalyticsIdentity(models.Model):
     )
 
     # ── Identity Type ────────────────────────────────────────────────────────
-    # Types: 'email', 'stripe_card', 'paypal_payer', 'bank_iban', 'name_dob'
+    # Buyer level: 'email', 'stripe_card', 'paypal_payer', 'bank_iban'.
+    # Ticket level: 'email', 'nm_dob', 'fl_dob', 'nm', 'fl' (services.identity_keys).
     identity_type = models.CharField(max_length=32, db_index=True)
     
     # HMAC-SHA256 representation of the value — NO PII STORED
@@ -366,9 +384,11 @@ class AnalyticsIdentity(models.Model):
 
     class Meta:
         constraints = [
+            # Per ticket: two tickets of one order may carry the same signal
+            # (a shared attendee e-mail, a copied name) and each must keep it.
             models.UniqueConstraint(
-                fields=["order_fact", "identity_type", "identity_hash"],
-                name="unique_identity_per_order",
+                fields=["order_fact", "ticket_fact", "identity_type", "identity_hash"],
+                name="unique_identity_per_ticket",
             ),
         ]
         indexes = [
@@ -441,7 +461,11 @@ class LegacyIdentity(models.Model):
     )
     identity_type = models.CharField(max_length=32, default="email")
     identity_hash = models.CharField(max_length=64, db_index=True)
-    # Filled in by the series identity resolver.
+    # Rows imported from the same list line (e.g. e-mail + name/birth-date
+    # keys of one person) share this value; empty for e-mail-only imports.
+    entry = models.CharField(max_length=16, blank=True, default="")
+    # Filled in by the series identity resolver: buyer key on e-mail rows,
+    # certain person key on name rows.
     person_key = models.CharField(max_length=64, blank=True, default="")
 
     class Meta:

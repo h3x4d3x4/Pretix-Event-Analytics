@@ -73,6 +73,7 @@ class EventKit:
         Create an order. ``tickets`` is a list of dicts:
             {"item": Item, "attendee_email": str|None, "attendee_name": str|None,
              "birth": "YYYY-MM-DD"|None, "diet": QuestionOption|None,
+             "answers": {Question: str},
              "addons": [Item, ...], "price": Decimal|None, "voucher": Voucher|None}
         """
         from pretix.base.models import InvoiceAddress, Order, OrderFee, OrderPayment, OrderRefund
@@ -98,6 +99,8 @@ class EventKit:
                 total += price
                 if t.get("birth"):
                     parent.answers.create(question=self.birth_q, answer=t["birth"])
+                for question, value in (t.get("answers") or {}).items():
+                    parent.answers.create(question=question, answer=value)
                 if t.get("diet"):
                     a = parent.answers.create(question=self.diet_q, answer=str(t["diet"].answer))
                     a.options.add(t["diet"])

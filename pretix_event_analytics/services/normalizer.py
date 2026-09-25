@@ -15,11 +15,14 @@ Identity signals are split by who they describe:
 
 * buyer-level (``order_identities``): the order e-mail and payment
   fingerprints (card, PayPal payer, IBAN);
-* attendee-level (``ticket["_identities"]``): attendee e-mail and
-  name + date of birth of each admission position.
+* attendee-level (``ticket["_identities"]``): attendee e-mail and the
+  name / name + birth-date keys of each admission position
+  (``services.identity_keys``).
 
 Keeping them apart is what allows a group order for five friends to count
-as five people instead of merging everyone into the buyer.
+as five people instead of merging everyone into the buyer. Who *is* the
+same person is decided later by ``services.people``: only name + birth date
+links people; e-mails and payment fingerprints are supporting evidence.
 """
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
@@ -34,8 +37,14 @@ from .age_bucketer import (
     resolve_age_confirmed,
     resolve_age_range,
 )
-from .country_resolver import last_confirmed_payment, resolve_city_and_postal, resolve_country
+from .country_resolver import (
+    last_confirmed_payment,
+    resolve_city_and_postal,
+    resolve_country_source,
+    resolve_travel_country,
+)
 from .hash_service import generate_repeat_hash
+from .identity_keys import CERTAIN_TYPES, person_keys
 from .van_length_bucketer import resolve_caravan_data, resolve_caravan_data_for_position
 
 # Question types whose answers are safe to aggregate (fixed option sets).
@@ -151,7 +160,11 @@ def normalize_order(order, config, *, checkins: Optional[Dict[int, object]] = No
     unique_attendee_count = max(len(attendee_emails) if attendee_emails else ticket_count, 1)
 
     # ── Geography / demographics ──────────────────────────────────────────────
-    country_code = resolve_country(order, positions=positions, payment=confirmed_payment)
+    doc_countries = {p.pk: _document_country(p, config) for p in main_positions}
+    country_code, country_source = resolve_country_source(
+        order, positions=positions, payment=confirmed_payment,
+        document_country=_order_document_country(main_positions, doc_countries, buyer_email),
+    )
     city, postal_code = resolve_city_and_postal(order)
     age_range = resolve_age_range(order, positions=positions, ref_date=event_date)
     is_age_confirmed = resolve_age_confirmed(order, positions=positions)
@@ -159,7 +172,7 @@ def normalize_order(order, config, *, checkins: Optional[Dict[int, object]] = No
 
     days_before_event = (event_date - order_date).days if event_date and order_date else None
     home_country = (config.home_country or "").upper()
-    resolved_country = country_code if country_code != "UNKNOWN" else ""
+    resolved_country = country_code
     is_local_buyer = bool(home_country) and resolved_country == home_country
 
     series_slug = config.series.slug if config.series else ""
@@ -189,6 +202,8 @@ def normalize_order(order, config, *, checkins: Optional[Dict[int, object]] = No
         "payment_provider": payment_provider,
         "is_refunded": is_refunded,
         "country_code": resolved_country,
+        "country_source": country_source,
+        "travel_country_code": resolve_travel_country(positions),
         "city": city,
         "postal_code": postal_code,
         "age_range": age_range,
@@ -214,8 +229,10 @@ def normalize_order(order, config, *, checkins: Optional[Dict[int, object]] = No
 
         identities: List[Dict] = []
         attendee_is_buyer = False
+        doc_country = ""
         if not is_addon:
-            identities = attendee_identities(position)
+            identities = attendee_identities(position, event_date)
+            doc_country = doc_countries.get(position.pk, "")
             att_email = (position.attendee_email or "").strip().lower()
             # The buyer holds this ticket when they put their own address on
             # it, or when a single-ticket order carries no attendee address.
@@ -245,7 +262,8 @@ def normalize_order(order, config, *, checkins: Optional[Dict[int, object]] = No
                 "checked_in": position.pk in checkins,
                 "first_checkin_at": checkins.get(position.pk),
                 "attendee_is_buyer": attendee_is_buyer,
-                "attendee_identified": bool(identities) or attendee_is_buyer,
+                "attendee_identified": any(i["type"] in CERTAIN_TYPES for i in identities),
+                "document_country": doc_country,
                 "_identities": identities,
                 "_answers": _tracked_answers(position, tracked) if tracked else [],
             }
@@ -351,14 +369,36 @@ def buyer_identities(order, confirmed_payment) -> List[Dict]:
     return _dedupe(identities)
 
 
-def attendee_identities(position) -> List[Dict]:
-    """Attendee-level identity keys: attendee e-mail + name/DOB composite."""
+def attendee_identities(position, ref_date=None) -> List[Dict]:
+    """Attendee-level identity keys: attendee e-mail + name / name+birth-date keys."""
     identities = []
     if position.attendee_email and position.attendee_email.strip():
         identities.append({"type": "email", "hash": generate_repeat_hash(position.attendee_email.lower().strip())})
-
-    name = (position.attendee_name or "").strip().lower()
-    bd = _position_birthdate(position)
-    if name and bd:
-        identities.append({"type": "name_dob", "hash": generate_repeat_hash(f"{name}_{bd.strftime('%Y-%m-%d')}")})
+    identities.extend(person_keys(position.attendee_name or "", _position_birthdate(position), ref_date))
     return _dedupe(identities)
+
+
+def _order_document_country(main_positions, doc_countries: Dict[int, str], buyer_email: str) -> str:
+    """
+    The buyer's document country: from the buyer's own ticket, or from all
+    tickets when they agree. A group with mixed documents says nothing.
+    """
+    if len(main_positions) == 1:
+        return doc_countries.get(main_positions[0].pk, "")
+    own = [doc_countries.get(p.pk, "") for p in main_positions
+           if buyer_email and (p.attendee_email or "").strip().lower() == buyer_email]
+    found = {c for c in (own or doc_countries.values()) if c}
+    return found.pop() if len(found) == 1 else ""
+
+
+def _document_country(position, config) -> str:
+    """Issuing country of the ID document (opt-in); the number itself is never kept."""
+    qid = getattr(config, "id_question_id", None)
+    if not qid:
+        return ""
+    from .id_country import document_country
+
+    for answer in position.answers.all():
+        if answer.question_id == qid and answer.answer:
+            return document_country(answer.answer) or ""
+    return ""

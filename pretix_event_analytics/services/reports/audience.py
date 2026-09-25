@@ -7,6 +7,7 @@ from typing import Dict
 import pycountry
 from django.db.models import Avg, Count, Min, Q, Sum
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _lazy
 
 from ...forms import AGE_BUCKETS, provider_label
 from .charts import fold_other, serie, spec
@@ -30,6 +31,36 @@ def country_flag(code: str) -> str:
     if not code or len(code) != 2 or not code.isalpha():
         return ""
     return "".join(chr(ord(c) + 127397) for c in code.upper())
+
+
+SOURCE_LABELS = {
+    "question": _lazy("Residence question"),
+    "invoice": _lazy("Invoice address"),
+    "paypal_address": _lazy("PayPal address"),
+    "paypal_account": _lazy("PayPal account"),
+    "card_billing": _lazy("Card billing address"),
+    "id_document": _lazy("ID document"),
+    "iban": _lazy("Bank account (IBAN)"),
+    "card_issuer": _lazy("Card's issuing bank"),
+    "": _lazy("Unknown"),
+}
+# Sources that describe the bank or document rather than where the buyer lives.
+INDIRECT_SOURCES = ("id_document", "iban", "card_issuer")
+
+
+def _country_sources(orders, total):
+    counts = dict(orders.values_list("country_source").annotate(n=Count("id")))
+    order = list(SOURCE_LABELS)
+    return [{"source": s, "label": str(SOURCE_LABELS.get(s, s)), "orders": n, "share": pct(n, total),
+             "indirect": s in INDIRECT_SOURCES}
+            for s, n in sorted(counts.items(), key=lambda kv: order.index(kv[0]) if kv[0] in order else 99)]
+
+
+def _country_table(qs, field, n=10):
+    rows = list(qs.values(field).annotate(n=Count("id")).order_by("-n"))
+    known = sum(r["n"] for r in rows) or 1
+    return [{"code": r[field], "name": country_name(r[field]), "flag": country_flag(r[field]), "n": r["n"],
+             "share": pct(r["n"], known)} for r in rows[:n]]
 
 
 def _build(scope: ReportScope) -> Dict:
@@ -57,6 +88,12 @@ def _build(scope: ReportScope) -> Dict:
     out["countries"] = table
     out["country_chart"] = spec("bar", [r["name"] for r in folded], [serie(_("Orders"), [r["orders"] for r in folded])],
                                 horizontal=True, y_title=_("Orders"))
+    out["country_sources"] = _country_sources(orders, total)
+    out["travel"] = _country_table(orders.exclude(travel_country_code=""), "travel_country_code")
+    out["travel_coverage"] = pct(sum(r["n"] for r in out["travel"]), total)
+    docs = scope.admissions.exclude(document_country="")
+    out["documents"] = _country_table(docs, "document_country")
+    out["document_coverage"] = pct(sum(r["n"] for r in out["documents"]), scope.admissions.count())
     local = sum(r["local"] for r in rows)
     out["local_pct"] = pct(local, total) if scope.config and scope.config.home_country else None
 

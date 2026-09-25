@@ -3,6 +3,22 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.1.1] — 2026-09-25
+
+### Fixed
+- **Resale showed 0 TicketSwap resales** with TicketSwap 1.x, which keeps
+  swaps in its own table (`TicketSwapSwap`, successful rows) instead of on
+  the ticket. Both record shapes are now read (1.x table, 2.x ticket
+  counters), read-only — only positions, dates and the success flag, never
+  the stored names or e-mails.
+- TicketSwap swap dates (1.x) now appear on the monthly chart, stacked with
+  manual name changes.
+- Resale counts **admission tickets only** in both channels and in the
+  total, so add-ons and stand-alone extras (parking, camper passes) no longer
+  skew the rate.
+
+No migration. No resync needed (Resale reads Pretix data live).
+
 ## [2.1.0] — 2026-09-25
 
 **Run a resync of every edition after upgrading** — returning-people figures

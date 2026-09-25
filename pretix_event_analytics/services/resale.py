@@ -5,11 +5,15 @@ Two channels are combined into one number — tickets whose holder changed —
 counted once per ticket even when both channels touched it:
 
 TicketSwap
-    The TicketSwap plugin (when installed) records swaps on the ticket itself
-    (``OrderPosition.meta_info["ticketswap"]["swap_count"]``). Read-only: this
-    plugin never writes to TicketSwap's data, and reads only the counters —
-    never the stored customer details. TicketSwap keeps no swap date, so its
-    swaps have no timeline.
+    Read-only, from whichever record the installed TicketSwap plugin keeps:
+
+    * 1.x: its own swap table (``TicketSwapSwap``: one row per swap, with
+      ``success`` and ``created``) — only the position, date and success flag
+      are read, never the stored names or e-mails;
+    * 2.x: counters on the ticket (``OrderPosition.meta_info["ticketswap"]``,
+      ``swap_count``), which carry no swap date.
+
+    This plugin never writes to TicketSwap's data.
 
 Manual name change
     Name edits in Pretix (by the buyer, the ticket holder or an admin) from
@@ -80,6 +84,7 @@ class TicketChange:
     manual: int = 0            # name edits that show a new holder
     unclear: int = 0           # name edits without evidence either way
     last_manual: object = None
+    last_swap: object = None
     names: List[str] = field(default_factory=list)
 
     @property
@@ -101,6 +106,28 @@ def ticketswap_active(event) -> bool:
     return TICKETSWAP_PLUGIN in (event.plugins or "").split(",")
 
 
+def _swap_model():
+    """TicketSwap 1.x's swap table, or None when that plugin/version is not installed."""
+    from django.apps import apps
+
+    try:
+        return apps.get_model(TICKETSWAP_PLUGIN, "TicketSwapSwap")
+    except (LookupError, ValueError):
+        return None
+
+
+def _swap_rows(event):
+    """(position id, created) for every successful TicketSwap 1.x swap of ``event``."""
+    model = _swap_model()
+    if model is None:
+        return []
+    try:
+        return list(model.objects.filter(event=event, success=True).values_list("order_position_id", "created"))
+    except Exception:
+        logger.exception("analytics: could not read TicketSwap swaps for %s", event.slug)
+        return []
+
+
 def collect(event) -> Dict[str, TicketChange]:
     """Every ticket of ``event`` with a swap or a name edit, keyed by slot."""
     from django.contrib.contenttypes.models import ContentType
@@ -119,7 +146,20 @@ def collect(event) -> Dict[str, TicketChange]:
             admissions[oid].append(pid)
             codes[oid] = code
 
-        # ── TicketSwap (read-only counters) ────────────────────────────────
+        # ── TicketSwap 1.x: swap table (read-only; only ids, dates, success) ──
+        # Both channels count admission tickets only (same set as the "of N tickets" total).
+        admission_code = {pid: codes[oid] for oid, pids in admissions.items() for pid in pids}
+        for pid, created in _swap_rows(event):
+            if pid not in admission_code:
+                continue  # add-on or non-admission product
+            t = tickets.get(f"p{pid}")
+            if t is None:
+                t = tickets[f"p{pid}"] = TicketChange(order_code=admission_code[pid], position_id=pid)
+            t.swaps += 1
+            if created and (t.last_swap is None or created > t.last_swap):
+                t.last_swap = created
+
+        # ── TicketSwap 2.x: counters on the ticket (read-only) ────────────────
         for pid, code, meta in OrderPosition.all.filter(
                 order__event=event, meta_info__contains='"ticketswap"',
         ).values_list("pk", "order__code", "meta_info"):
@@ -128,9 +168,9 @@ def collect(event) -> Dict[str, TicketChange]:
                 swaps = int(ts.get("swap_count") or 0)
             except (TypeError, ValueError):
                 swaps = 0
-            if swaps:
+            if swaps and pid in admission_code:
                 t = tickets.setdefault(f"p{pid}", TicketChange(order_code=code, position_id=pid))
-                t.swaps = swaps
+                t.swaps = max(t.swaps, swaps)
                 t.personalized = bool(ts.get("personalized"))
 
         # ── Manual name changes (audit log) ────────────────────────────────
@@ -177,8 +217,16 @@ def resale_stats(event) -> Dict:
     sold = AnalyticsTicketFact.objects.filter(
         event=event, is_addon=False, order_fact__order_status="p", order_fact__is_refunded=False,
     )
+    from django_scopes import scopes_disabled
+    from pretix.base.models import OrderPosition
+
+    with scopes_disabled():
+        admission = set(OrderPosition.all.filter(
+            order__event=event, addon_to__isnull=True, item__admission=True,
+        ).values_list("pk", flat=True))
+    # Same scope as both channels: admission tickets of paid, non-refunded orders.
     facts = {pid: (item, ret, key) for pid, item, ret, key in sold.values_list(
-        "position_id", "item_name", "is_returning_attendee", "attendee_person_key")}
+        "position_id", "item_name", "is_returning_attendee", "attendee_person_key") if pid in admission}
     total = len(facts)
     paid_codes = set(sold.values_list("order_fact__order_code", flat=True))
     # Only tickets that are still sold (not canceled or refunded) count.
@@ -194,7 +242,7 @@ def resale_stats(event) -> Dict:
     for item, _r, _k in facts.values():
         by_product[item][0] += 1
     holders = {"returning": 0, "first_time": 0, "unknown": 0}
-    by_month = defaultdict(int)
+    by_month = defaultdict(lambda: {"ticketswap": 0, "manual": 0})
     for t in changed:
         fact = facts.get(t.position_id)
         if fact:
@@ -202,8 +250,10 @@ def resale_stats(event) -> Dict:
             holders["unknown" if not fact[2] else ("returning" if fact[1] else "first_time")] += 1
         else:
             holders["unknown"] += 1
+        if t.swaps and t.last_swap:
+            by_month[t.last_swap.strftime("%Y-%m")]["ticketswap"] += 1
         if t.manual and t.last_manual:
-            by_month[t.last_manual.strftime("%Y-%m")] += 1
+            by_month[t.last_manual.strftime("%Y-%m")]["manual"] += 1
 
     def rate(n, d):
         return round(n / d * 100, 1) if d else 0.0
@@ -221,7 +271,8 @@ def resale_stats(event) -> Dict:
         "by_product": sorted(
             ({"label": k, "tickets": v[0], "changed": v[1], "rate": rate(v[1], v[0])}
              for k, v in by_product.items() if v[1]), key=lambda r: -r["changed"]),
-        "by_month": [{"month": m, "count": n} for m, n in sorted(by_month.items())],
+        "by_month": [{"month": m, **n} for m, n in sorted(by_month.items())],
+        "swaps_dated": any(t.last_swap for t in changed),
         "rows": sorted(changed, key=lambda t: (t.order_code, t.position_id or 0)),
     }
 

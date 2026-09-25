@@ -26,7 +26,7 @@ def import_legacy_list(series, label: str, edition_year: int, raw: str) -> Dict[
     creating it if needed, then re-resolve returning people for the series.
     """
     from ..models import LegacyEdition, LegacyIdentity
-    from .people import recompute_series
+    from .people import queue_recompute
 
     hashes = extract_hashes(raw)
     with transaction.atomic():
@@ -39,5 +39,5 @@ def import_legacy_list(series, label: str, edition_year: int, raw: str) -> Dict[
             ignore_conflicts=True, batch_size=1000,
         )
         after = edition.identities.count()
-    recompute_series(series.organizer_id, series.slug)
+    queue_recompute(series.organizer_id, series.slug)
     return {"found": len(hashes), "imported": after - before, "edition_id": edition.pk}

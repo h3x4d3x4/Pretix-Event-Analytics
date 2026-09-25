@@ -94,13 +94,58 @@ def test_unidentified_tickets_are_counted_separately(make_edition, series):
     assert att.unidentified[key] == 3       # three anonymous group tickets
 
 
-def test_live_ingestion_triggers_resolution(make_edition, ingest):
+def test_live_ingestion_with_worker_resolves(make_edition, ingest, settings):
+    settings.HAS_CELERY = True  # tasks still run eagerly in tests
     e24, e26 = make_edition(2024), make_edition(2026)
     ingest(e24.order("live@example.org"))
     o = e26.order("live@example.org")
     ingest(o)
     f = _fact(o)
     assert f.is_repeat_buyer and f.person_key
+
+
+def test_without_worker_periodic_task_resolves(make_edition, ingest, settings):
+    from pretix.base.signals import periodic_task
+
+    settings.HAS_CELERY = False
+    e24, e26 = make_edition(2024), make_edition(2026)
+    ingest(e24.order("cron@example.org"))
+    o = e26.order("cron@example.org")
+    ingest(o)
+    f = _fact(o)
+    assert f.is_repeat_buyer          # immediate backward-looking status
+    assert f.person_key == ""         # full resolution not run in the request
+    periodic_task.send(sender=None)
+    f = _fact(o)
+    assert f.person_key and f.repeat_count == 1
+    # Nothing changed since: a second run is a no-op.
+    from pretix_event_analytics.services.people import resolve_dirty_scopes
+    assert resolve_dirty_scopes() == 0
+
+
+def test_shared_payment_account_does_not_merge_people(make_edition, series):
+    e24, e26 = make_edition(2024), make_edition(2026)
+    agency = {"iban": "PT50000000000000000000001"}
+    for i in range(6):
+        e24.order(f"client{i}@example.org", provider="banktransfer", payment_info=agency)
+    o = e26.order("someone-new@example.org", provider="banktransfer", payment_info=agency)
+    resync_series(series)
+    assert _fact(o).is_repeat_buyer is False
+
+
+def test_legacy_only_series_gets_person_keys(series):
+    from pretix_event_analytics.services.people import run_scope
+    le = LegacyEdition.objects.create(series=series, label="Suti 2019", edition_year=2019)
+    LegacyIdentity.objects.create(legacy_edition=le, identity_hash=generate_repeat_hash("a@example.org"))
+    run_scope(series.organizer_id, series.slug)
+    assert LegacyIdentity.objects.get(legacy_edition=le).person_key
+
+
+def test_refunded_order_does_not_count_its_own_edition(make_edition, series):
+    e26 = make_edition(2026)
+    o = e26.order("gone@example.org", status="c", refund=True)
+    resync_series(series)
+    assert _fact(o).editions_attended == 1  # never 2 from double counting
 
 
 def test_config_edition_year_change_propagates(make_edition, series):

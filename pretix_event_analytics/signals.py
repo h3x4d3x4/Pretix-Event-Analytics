@@ -22,6 +22,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 
 from pretix.base.signals import (
+    periodic_task,
     checkin_created,
     order_canceled,
     order_changed,
@@ -107,6 +108,22 @@ def on_checkin_created(sender, checkin, **kwargs):
         process_checkin_created.apply_async(args=[order_pk])
     except Exception:
         logger.exception("analytics: failed to queue checkin update")
+
+
+@receiver(periodic_task, dispatch_uid="pretix_analytics_periodic")
+def on_periodic_task(sender, **kwargs):
+    """
+    Safety net run by Pretix's cron: resolve returning people for any series
+    whose facts changed since the last resolution. This is how installs
+    without a Celery worker stay correct without doing heavy work inside a
+    buyer's payment request.
+    """
+    from .services.people import resolve_dirty_scopes
+
+    try:
+        resolve_dirty_scopes()
+    except Exception:
+        logger.exception("analytics: periodic people resolution failed")
 
 
 # ── Navigation ────────────────────────────────────────────────────────────────

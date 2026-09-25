@@ -106,9 +106,11 @@ def write_order(order, config, *, checkins: Optional[Dict[int, object]] = None, 
             .first()
         )
         if quick_repeat:
-            # Buyer-owned signals only: buyer identities plus tickets the
-            # buyer holds themself. Friends' attendance must not make the
-            # buyer "returning".
+            # Look up only signals that belong to *this* buyer (their own
+            # identities and tickets they hold themself) — the friends on a
+            # group order must not make the buyer "returning". Earlier
+            # editions are matched on every signal, attendee ones included:
+            # someone who came as a friend's guest last year *has* been before.
             lookup = list(buyer_ids)
             for t in tickets_data:
                 if t["attendee_is_buyer"]:

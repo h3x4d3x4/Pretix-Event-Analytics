@@ -23,7 +23,15 @@ def _analytics_settings(settings):
 
 
 @pytest.fixture(autouse=True)
-def _clear_cache():
+def _real_cache(settings):
+    # Pretix's test settings use DummyCache; debounce keys, resync locks and
+    # report caching need a cache that actually stores values.
+    settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+                                   "LOCATION": "analytics-tests"}}
+
+
+@pytest.fixture(autouse=True)
+def _clear_cache(_real_cache):
     from django.core.cache import cache
     cache.clear()
     yield

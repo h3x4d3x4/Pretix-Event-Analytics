@@ -221,3 +221,50 @@ def test_permission_required(client, populated):
     client.login(email="nobody@example.org", password="pw")
     r = client.get(_url("dashboard", populated))
     assert r.status_code in (302, 403, 404)
+
+
+@pytest.fixture
+def limited_client(client, populated):
+    """A team member who may view orders of the 2026 edition only."""
+    from pretix.base.models import User
+    user = User.objects.create_user("limited@example.org", "pw")
+    with scopes_disabled():
+        team = populated.event.organizer.teams.create(name="2026 only", all_events=False, can_view_orders=True)
+        team.limit_events.add(populated.event)
+        team.members.add(user)
+    client.login(email="limited@example.org", password="pw")
+    return client
+
+
+def test_editions_filter_cannot_read_other_events(limited_client, populated):
+    from pretix.base.models import Event
+    with scopes_disabled():
+        other = Event.objects.get(slug="suti-2023")
+    r = limited_client.get(_url("export", populated, kind="csv"), {"editions": [str(other.pk)]})
+    body = b"".join(r.streaming_content).decode()
+    assert "suti-2023" not in body
+    r = limited_client.get(_url("sales", populated), {"editions": [str(other.pk)]})
+    assert r.context["scope"].event_ids == [populated.event.pk]
+    pace = [c for k, c in _charts(r).items() if k.endswith("pacing_tickets")]
+    assert all(s["name"] in ("2026", "Suti 2026") for c in pace for s in c["series"])
+
+
+def test_series_wide_views_need_access_to_all_editions(limited_client, populated, series):
+    r = limited_client.get(_url("loyalty", populated))
+    assert r.context["data"].get("no_permission") is True
+    r = limited_client.get(_url("dashboard", populated))
+    assert "first_timers" not in r.context["data"]
+    org = populated.event.organizer.slug
+    r = limited_client.get(reverse("plugins:pretix_event_analytics:series_detail", kwargs={"organizer": org, "pk": series.pk}))
+    assert r.status_code in (302, 403, 404)
+
+
+def test_csv_formula_injection_is_neutralised(admin_client, make_edition, series):
+    from pretix.base.models import InvoiceAddress
+    kit = make_edition(2026)
+    o = kit.order("x@example.org")
+    with scopes_disabled():
+        InvoiceAddress.objects.filter(order=o).update(city='=HYPERLINK("http://evil","x")')
+    resync_series(series)
+    body = b"".join(admin_client.get(_url("export", kit, kind="csv")).streaming_content).decode()
+    assert "'=HYPERLINK" in body

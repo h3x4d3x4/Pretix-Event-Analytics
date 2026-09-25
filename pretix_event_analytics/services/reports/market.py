@@ -30,7 +30,7 @@ def _build(scope: ReportScope) -> Dict:
         out["monthly_chart"] = spec("bar", [r["month"] for r in stats["changes_by_month"]],
                                     [serie(_("Name changes"), [r["count"] for r in stats["changes_by_month"]])],
                                     y_title=_("Name changes"))
-    if scope.series:
+    if scope.series and scope.can_see_series:
         try:
             by_edition = get_name_changes_by_edition(scope.series, scope.event.organizer)
         except Exception:

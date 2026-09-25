@@ -9,12 +9,12 @@ except ImportError:
 class PretixPluginMeta:
     name = _("Event Analytics")
     author = "Andre Vidal"
-    version = "1.2.0"
+    version = "2.0.0"
     visible = True
     restricted = False
     description = _(
-        "Advanced event-level analytics with cross-edition repeat buyer tracking, "
-        "cohort retention matrix, predictive repeat scoring, and a full analytics dashboard."
+        "Analytics suite: sales against previous editions, first-timers and returning people "
+        "across every edition, audience, tickets, check-in and refunds — without storing personal data."
     )
     category = "FEATURE"
     compatibility = "pretix>=2025.0.0"

@@ -35,8 +35,8 @@ from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
-# Upper bound; resync clears the flag on exit.
-RESYNC_LOCK_TTL_SECONDS = 30 * 60
+# Renewed after every chunk, so it only lapses if the resync process dies.
+RESYNC_LOCK_TTL_SECONDS = 10 * 60
 CHUNK_SIZE = 200
 
 
@@ -101,13 +101,13 @@ def resync_event(
     lock_key = resync_lock_key(event.pk)
     cache.set(lock_key, True, timeout=RESYNC_LOCK_TTL_SECONDS)
     try:
-        result = _resync(event, config, log)
+        result = _resync(event, config, log, renew_lock=lambda: cache.set(lock_key, True, RESYNC_LOCK_TTL_SECONDS))
     finally:
         cache.delete(lock_key)
 
     if resolve_people:
-        from .people import recompute_for_event
-        recompute_for_event(event)
+        from .people import run_scope, scope_of
+        run_scope(*scope_of(event))
         log("Resolved returning buyers across the series.")
     else:
         from .versioning import bump
@@ -115,10 +115,13 @@ def resync_event(
     return result
 
 
-def _resync(event, config, log) -> Dict[str, int]:
+def _resync(event, config, log, renew_lock=lambda: None) -> Dict[str, int]:
+    from django.utils.timezone import now
+
     from ..models import AnalyticsOrderFact
     from .ingest import is_ingestible, load_checkins, load_orders, write_order
 
+    started = now()
     order_pks = _load_order_pks(event)
     log(f"Found {len(order_pks)} paid or refunded orders.")
 
@@ -138,11 +141,14 @@ def _resync(event, config, log) -> Dict[str, int]:
             except Exception as exc:
                 logger.warning("analytics resync: skipped order %s — %s", order.code, exc)
                 skipped += 1
+        renew_lock()
         log(f"… {min(i + CHUNK_SIZE, len(order_pks))}/{len(order_pks)}")
 
     # Remove facts for orders that no longer qualify (deleted, or reverted
     # to pending). Skipped orders keep their previous fact, if any.
-    stale = AnalyticsOrderFact.objects.filter(event=event).exclude(order_code__in=kept_codes)
+    # Rows written after the resync started (a live order that slipped in
+    # after the lock lapsed) are never treated as stale.
+    stale = AnalyticsOrderFact.objects.filter(event=event, updated_at__lt=started).exclude(order_code__in=kept_codes)
     if skipped:
         stale = stale.none()
     removed = stale.count()
@@ -155,7 +161,7 @@ def _resync(event, config, log) -> Dict[str, int]:
 def resync_series(series, log_fn: Optional[Callable[[str], None]] = None) -> Dict[str, int]:
     """Resync every edition of a series, then resolve people once."""
     from ..models import EventAnalyticsConfig
-    from .people import recompute_series
+    from .people import run_scope
 
     totals = {"processed": 0, "skipped": 0, "removed": 0}
     configs = EventAnalyticsConfig.objects.filter(series=series).select_related("event__organizer")
@@ -163,5 +169,5 @@ def resync_series(series, log_fn: Optional[Callable[[str], None]] = None) -> Dic
         r = resync_event(cfg.event, log_fn=log_fn, resolve_people=False)
         for k in totals:
             totals[k] += r[k]
-    recompute_series(series.organizer_id, series.slug)
+    run_scope(series.organizer_id, series.slug)
     return totals

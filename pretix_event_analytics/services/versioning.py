@@ -46,7 +46,12 @@ def cached(organizer_id: int, key: str, fn, ttl: int = CACHE_TTL):
 
     # The plugin version is part of the key so an upgrade never serves
     # results computed by the previous code.
-    full = f"pretix_analytics:c:{PretixPluginMeta.version}:{organizer_id}:{data_version(organizer_id)}:{key}"
+    import hashlib
+
+    # Keys carry user input (filters, chosen editions): hash them so every
+    # cache backend (memcached: 250 chars, no spaces) accepts them.
+    digest = hashlib.sha1(key.encode()).hexdigest()
+    full = f"pretix_analytics:c:{PretixPluginMeta.version}:{organizer_id}:{data_version(organizer_id)}:{digest}"
     try:
         hit = cache.get(full)
         if hit is not None:

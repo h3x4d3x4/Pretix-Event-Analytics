@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 
 BATCH = 1000
 DEBOUNCE_SECONDS = 120
+PAYMENT_SIGNALS = ("stripe_card", "paypal_payer", "bank_iban")
+MAX_ORDERS_PER_PAYMENT_SIGNAL = 4
 
 
 # ── Editions ──────────────────────────────────────────────────────────────────
@@ -126,6 +128,7 @@ class Resolution:
     buyer_ranks: Dict[str, Set[int]] = field(default_factory=lambda: defaultdict(set))
     ticket_rows: list = field(default_factory=list)
     order_rows: list = field(default_factory=list)
+    order_counts: Dict[int, bool] = field(default_factory=dict)
 
 
 def resolve(organizer_id: int, series_slug: str, event_ids: Optional[List[int]] = None) -> Resolution:
@@ -153,23 +156,41 @@ def resolve(organizer_id: int, series_slug: str, event_ids: Optional[List[int]] 
             "id", "event_id", "order_status", "is_refunded",
         )
     )
-    res.ticket_rows = list(
-        AnalyticsTicketFact.objects.filter(event_id__in=ev_ids, is_addon=False).values_list(
-            "id", "order_fact_id", "attendee_is_buyer",
+    # Orders and tickets are read in separate queries; live ingestion may
+    # commit in between. Tickets whose order was not loaded are skipped
+    # (the next debounced run picks them up) rather than crashing the run.
+    loaded_orders = {oid for oid, _e, _s, _r in res.order_rows}
+    res.ticket_rows = [
+        row for row in AnalyticsTicketFact.objects.filter(event_id__in=ev_ids, is_addon=False).values_list(
+            "id", "order_fact_id", "attendee_is_buyer", "event_id",
         )
-    )
-    for oid, _ev, _st, _rf in res.order_rows:
+        if row[1] in loaded_orders
+    ]
+    for oid in loaded_orders:
         dsu.find(f"o{oid}")
-    for tid, oid, is_buyer in res.ticket_rows:
+    for tid, oid, is_buyer, _ev in res.ticket_rows:
         dsu.find(f"t{tid}")
         if is_buyer:
             dsu.union(f"t{tid}", f"o{oid}")
 
+    identity_rows = [
+        r for r in AnalyticsIdentity.objects.filter(event_id__in=ev_ids).values_list(
+            "order_fact_id", "ticket_fact_id", "identity_type", "identity_hash", "event_id",
+        ).iterator(chunk_size=5000)
+        if r[3] and r[0] in loaded_orders
+    ]
+    # A payment fingerprint used by many orders within one edition is a
+    # shared account (agency, company IBAN, box office, a family card), not
+    # a person. Linking through it would merge strangers transitively.
+    per_edition = defaultdict(set)
+    for oid, _tid, itype, ihash, ev in identity_rows:
+        if itype in PAYMENT_SIGNALS:
+            per_edition[(itype, ihash, ev)].add(oid)
+    shared = {(t, h) for (t, h, _ev), orders in per_edition.items() if len(orders) > MAX_ORDERS_PER_PAYMENT_SIGNAL}
+
     has_signal: Set[str] = set()
-    for oid, tid, itype, ihash in AnalyticsIdentity.objects.filter(event_id__in=ev_ids).values_list(
-        "order_fact_id", "ticket_fact_id", "identity_type", "identity_hash",
-    ).iterator(chunk_size=5000):
-        if not ihash:
+    for oid, tid, itype, ihash, _ev in identity_rows:
+        if (itype, ihash) in shared:
             continue
         entity = f"t{tid}" if tid else f"o{oid}"
         signal = f"#{itype}:{ihash}"
@@ -200,15 +221,15 @@ def resolve(organizer_id: int, series_slug: str, event_ids: Optional[List[int]] 
         res.order_person[oid] = k
         counts = status == "p" and not refunded
         order_counts[oid] = counts
+        res.order_counts[oid] = counts
         rank = rank_by_event[ev]
         if k and counts and rank in active_rank:
             res.person_ranks[k].add(rank)
             res.buyer_ranks[k].add(rank)
-    order_event = {oid: ev for oid, ev, _s, _r in res.order_rows}
-    for tid, oid, _b in res.ticket_rows:
+    for tid, oid, _b, ev in res.ticket_rows:
         k = key_for(f"t{tid}")
         res.ticket_person[tid] = k
-        rank = rank_by_event[order_event[oid]]
+        rank = rank_by_event[ev]
         if k and order_counts.get(oid) and rank in active_rank:
             res.person_ranks[k].add(rank)
     for entity, rank in legacy_entities:
@@ -227,14 +248,18 @@ def _previous_active_rank(editions: List[Edition], rank: int) -> Optional[int]:
     return None
 
 
-def _repeat_fields(ranks: Set[int], own_rank: int, editions: List[Edition]) -> dict:
+def _repeat_fields(ranks: Set[int], own_rank: int, editions: List[Edition], counts: bool = True) -> dict:
     prev = sorted(r for r in ranks if r < own_rank)
     last = _previous_active_rank(editions, own_rank)
+    # The own edition is part of the tally only when this order/ticket
+    # itself counts (paid, not refunded, edition active) — same rule as the
+    # attendance sets, so the column and the dashboards agree.
+    own = {own_rank} if counts and editions[own_rank].active else set()
     return {
         "count": len(prev),
         "first_year": editions[prev[0]].year if prev else None,
         "from_last": last is not None and last in ranks,
-        "attended": len(ranks | {own_rank}),
+        "attended": max(1, len(ranks | own)),
     }
 
 
@@ -268,6 +293,8 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
     editions = res.editions
     rank_by_event = {e.event_id: e for e in editions if e.event_id}
     if not rank_by_event:
+        _write_legacy_keys(res)
+        bump(organizer_id)
         return {"orders": 0, "tickets": 0}
 
     # Keep denormalised series/edition columns in step with the config
@@ -300,9 +327,12 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
     )
     pending = []
     for fact in qs.iterator(chunk_size=BATCH):
-        k = res.order_person.get(fact.pk, "")
+        if fact.pk not in res.order_person:
+            continue  # arrived after the resolver read the table; next run
+        k = res.order_person[fact.pk]
         own = rank_by_event[fact.event_id].rank
-        rf = _repeat_fields(res.person_ranks.get(k, set()) if k else set(), own, editions)
+        rf = _repeat_fields(res.person_ranks.get(k, set()) if k else set(), own, editions,
+                            counts=res.order_counts.get(fact.pk, False))
         home = (home_country.get(fact.event_id) or "").upper()
         new = {
             "is_local_buyer": bool(home) and fact.country_code == home,
@@ -333,14 +363,17 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
         "attendee_first_seen_year", "attendee_editions_attended",
     ]
     tq = AnalyticsTicketFact.objects.filter(event_id__in=list(rank_by_event), is_addon=False).only(
-        "id", "event_id", *ticket_fields,
+        "id", "event_id", "order_fact_id", *ticket_fields,
     )
     pending = []
     changed_tickets = 0
     for t in tq.iterator(chunk_size=BATCH):
-        k = res.ticket_person.get(t.pk, "")
+        if t.pk not in res.ticket_person:
+            continue
+        k = res.ticket_person[t.pk]
         own = rank_by_event[t.event_id].rank
-        rf = _repeat_fields(res.person_ranks.get(k, set()) if k else set(), own, editions)
+        rf = _repeat_fields(res.person_ranks.get(k, set()) if k else set(), own, editions,
+                            counts=res.order_counts.get(t.order_fact_id, False))
         before = tuple(getattr(t, f) for f in ticket_fields)
         t.attendee_person_key = k
         t.is_returning_attendee = rf["count"] > 0
@@ -357,38 +390,126 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
         AnalyticsTicketFact.objects.bulk_update(pending, ticket_fields)
         changed_tickets += len(pending)
 
-    if res.legacy_person:
-        from ..models import LegacyIdentity
-
-        rows = list(LegacyIdentity.objects.filter(pk__in=list(res.legacy_person)).only("id", "person_key"))
-        stale = [r for r in rows if r.person_key != res.legacy_person[r.pk]]
-        for r in stale:
-            r.person_key = res.legacy_person[r.pk]
-        LegacyIdentity.objects.bulk_update(stale, ["person_key"], batch_size=BATCH)
-
+    _write_legacy_keys(res)
     bump(organizer_id)
     logger.info("analytics: resolved people for %s/%s — %d orders, %d tickets",
                 organizer_id, series_slug or event_ids, changed_orders, changed_tickets)
     return {"orders": changed_orders, "tickets": changed_tickets}
 
 
-def pending_key(event_pk: int) -> str:
-    return f"pretix_analytics:people_pending:{event_pk}"
+def _write_legacy_keys(res: "Resolution") -> None:
+    if not res.legacy_person:
+        return
+    from ..models import LegacyIdentity
+
+    rows = list(LegacyIdentity.objects.filter(pk__in=list(res.legacy_person)).only("id", "person_key"))
+    stale = [r for r in rows if r.person_key != res.legacy_person[r.pk]]
+    for r in stale:
+        r.person_key = res.legacy_person[r.pk]
+    LegacyIdentity.objects.bulk_update(stale, ["person_key"], batch_size=BATCH)
+
+
+def scope_of(event):
+    """(organizer_id, series_slug or '', event_id or None) — what a recompute covers."""
+    from ..models import EventAnalyticsConfig
+
+    cfg = EventAnalyticsConfig.objects.select_related("series").filter(event=event).first()
+    if cfg and cfg.series:
+        return event.organizer_id, cfg.series.slug, None
+    return event.organizer_id, "", event.pk
+
+
+def _scope_token(organizer_id, series_slug, event_id) -> str:
+    return f"{organizer_id}:{series_slug or ''}:{event_id or ''}"
+
+
+def pending_key(organizer_id, series_slug, event_id=None) -> str:
+    return f"pretix_analytics:people_pending:{_scope_token(organizer_id, series_slug, event_id)}"
 
 
 def schedule_recompute(event) -> None:
     """
-    Debounced series recompute after live ingestion. Many orders arriving
-    together (a sale opening) collapse into one resolver run.
+    Ask for a series recompute after live ingestion.
+
+    With a Celery worker, one debounced task per *series* is queued, so a
+    sale opening collapses into a single resolver run. Without a worker
+    (Celery would run inline, inside the buyer's payment request) nothing is
+    done here: the periodic task (Pretix cron) notices the new facts and
+    resolves them. Until then, orders carry the immediate backward-looking
+    repeat status written at ingestion.
     """
+    from django.conf import settings
     from django.core.cache import cache
 
-    from ..tasks import recompute_people
+    if not getattr(settings, "HAS_CELERY", False):
+        return
 
-    key = pending_key(event.pk)
+    from ..tasks import recompute_people_scope
+
+    org, slug, event_id = scope_of(event)
     try:
-        if not cache.add(key, True, timeout=DEBOUNCE_SECONDS):
+        # Timeout well above the countdown: a backlogged worker must not let
+        # the key lapse and queue duplicates. The task clears it when it starts.
+        if not cache.add(pending_key(org, slug, event_id), True, timeout=DEBOUNCE_SECONDS * 10):
             return
     except Exception:
         logger.debug("analytics: debounce cache unavailable", exc_info=True)
-    recompute_people.apply_async(args=[event.pk], countdown=DEBOUNCE_SECONDS)
+    recompute_people_scope.apply_async(args=[org, slug, event_id], countdown=DEBOUNCE_SECONDS)
+
+
+def queue_recompute(organizer_id: int, series_slug: str, event_id: Optional[int] = None) -> None:
+    """Background recompute for admin actions (never block a web request on it)."""
+    from ..tasks import recompute_people_scope
+
+    recompute_people_scope.apply_async(args=[organizer_id, series_slug, event_id])
+
+
+def run_scope(organizer_id: int, series_slug: str, event_id: Optional[int] = None) -> dict:
+    """Recompute one scope and record when it was resolved (in the database)."""
+    from django.utils.timezone import now
+
+    from ..models import EventAnalyticsConfig
+
+    started = now()
+    if series_slug:
+        out = recompute_series(organizer_id, series_slug)
+        configs = EventAnalyticsConfig.objects.filter(series__organizer_id=organizer_id, series__slug=series_slug)
+    else:
+        from django_scopes import scopes_disabled
+        from pretix.base.models import Event
+
+        with scopes_disabled():
+            event = Event.objects.filter(pk=event_id).first()
+        out = recompute_event(event) if event else {}
+        configs = EventAnalyticsConfig.objects.filter(event_id=event_id)
+    configs.update(people_resolved_at=started)
+    return out
+
+
+def resolve_dirty_scopes() -> int:
+    """
+    Periodic safety net: recompute every series (or standalone event) whose
+    facts changed since it was last resolved. Idempotent and cheap when
+    nothing changed (one aggregate per series).
+    """
+    from django.db.models import Max
+
+    from ..models import AnalyticsOrderFact, EventAnalyticsConfig
+
+    scopes = {}
+    for cfg in EventAnalyticsConfig.objects.select_related("series", "event"):
+        key = ((cfg.series.organizer_id, cfg.series.slug, None) if cfg.series
+               else (cfg.event.organizer_id, "", cfg.event_id))
+        scopes.setdefault(key, []).append(cfg)
+    ran = 0
+    for (org, slug, event_id), configs in scopes.items():
+        ids = [c.event_id for c in configs]
+        last_change = AnalyticsOrderFact.objects.filter(event_id__in=ids).aggregate(m=Max("updated_at"))["m"]
+        if last_change is None:
+            continue
+        resolved = [c.people_resolved_at for c in configs]
+        if all(resolved) and last_change <= min(resolved):
+            continue
+        run_scope(org, slug, event_id)
+        ran += 1
+    return ran

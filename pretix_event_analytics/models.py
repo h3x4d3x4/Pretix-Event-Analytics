@@ -87,6 +87,9 @@ class EventAnalyticsConfig(models.Model):
         verbose_name=_("Ticket target"),
         help_text=_("Optional goal shown on the sales forecast, e.g. venue capacity."),
     )
+    # When the series identity resolver last covered this edition; the
+    # periodic task compares it with the newest fact to find dirty series.
+    people_resolved_at = models.DateTimeField(null=True, blank=True)
     revenue_target = models.DecimalField(
         max_digits=13, decimal_places=2, null=True, blank=True,
         verbose_name=_("Revenue target"),

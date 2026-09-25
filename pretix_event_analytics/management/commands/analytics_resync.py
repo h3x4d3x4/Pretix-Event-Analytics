@@ -158,7 +158,7 @@ class Command(BaseCommand):
         # Resolve returning people once per series (and per standalone
         # event) after every edition is in place — the result is then
         # independent of the order in which editions were processed.
-        from ...services.people import recompute_event, recompute_series
+        from ...services.people import run_scope
 
         seen_series = set()
         for event in events:
@@ -169,8 +169,8 @@ class Command(BaseCommand):
                     continue
                 seen_series.add(key)
                 self.stdout.write(f"Resolving returning people for series {cfg.series.slug} ...")
-                recompute_series(*key)
+                run_scope(*key)
             elif cfg:
-                recompute_event(event)
+                run_scope(event.organizer_id, "", event.pk)
 
         self.stdout.write(self.style.SUCCESS(f"\nResync complete for {total} event(s)."))

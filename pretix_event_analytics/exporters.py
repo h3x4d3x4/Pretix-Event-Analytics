@@ -100,6 +100,25 @@ def ticket_rows(qs, tz=None):
         ]
 
 
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _safe_cell(value):
+    """
+    Neutralise spreadsheet formulas. City, postal code, product names and
+    voucher tags can come from buyers or staff; a cell such as
+    ``=HYPERLINK(...)`` would otherwise execute when the CSV is opened.
+    """
+    if isinstance(value, str) and value.startswith(_FORMULA_PREFIXES):
+        return "'" + value
+    return value
+
+
+def safe_rows(rows):
+    for row in rows:
+        yield [_safe_cell(v) for v in row]
+
+
 class _Echo:
     def write(self, value):
         return value
@@ -107,7 +126,7 @@ class _Echo:
 
 def _csv_response(rows, filename):
     writer = csv.writer(_Echo())
-    response = StreamingHttpResponse((writer.writerow(r) for r in rows), content_type="text/csv; charset=utf-8")
+    response = StreamingHttpResponse((writer.writerow(r) for r in safe_rows(rows)), content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
@@ -138,7 +157,7 @@ def export_loyalty_csv(request, event):
 
     scope = _scope(request, event)
     labels_by_person = {}
-    if scope.series:
+    if scope.series and scope.can_see_series:
         att = load_attendance(scope.organizer_id, scope.series.slug, "people")
         years = [e.year for e in att.editions]
         for e in att.editions:
@@ -214,7 +233,7 @@ class AnalyticsOrderExporter(_AnalyticsListExporter):
                                "(returning status, purchase timing, geography, age band). No names or e-mails.")
 
     def iterate_list(self, form_data):
-        return order_rows(self._orders(form_data), self.timezone)
+        return safe_rows(order_rows(self._orders(form_data), self.timezone))
 
     def get_filename(self):
         return f"{self.events.first().organizer.slug}_analytics_orders"
@@ -226,7 +245,8 @@ class AnalyticsTicketExporter(_AnalyticsListExporter):
     description = gettext_lazy("One row per ticket and add-on with check-in, voucher and returning-attendee fields.")
 
     def iterate_list(self, form_data):
-        return ticket_rows(AnalyticsTicketFact.objects.filter(order_fact__in=self._orders(form_data)), self.timezone)
+        return safe_rows(ticket_rows(AnalyticsTicketFact.objects.filter(order_fact__in=self._orders(form_data)),
+                                     self.timezone))
 
     def get_filename(self):
         return f"{self.events.first().organizer.slug}_analytics_tickets"

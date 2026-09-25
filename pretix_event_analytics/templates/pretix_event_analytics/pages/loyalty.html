@@ -8,6 +8,11 @@
   {% trans "Link this event to a series (and the previous editions to the same series) to see first-timers, returning people and how editions overlap." %}
   <a href="{% url 'plugins:pretix_event_analytics:config' organizer=request.organizer.slug event=request.event.slug %}">{% trans "Open settings" %}</a>
 </div>
+{% elif data.no_permission %}
+<div class="pa-callout warn">
+  <strong>{% trans "Loyalty compares every edition of the series." %}</strong>
+  {% trans "Your team can only see some of those events, so these figures are hidden. Ask an administrator for order access to all editions." %}
+</div>
 {% else %}
 {% with fo=data.focus %}
 

@@ -64,8 +64,8 @@ class AnalyticsDataShredder(BaseDataShredder):
         # Other editions may have counted these buyers as returning — re-resolve.
         config = EventAnalyticsConfig.objects.select_related("series").filter(event=self.event).first()
         if config and config.series:
-            from .services.people import recompute_series
-            recompute_series(self.event.organizer_id, config.series.slug)
+            from .services.people import queue_recompute
+            queue_recompute(self.event.organizer_id, config.series.slug)
         else:
             from .services.versioning import bump
             bump(self.event.organizer_id)

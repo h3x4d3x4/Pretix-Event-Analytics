@@ -36,6 +36,8 @@ def build(scope: ReportScope) -> Dict:
 def _build(scope: ReportScope, opts: Dict) -> Dict:
     if not scope.series:
         return {"no_series": True, "unit": opts["unit"]}
+    if not scope.can_see_series:
+        return {"no_permission": True, "unit": opts["unit"]}
     att = load_attendance(scope.organizer_id, scope.series.slug, opts["unit"])
     editions = att.editions
     if not editions:

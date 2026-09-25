@@ -23,6 +23,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Max
+from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -218,11 +219,10 @@ class EventConfigView(EventPermissionRequiredMixin, FormView):
         if changed:
             # Series membership, ordering or scoring inputs moved: re-resolve
             # returning buyers for the old and the new series.
-            from .services.people import recompute_series
-            from .tasks import recompute_people
-            recompute_people.apply_async(args=[config.event_id])
+            from .services.people import queue_recompute, scope_of
+            queue_recompute(*scope_of(config.event))
             if old_series and old_series != config.series:
-                recompute_series(old_series.organizer_id, old_series.slug)
+                queue_recompute(old_series.organizer_id, old_series.slug)
         else:
             from .services.versioning import bump
             bump(config.event.organizer_id)
@@ -326,13 +326,9 @@ class SeriesDeleteView(SeriesMixin, DeleteView):
         event_ids = list(obj.event_configs.values_list("event_id", flat=True))
         response = super().form_valid(form)
         # Former editions are now standalone: nobody is "returning" any more.
-        from django_scopes import scopes_disabled
-        from pretix.base.models import Event
-
-        from .services.people import recompute_event
-        with scopes_disabled():
-            for ev in Event.objects.filter(pk__in=event_ids):
-                recompute_event(ev)
+        from .services.people import queue_recompute
+        for ev_id in event_ids:
+            queue_recompute(self.request.organizer.pk, "", ev_id)
         return response
 
 
@@ -351,6 +347,13 @@ class SeriesDetailView(SeriesMixin, TemplateView):
 
         ctx = super().get_context_data(**kwargs)
         series = get_object_or_404(EventSeries, organizer=self.request.organizer, pk=kwargs["pk"])
+        # Organizer-settings access does not imply order access: the overview
+        # aggregates orders of every edition, so require both.
+        edition_ids = set(series.event_configs.values_list("event_id", flat=True))
+        allowed = set(self.request.user.get_events_with_permission("can_view_orders", self.request)
+                      .filter(pk__in=edition_ids).values_list("pk", flat=True))
+        if edition_ids - allowed:
+            raise PermissionDenied(_("You need order access to every edition of this series."))
         unit = self.request.GET.get("unit", "people")
         unit = unit if unit in ("people", "buyers") else "people"
         data = series_report.build(series, unit)
@@ -397,12 +400,12 @@ class LegacyImportView(SeriesMixin, FormView):
 
 class LegacyDeleteView(SeriesMixin, View):
     def post(self, request, *args, **kwargs):
-        from .services.people import recompute_series
+        from .services.people import queue_recompute
 
         le = get_object_or_404(LegacyEdition, series__organizer=request.organizer, pk=kwargs["legacy_pk"])
         series = le.series
         le.delete()
-        recompute_series(series.organizer_id, series.slug)
+        queue_recompute(series.organizer_id, series.slug)
         messages.success(request, _("Legacy edition removed."))
         return redirect(self.series_url("series_detail", pk=series.pk))
 

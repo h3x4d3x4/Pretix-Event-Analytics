@@ -31,7 +31,7 @@ class ReportScope:
         self.config: Optional[EventAnalyticsConfig] = (
             EventAnalyticsConfig.objects.select_related("series").filter(event=self.event).first()
         )
-        self.form = DashboardFilterForm(self.params or None, event=self.event)
+        self.form = DashboardFilterForm(self.params or None, event=self.event, request=request)
         self.filters = self.form.cleaned_data if self.form.is_valid() else {}
         edition_ids = [int(e) for e in self.filters.get("editions") or []]
         self.event_ids: List[int] = edition_ids or [self.event.pk]
@@ -46,10 +46,29 @@ class ReportScope:
         return self.config.series if self.config else None
 
     @cached_property
+    def can_see_series(self) -> bool:
+        """
+        Series-wide figures (who attended which edition) aggregate every
+        edition, so they are only shown to users who may view orders of all
+        of them.
+        """
+        if not self.series:
+            return False
+        from ...models import EventAnalyticsConfig as Cfg
+
+        user = getattr(self.request, "user", None)
+        if user is None:
+            return False
+        ids = set(Cfg.objects.filter(series=self.series).values_list("event_id", flat=True))
+        allowed = set(user.get_events_with_permission("can_view_orders", self.request)
+                      .filter(pk__in=ids).values_list("pk", flat=True))
+        return ids <= allowed
+
+    @cached_property
     def cache_key(self) -> str:
         items = sorted((k, tuple(sorted(self.params.getlist(k)))) for k in self.params.keys()) if hasattr(
             self.params, "getlist") else sorted(self.params.items())
-        raw = f"{self.event.pk}|{items}"
+        raw = f"{self.event.pk}|{items}|series={self.can_see_series}|ev={sorted(self.viewable_event_ids)}"
         return hashlib.sha1(raw.encode()).hexdigest()
 
     def cached(self, section: str, fn):
@@ -112,8 +131,19 @@ class ReportScope:
     # ── Editions (for comparisons) ────────────────────────────────────────────
 
     @cached_property
+    def viewable_event_ids(self) -> set:
+        user = getattr(self.request, "user", None)
+        if user is None or not getattr(user, "is_authenticated", False):
+            return {self.event.pk}
+        return set(user.get_events_with_permission("can_view_orders", self.request).filter(
+            organizer_id=self.organizer_id).values_list("pk", flat=True)) | {self.event.pk}
+
+    @cached_property
     def series_events(self) -> list:
-        """[(event, config)] for every active Pretix edition of the series, oldest first."""
+        """
+        [(event, config)] for every active Pretix edition of the series that
+        the user may view, oldest first.
+        """
         if not self.series:
             return [(self.event, self.config)]
         configs = (
@@ -121,7 +151,9 @@ class ReportScope:
             .select_related("event")
             .order_by("edition_year", "event__date_from", "event_id")
         )
-        return [(c.event, c) for c in configs if c.is_active or c.event_id == self.event.pk]
+        allowed = self.viewable_event_ids
+        return [(c.event, c) for c in configs
+                if (c.is_active or c.event_id == self.event.pk) and c.event_id in allowed]
 
     @cached_property
     def previous_edition(self):

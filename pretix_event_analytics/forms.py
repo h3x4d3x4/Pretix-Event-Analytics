@@ -228,16 +228,15 @@ class DashboardFilterForm(forms.Form):
     # Pre-2.0 URLs used ?repeat_only=on — still honoured.
     repeat_only = forms.BooleanField(required=False, widget=forms.HiddenInput)
 
-    def __init__(self, *args, event=None, **kwargs):
+    def __init__(self, *args, event=None, request=None, **kwargs):
         self._event = event
+        self._request = request
         super().__init__(*args, **kwargs)
         self.fields["country"].choices = [("", _("All countries"))]
         self.fields["provider"].choices = [("", _("All methods"))]
         self.has_caravan_data = False
         if not event:
             return
-
-        from pretix.base.models import Event
 
         from .models import AnalyticsOrderFact, AnalyticsTicketFact, EventAnalyticsConfig
 
@@ -267,9 +266,8 @@ class DashboardFilterForm(forms.Form):
         self.fields["provider"].choices += [(p, provider_label(p)) for p in sorted(providers)]
         self.has_caravan_data = facts.filter(has_caravan_pass=True).exists()
 
-        all_events = Event.objects.filter(
-            organizer=event.organizer, analytics_config__isnull=False,
-        ).select_related("analytics_config").order_by("-analytics_config__edition_year", "-date_from")
+        all_events = self._permitted_events().select_related("analytics_config").order_by(
+            "-analytics_config__edition_year", "-date_from")
         self.fields["editions"].choices = [
             (str(e.id), f"{e.name} ({e.analytics_config.edition_year})") for e in all_events
         ]
@@ -283,17 +281,27 @@ class DashboardFilterForm(forms.Form):
         submitted = self.cleaned_data.get("editions") or []
         if not submitted or not self._event:
             return submitted
-        from pretix.base.models import Event
         try:
             submitted_ids = [int(e) for e in submitted]
         except (TypeError, ValueError):
             return []
-        valid_ids = set(
-            Event.objects.filter(
-                organizer=self._event.organizer, id__in=submitted_ids, analytics_config__isnull=False,
-            ).values_list("id", flat=True)
-        )
+        valid_ids = set(self._permitted_events().filter(id__in=submitted_ids).values_list("id", flat=True))
         return [str(i) for i in submitted_ids if i in valid_ids]
+
+    def _permitted_events(self):
+        """
+        Configured events of this organizer that the current user may see
+        orders of. Team permissions can be limited to single events, so
+        merging editions must never widen what a user can read.
+        """
+        from pretix.base.models import Event
+
+        qs = Event.objects.filter(organizer=self._event.organizer, analytics_config__isnull=False)
+        request = self._request
+        if request is None or not getattr(request, "user", None):
+            return qs.filter(pk=self._event.pk)
+        allowed = request.user.get_events_with_permission("can_view_orders", request)
+        return qs.filter(pk__in=allowed.values("pk"))
 
     def clean(self):
         data = super().clean()

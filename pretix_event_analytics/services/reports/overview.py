@@ -65,7 +65,7 @@ def _build(scope: ReportScope) -> Dict:
     out = {"tiles": tiles}
 
     # First-timers (series-wide people, independent of filters)
-    if scope.series:
+    if scope.series and scope.can_see_series:
         att = load_attendance(scope.organizer_id, scope.series.slug, "people")
         key = f"e{scope.event.pk}"
         if key in att.sets:

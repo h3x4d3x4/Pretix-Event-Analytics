@@ -4,3 +4,5 @@ recursive-include pretix_event_analytics/templates *
 recursive-include pretix_event_analytics/static *
 recursive-include pretix_event_analytics/locale *
 include pretix_event_analytics/migrations/*.py
+include CHANGELOG.md
+global-exclude *.map *.pyc .DS_Store

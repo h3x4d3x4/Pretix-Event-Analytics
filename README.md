@@ -1,21 +1,34 @@
 # Pretix Event Analytics
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Pretix](https://img.shields.io/badge/Pretix-2025.x%2B-purple.svg)](https://pretix.eu)
+[![Pretix](https://img.shields.io/badge/Pretix-2025.x%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.0.0-green.svg)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://python.org)
 
-Analytics plugin for [Pretix](https://pretix.eu) that provides cross-edition repeat buyer tracking, cohort retention analysis, predictive scoring, and a full analytics dashboard.
+Analytics suite for [Pretix](https://pretix.eu): sales over time and against previous editions, first-timers and returning people across every edition of a recurring event, audience, tickets, check-in and refunds — without storing personal data.
 
 ## Features
 
-- **Repeat Buyer Detection** &mdash; Identifies returning attendees across editions using HMAC-SHA256 identity matching (email, Stripe card fingerprints, PayPal payer IDs, bank IBANs, name+DOB composites). No raw PII is stored.
-- **Cohort Retention Matrix** &mdash; Forward-looking retention heatmap showing what percentage of buyers from each edition returned to later editions.
-- **Predictive Repeat Score** &mdash; Deterministic 0&ndash;100 scoring model based on purchase history, timing, geography, group size, and check-in data. Computed at payment time, refined after the event.
-- **Full Analytics Dashboard** &mdash; Revenue KPIs, country/age/language breakdowns, sales pacing charts, buyer persona segmentation (Early Bird / Regular / Last Minute), add-on attach rates, caravan/camping analysis, and secondary market (ticket resale) detection.
-- **Multi-Edition Filtering** &mdash; Filter or merge analytics data across multiple editions of the same event series.
-- **CSV & PDF Export** &mdash; Download filtered analytics data or a printable summary report.
-- **GDPR-Safe by Design** &mdash; All buyer identification uses salted HMAC-SHA256 hashes. No emails, names, or ID numbers touch the analytics tables. Includes a data shredder for GDPR deletion requests.
-- **Management Command** &mdash; `analytics_resync` for bulk re-processing via CLI.
+**Seven dashboard pages** (Overview · Sales · Audience · Loyalty · Tickets · Operations · Resale) share one filter bar: order date range, country, age, first-time vs returning buyers, payment method, products, merged editions and canceled/refunded orders.
+
+- **Overview** — revenue, tickets, orders, average order, returning buyers, refunds and check-in, each compared like-for-like with the previous edition *at the same number of days before the event*; first-timer headline; sales pace of every edition; forecast.
+- **Sales** — tickets sold **and** revenue as two aligned charts (day / week / month, daily or cumulative), split by product, category, new vs returning or country, by order or payment date. Price-tier changes are marked on the timeline. Editions compared on a days-before-event axis with a same-point table and a forecast (with range and optional ticket/revenue targets). Weekday × hour heatmap and how far ahead people buy.
+- **Loyalty** — the share of first-timers, how many times people have been before, who came back after a gap, who from the last edition has not (yet) returned, who has been to every edition. Pick **any set of editions** to see how many people attended once, twice, three times…, an overlap matrix, the most common attendance patterns, edition-by-edition flow and whether first-timers come back. Counts *people* (buyers and ticket holders) or buyers only. Segments show who the first-timers are (product, country, age, purchase timing).
+- **Audience** — countries (orders, revenue, average order, returning share), age on the event date, checkout language, payment methods, buyer personas (early bird / regular / last minute), group size, caravans.
+- **Tickets** — product performance (returning share, check-in rate), categories, variations, price tiers, add-on attach rates and who buys them, voucher and discount-code usage.
+- **Operations** — check-in rate, no-shows, arrival curve, check-in by product and by first-time/returning; cancellations and refunds over time and by product; opt-in breakdowns of yes/no and multiple-choice questions (e.g. "How did you hear about us?") split by first-time and returning attendees.
+- **Resale** — attendee-name changes as a secondary-market signal, per month and per edition.
+- **Series overview** (organizer level) — every edition side by side, edition flow and first-timer cohorts, plus **import of past attendee lists** (e.g. a 2019 mailing list) so people from before Pretix count as returning. Only hashes of the addresses are kept.
+- **Exports** — orders, tickets and "returning buyers by order code" as CSV (respecting filters), a full PDF report, and two exporters in Pretix's own *Export* menu (CSV/Excel).
+
+### How returning people are detected
+
+Every buyer and every ticket holder is linked through identity signals — order e-mail, attendee e-mail, name + date of birth, Stripe card fingerprint, PayPal payer ID, IBAN — all stored only as HMAC-SHA256 hashes. Signals are grouped per series into *people*, so:
+
+- an attendee who got a ticket from a friend in 2024 and buys their own in 2026 is recognised;
+- a group order for five friends counts as five people, not one;
+- the result is the same no matter in which order editions were synced.
+
+Tickets without any signal (group tickets with no attendee e-mail or birth date) are counted in totals and shown as a coverage figure, but never guessed.
 
 ## Requirements
 
@@ -74,90 +87,55 @@ Go to **Settings &rarr; Analytics** on each event:
 
 ### 3. Sync existing data
 
-For events with existing orders, trigger a resync:
-
-**From the dashboard:** Click the **Resync** button.
-
-**From the command line:**
+For events with existing orders, trigger a resync — **Resync** on the dashboard, **Resync all editions** on the series page, or from the command line:
 
 ```bash
-# Single event
-python -m pretix analytics_resync --event <organizer>/<event>
-
-# All events in a series
-python -m pretix analytics_resync --series <organizer>/<series-slug>
-
-# All configured events
+# Every configured event (returning people are resolved once per series at the end)
 python -m pretix analytics_resync --all
 
-# Include check-in data (run after the event has ended)
-python -m pretix analytics_resync --event <organizer>/<event> --checkin
+# One event / one series
+python -m pretix analytics_resync --event <organizer>/<event>
+python -m pretix analytics_resync --series <organizer>/<series-slug>
 
 # Preview without processing
 python -m pretix analytics_resync --all --dry-run
 ```
 
-### 4. View the dashboard
+Check-ins are always included; the old `--checkin` flag is accepted but no longer needed.
 
-Navigate to **Event &rarr; Analytics** in the control panel. The dashboard auto-updates as new orders are paid.
+### 4. Optional
+
+- **Past editions:** on the series page, import attendee e-mail lists of editions that predate Pretix.
+- **Questions:** in the event's Analytics settings, choose yes/no or multiple-choice questions to analyse, then resync.
+- **Targets:** set a ticket and/or revenue target to see progress next to the forecast.
 
 ## Architecture
 
-### Data Flow
-
 ```
-Pretix Signals (order_paid, order_canceled, checkin_created)
-        |
-        v
-  Celery Background Tasks (async, with retry + backoff)
-        |
-        v
-  Normalization Layer (all PII hashed or bucketed)
-        |
-        v
-  AnalyticsOrderFact + AnalyticsTicketFact + AnalyticsIdentity
-        |
-        v
-  Dashboard / CSV / PDF
+Pretix signals (order paid / canceled / changed / modified / reactivated / split, check-in)
+        │   thin handlers → Celery tasks (retry + backoff; resync lock respected)
+        ▼
+services/ingest.write_order ── normalizer (hashing, bucketing) ──► AnalyticsOrderFact
+        │                                                         AnalyticsTicketFact (one per position)
+        │                                                         AnalyticsIdentity (buyer / attendee)
+        │                                                         AnalyticsAnswerFact (opt-in questions)
+        ▼
+services/people  (debounced, series-wide)  → person keys + exact repeat fields
+        ▼
+services/attendance  (cached sets per edition)   services/reports/*  (cached per data version)
+        ▼
+Dashboard pages · series overview · CSV / PDF / Pretix exporters
 ```
 
-New orders are processed asynchronously via Celery. If Celery is not configured, Pretix falls back to synchronous processing automatically.
-
-### Identity Resolution
-
-Repeat detection uses multiple identity signals, ranked by confidence:
-
-| Signal | Source | Confidence |
-|--------|--------|------------|
-| Stripe card fingerprint | Payment metadata | High |
-| PayPal payer ID | Payment metadata | High |
-| Bank IBAN | Payment metadata | High |
-| Name + Date of Birth | Attendee questions | High |
-| Email address | Order email | Medium |
-
-All values are HMAC-SHA256 hashed before storage. A buyer is flagged as "repeat" if **any** identity matches a previous edition in the same series.
-
-### Predictive Scoring
-
-| Factor | Points |
-|--------|--------|
-| Attended a previous edition | +40 |
-| Checked in at this event | +20 |
-| Purchased 30+ days early | +15 |
-| Bought 3+ tickets | +10 |
-| Local buyer (same country) | +10 |
-| Group order (2+ tickets) | +5 |
-| **Maximum** | **100** |
-
-Scores are computed at payment time (without check-in) and recomputed post-event via resync with `--checkin`.
+Resync upserts every paid or refunded order through the same `write_order` path and removes stale rows; the table is never emptied, so dashboards keep working during a resync.
 
 ## Access Control
 
 | Permission | Access |
 |------------|--------|
-| `can_view_orders` | View the analytics dashboard, export CSV/PDF |
-| `can_change_event_settings` | Configure analytics, trigger resync |
-| `can_change_organizer_settings` | Manage event series |
+| `can_view_orders` | View every analytics page of an event, export CSV/PDF |
+| `can_change_event_settings` | Configure analytics (series, targets, questions), trigger a resync |
+| `can_change_organizer_settings` | Manage series, series overview, import past attendee lists, resync a whole series |
 
 These are standard Pretix team permissions.
 
@@ -167,7 +145,8 @@ This plugin is an analytics overlay. It reads Pretix orders, positions,
 answers, payments, refunds and check-ins — it **never writes** to any
 Pretix core table. All persistence happens in the plugin's own analytics
 tables (`AnalyticsOrderFact`, `AnalyticsTicketFact`, `AnalyticsIdentity`,
-`EventSeries`, `EventAnalyticsConfig`).
+`AnalyticsAnswerFact`, `EventSeries`, `EventAnalyticsConfig`,
+`LegacyEdition`, `LegacyIdentity`).
 
 The invariant is enforced two ways:
 
@@ -189,15 +168,22 @@ The invariant is enforced two ways:
 - Birth dates are converted to age buckets (e.g. `25-34`) — the raw date
   is never stored.
 - Names are never stored in analytics tables.
-- The HMAC salt (`PRETIX_ANALYTICS_SECRET_SALT`) is loaded from Django
-  settings. In production it is **required**; the plugin refuses to
-  operate without it. In `DEBUG=True` development environments the salt
-  falls back to a `SECRET_KEY`-derived value, with a clear log warning.
+- Question answers are only collected for questions an organiser opts in
+  to, only for yes/no and multiple-choice questions, and only as the
+  chosen option — free text never reaches the analytics tables.
+- Imported past attendee lists are hashed in memory; the uploaded file
+  and the plain addresses are discarded immediately.
+- Exports contain order codes and pseudonymous fields only — never names
+  or e-mail addresses.
+- The HMAC salt is **required** in production; the plugin refuses to
+  operate without it (see *Configuration*). In `DEBUG=True` development
+  environments the salt falls back to a `SECRET_KEY`-derived value, with
+  a clear log warning.
 - A **data shredder** is registered, so organisers can delete all
   analytics data for an event through Pretix's built-in GDPR data
   export / deletion interface.
 
-> **Important:** `PRETIX_ANALYTICS_SECRET_SALT` must be set once and
+> **Important:** the salt must be set once and
 > never changed. Rotating it invalidates every historical repeat-buyer
 > hash — repeat detection silently starts over from scratch. If you have
 > to rotate (e.g. after a security incident), run a full resync
@@ -205,56 +191,41 @@ The invariant is enforced two ways:
 
 ## Configuration
 
-Add to your Pretix settings (via environment variable, `pretix.cfg`, or
-Django settings file, depending on your deployment):
+Set the HMAC salt once, before the first sync, in `pretix.cfg`:
 
 ```ini
-# HMAC salt for identity hashing. Required in production.
-# Minimum 16 characters; 32+ random characters recommended.
-# Set once and never change it.
-PRETIX_ANALYTICS_SECRET_SALT = "your-long-random-string-here-32-chars-minimum"
+[pretix_event_analytics]
+; 32+ random characters. Never change it once data exists.
+secret_salt = your-long-random-string-here-32-chars-minimum
 ```
+
+Alternatives: the environment variable `PRETIX_ANALYTICS_SECRET_SALT`, or a Django setting of the same name in a custom settings module. Without a salt the plugin refuses to process orders in production (`DEBUG=False`).
+
+After upgrading, run `python -m pretix migrate`, `python -m pretix rebuild` (static files) and a resync of all events (`analytics_resync --all`) so existing data gets the new fields.
 
 ## Data Model
 
 ```
-EventSeries (organizer-level grouping)
-  +-- EventAnalyticsConfig (per-event: series + edition year + home country)
-        +-- AnalyticsOrderFact (one row per order, all dashboard queries target this)
-              |-- AnalyticsTicketFact (one row per ticket/position)
-              +-- AnalyticsIdentity (hashed identity signals for repeat detection)
+EventSeries (organizer)
+  ├─ EventAnalyticsConfig (per event: edition year, home country, active, targets, tracked questions)
+  │    └─ AnalyticsOrderFact (per order; all dashboards query facts only)
+  │         ├─ AnalyticsTicketFact (per position: product, price, voucher, check-in, attendee status)
+  │         │    ├─ AnalyticsIdentity (attendee-level hashes)
+  │         │    └─ AnalyticsAnswerFact (opt-in question answers)
+  │         └─ AnalyticsIdentity (buyer-level hashes)
+  └─ LegacyEdition (imported past edition)
+       └─ LegacyIdentity (hashed e-mails)
 ```
 
-## Project Structure
+## Development
 
-```
-pretix_event_analytics/
-|-- models.py                  # EventSeries, EventAnalyticsConfig,
-|                              #   AnalyticsOrderFact, AnalyticsTicketFact, AnalyticsIdentity
-|-- signals.py                 # order_paid, order_canceled, checkin_created, nav signals
-|-- tasks.py                   # Celery tasks with retry + exponential backoff
-|-- views.py                   # Dashboard, config, series CRUD, export views
-|-- forms.py                   # Config, filter, and series forms
-|-- filters.py                 # Queryset filtering helpers
-|-- exporters.py               # CSV and PDF export
-|-- shredder.py                # GDPR data shredder
-|-- services/
-|   |-- normalizer.py          # Order -> fact dict orchestration
-|   |-- hash_service.py        # HMAC-SHA256 hashing
-|   |-- repeat_detector.py     # Cross-edition identity matching
-|   |-- predictor.py           # Deterministic repeat probability scorer
-|   |-- cohort_service.py      # Retention matrix builder (cached)
-|   |-- country_resolver.py    # Payment/invoice/question country detection
-|   |-- age_bucketer.py        # Birth date -> age bucket
-|   |-- van_length_bucketer.py # Caravan length -> size bucket
-|   |-- secondary_market.py    # Name change / ticket resale detection
-|   +-- resync_service.py      # Bulk re-processing (chunked, memory-safe)
-|-- management/commands/
-|   +-- analytics_resync.py    # CLI resync command
-|-- migrations/
-|-- templates/                 # Dashboard, config, series management, PDF report
-|-- templatetags/              # Custom template filters
-+-- static/                    # Dashboard CSS/JS, Chart.js
+```bash
+.venv/bin/pip install pytest pytest-django
+.venv/bin/python -m pytest            # real Pretix objects, ~80 tests
+
+# Local demo data: real orders for six editions (local SQLite dev DB only)
+PRETIX_CONFIG_FILE=pretix.cfg .venv/bin/python scripts/dev_seed_orders.py --organizer <org> --i-understand-this-writes-orders
+PRETIX_CONFIG_FILE=pretix.cfg .venv/bin/python -m pretix analytics_resync --organizer <org> --all
 ```
 
 ## Verifying a build

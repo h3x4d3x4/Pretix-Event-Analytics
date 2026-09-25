@@ -3,6 +3,88 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] — 2026-09-25
+
+A rebuild into a full analytics suite. **Upgrade steps:** update the
+package, run `python -m pretix migrate`, `python -m pretix rebuild`, set the
+salt in `pretix.cfg` if you used a Django setting that Pretix never
+loaded, then run `python -m pretix analytics_resync --all`. Until the
+resync runs, the dashboard shows a notice for rows produced by 1.x.
+
+### New — dashboard suite
+- Seven pages sharing one filter bar: Overview, Sales, Audience, Loyalty,
+  Tickets, Operations, Resale; sidebar sub-navigation.
+- **Sales:** tickets and revenue over time as aligned charts (day / week /
+  month, cumulative toggle), split by product, category, new vs returning
+  or country, by order or payment date; price-tier markers; editions
+  compared on a days-before-event axis; same-point comparison table;
+  forecast with range; ticket and revenue targets; weekday × hour heatmap;
+  purchase-timing buckets.
+- **Loyalty:** first-timer share, times attended before, came back after a
+  gap, lost since the last edition, at every edition; choose any editions
+  to compare — attended once/twice/…, overlap matrix, attendance patterns,
+  edition flow, first-timer cohorts; people or buyers-only; first-timer
+  segments by product, country, age and purchase timing.
+- **Audience, Tickets, Operations:** product performance, categories,
+  variations, price tiers, add-ons, vouchers, check-in and arrivals,
+  no-shows, cancellations over time, opt-in question breakdowns.
+- **Series overview** page and **past attendee-list import** (hashed).
+- **Like-for-like KPIs** against the previous edition at the same point
+  in its sales cycle.
+- **Exports:** tickets CSV, "returning buyers by order code" CSV, full PDF
+  report, and exporters in Pretix's own Export menu (CSV/Excel).
+
+### Fixed — correctness
+- Orders with several tickets of the same product lost tickets during live
+  ingestion and were skipped entirely by resync.
+- Returning status depended on the order in which editions were synced;
+  it is now resolved series-wide after every change.
+- Attendee e-mails were hashed but never used; a friend's ticket in one
+  year and an own purchase later now match. Group orders no longer merge
+  their attendees into one person.
+- The cohort matrix used a different definition of "returning" than the
+  KPIs; both now use the same resolved people.
+- A check-in removed the early-purchase points from the return score.
+- With several events selected, ticket, add-on and refund figures still
+  showed only the current event.
+- Resync emptied the table first (blank dashboard during a resync, partial
+  data after a failure) and dropped canceled/refunded orders, so the
+  refund rate read 0 after any resync.
+- Daily/hourly charts used UTC instead of the event's timezone; the hourly
+  chart also shifted by the viewer's browser timezone.
+- Ages were computed on the day of the sync instead of the event date.
+- Persona "add-on rate" actually showed the caravan rate.
+- Net revenue and tax ignored fees.
+- Series pages crashed on Pretix 2026 (non-existent base template).
+- Cohort tooltips showed "0 of  buyers".
+- The salt could only be set as a Django setting, which Pretix installs do
+  not load; `pretix.cfg` and environment variables now work.
+
+### Security
+- The "merge editions" filter and all series-wide figures (Loyalty,
+  first-timer headline, edition comparisons, resale by edition, series
+  overview) respect per-event team permissions: a member limited to one
+  event can no longer read other editions' data.
+- CSV exports neutralise spreadsheet formulas in buyer-supplied fields.
+
+### Changed
+- Resync upserts instead of delete-and-rebuild, always includes check-ins,
+  keeps its lock alive per chunk, and resolves returning people once per
+  series. Live orders wait for a running resync instead of being dropped.
+- Returning-people resolution runs as one debounced background task per
+  series (with a Celery worker) or from Pretix's periodic cron task
+  (without one) — never inside a buyer's payment request. Admin actions
+  queue it instead of blocking the page.
+- Payment fingerprints shared by more than four orders in one edition
+  (agency, company account, box office) no longer link people together.
+- Order changes, attendee edits, reactivations and splits are re-ingested.
+- Report results are cached per organizer data version and plugin version.
+- Charts: validated colour-blind-safe palette, no dual axes, table view.
+
+### Development
+- pytest suite (~80 tests) against real Pretix objects.
+- `scripts/dev_seed_orders.py` seeds real orders into a local dev DB.
+
 ## [1.2.0] — 2026-04-24
 
 A correctness, safety, and polish release. No breaking schema changes;

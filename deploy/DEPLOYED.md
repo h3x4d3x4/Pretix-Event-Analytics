@@ -7,6 +7,13 @@ wheel, refuses if migrations are planned, dump + fingerprint + page checks + aut
 shared folder. **TicketSwap belongs to Sena — never modify its wheel or Dockerfile line.**
 Coordinate with whoever is working on the theme before building or restarting.
 
+## 2026-09-25 16:44 / 16:47 UTC — analytics 2.0.1 and 2.0.2
+
+Theme-proof colours (all `--pa-*` variables, settings/series pages scoped), author "Hexadexa", and a
+separate `--pa-accent` for UI states. Via `upgrade_analytics.sh`: 0 migrations, fingerprint identical,
+all analytics pages 200 for Administrators. Image `:2026.7.0-analytics2.0.2` (on theme 1.0.3);
+rollback `:rollback-pre-analytics2.0.2`. `~/suti-upgrade/build` updated to the 2.0.2 wheel.
+
 ## 2026-09-25 — pretix_event_analytics 2.0.0 on tickets.sutifestival.com (suti0)
 
 **Result:** live since 16:25 UTC. Pretix 2026.7.0 + SUTI theme 1.0.2 + TicketSwap 1.0.4 + analytics 2.0.0.

@@ -64,6 +64,17 @@
   {% endif %}
 </div>
 
+{% if fo.prev_label and fo.lost or fo.lapsed %}
+<div class="pa-callout">
+  <div class="pa-winback">
+    <strong>{% trans "Win them back:" %}</strong>
+    {% if fo.lost %}<a class="btn btn-default btn-xs" href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='winback' %}"><span class="fa fa-download"></span> {% blocktrans with n=fo.lost l=fo.prev_label %}{{ n }} from {{ l }} not back yet{% endblocktrans %}</a>{% endif %}
+    {% if fo.lapsed %}<a class="btn btn-default btn-xs" href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='lapsed' %}"><span class="fa fa-download"></span> {% blocktrans with n=fo.lapsed l=fo.prev_label %}{{ n }} who came earlier but skipped {{ l }}{% endblocktrans %}</a>{% endif %}
+  </div>
+  <div class="small">{% trans "Each list gives the order code of their most recent visit (as buyer or ticket holder), so you can find them in Pretix — for example to send a “we miss you” voucher. No addresses leave Pretix." %}</div>
+</div>
+{% endif %}
+
 <div class="pa-grid">
   {% trans "How many times have they been before?" as pt %}
   {% trans "People at this edition by number of earlier editions attended" as pn %}

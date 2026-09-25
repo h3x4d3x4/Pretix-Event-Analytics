@@ -181,7 +181,9 @@ def _timeseries(scope: ReportScope, opts: Dict) -> Dict:
         return [serie(n, groups[n], slot=(i if n != _("Other") else OTHER_SLOT))
                 for i, n in enumerate(names) if any(groups[n])]
 
-    markers = _price_markers(scope, g, set(labels))
+    # Date order, notes before tier changes on the same day.
+    markers = sorted(_annotation_markers(scope, g, set(labels)) + _price_markers(scope, g, set(labels)),
+                     key=lambda m: (m["x"], m.get("kind") != "note"))
     tickets_chart = spec("bar", labels, series_from(t_groups, t_order), stacked=True, cumulative=True,
                          y_title=_("Tickets"), markers=markers)
     revenue_chart = spec("bar", labels, series_from(r_groups, r_order), fmt="currency", stacked=True,
@@ -254,6 +256,26 @@ def _price_markers(scope: ReportScope, granularity: str, labels: set) -> List[Di
     return [{"x": label, "text": "; ".join(texts)} for label, texts in sorted(by_label.items())][:10]
 
 
+def _bucket_of(d: datetime.date, granularity: str) -> str:
+    if granularity == "month":
+        return d.strftime("%Y-%m")
+    if granularity == "week":
+        return (d - datetime.timedelta(days=d.weekday())).strftime("%Y-%m-%d")
+    return d.strftime("%Y-%m-%d")
+
+
+def _annotation_markers(scope: ReportScope, granularity: str, labels: set) -> List[Dict]:
+    """Organiser notes ("line-up announced") for the editions in view."""
+    from ...models import SalesAnnotation
+
+    by_label = defaultdict(list)
+    for a in SalesAnnotation.objects.filter(event_id__in=scope.event_ids).order_by("date"):
+        label = _bucket_of(a.date, granularity)
+        if label in labels:
+            by_label[label].append(a.label)
+    return [{"x": label, "text": "; ".join(texts), "kind": "note"} for label, texts in sorted(by_label.items())]
+
+
 def _fmt_money(v) -> str:
     v = Decimal(v or 0)
     return f"{v:.0f}" if v == v.to_integral_value() else f"{v:.2f}"
@@ -279,6 +301,20 @@ def _days_left(scope: ReportScope, event):
     if not event.date_from or event.date_from <= now():
         return None
     return (scope.local_date(event.date_from) - scope.local_date(now())).days
+
+
+def _pacing_notes(scope: ReportScope, events: list, window: int) -> List[Dict]:
+    from ...models import SalesAnnotation
+
+    labels = {ev.pk: str(cfg.edition_year) for ev, cfg in events}
+    starts = {ev.pk: scope.local_date(ev.date_from) for ev, _c in events if ev.date_from}
+    notes = []
+    for a in SalesAnnotation.objects.filter(event_id__in=list(starts)).order_by("date"):
+        days_before = (starts[a.event_id] - a.date).days
+        if 0 <= days_before <= window:
+            notes.append({"x": -days_before, "text": f"{labels[a.event_id]}: {a.label}", "kind": "note",
+                          "label": f"T–{days_before}"})
+    return notes[:20]
 
 
 def _cumulative_at(curve: Dict[int, float], days_before: int) -> float:
@@ -324,11 +360,12 @@ def _pacing(scope: ReportScope) -> Dict:
     if len(t_series) == 0:
         return {}
     x_title = _("Days before the event")
+    notes = _pacing_notes(scope, events, window)
     out = {
         "pacing_tickets": spec("line", xs, t_series, x="linear", x_title=x_title, y_title=_("Tickets sold"),
-                               highlight=highlight),
+                               highlight=highlight, markers=notes),
         "pacing_revenue": spec("line", xs, r_series, fmt="currency", x="linear", x_title=x_title,
-                               y_title=_("Revenue"), highlight=highlight),
+                               y_title=_("Revenue"), highlight=highlight, markers=notes),
     }
 
     # Same-point comparison: where did each edition stand with as many days left?

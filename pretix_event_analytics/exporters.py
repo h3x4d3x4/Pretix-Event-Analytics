@@ -183,6 +183,80 @@ def export_loyalty_csv(request, event):
     return _csv_response(rows(), _safe_filename(f"{event.slug}_loyalty", "csv"))
 
 
+def export_winback_csv(request, event):
+    """
+    People to win back, as the order codes of their most recent visit:
+
+    * ``winback`` — at the previous edition, not (yet) at this one;
+    * ``lapsed``  — came to an earlier edition, but neither the previous
+      one nor this one.
+
+    Organisers look the codes up in Pretix (or export those orders) to
+    contact people; the plugin itself never holds addresses.
+    """
+    from django.http import Http404
+
+    from .models import AnalyticsOrderFact, AnalyticsTicketFact
+    from .services.attendance import load_attendance, short_key
+
+    kind = request.resolver_match.kwargs.get("kind", "winback")
+    scope = _scope(request, event)
+    if not (scope.series and scope.can_see_series):
+        raise Http404()
+    att = load_attendance(scope.organizer_id, scope.series.slug, "people")
+    keys = [e.key for e in att.editions]
+    focus = f"e{event.pk}"
+    if focus not in keys or keys.index(focus) == 0:
+        raise Http404()
+    idx = keys.index(focus)
+    earlier = att.editions[:idx]
+    prev = att.sets[earlier[-1].key]
+    current = att.sets[focus]
+    if kind == "lapsed":
+        older = set().union(*[att.sets[e.key] for e in earlier[:-1]]) if len(earlier) > 1 else set()
+        target = older - prev - current
+    else:
+        target = prev - current
+
+    history = {}
+    for e in earlier:
+        for p in att.sets[e.key]:
+            if p in target:
+                history.setdefault(p, []).append(e)
+
+    # Most recent order code per person: as buyer, else as ticket holder.
+    event_ids = [e.event_id for e in earlier if e.event_id]
+    latest = {}
+    for code, key, year, dt in AnalyticsOrderFact.objects.filter(
+            event_id__in=event_ids, order_status="p", is_refunded=False).exclude(person_key="").values_list(
+            "order_code", "person_key", "edition_year", "order_datetime").order_by("order_datetime"):
+        sk = short_key(key)
+        if sk in target:
+            latest[sk] = (code, year, "buyer")
+    for code, key, year in AnalyticsTicketFact.objects.filter(
+            event_id__in=event_ids, is_addon=False, order_fact__order_status="p",
+            order_fact__is_refunded=False).exclude(attendee_person_key="").values_list(
+            "order_fact__order_code", "attendee_person_key", "order_fact__edition_year").order_by(
+            "order_fact__order_datetime"):
+        sk = short_key(key)
+        if sk in target and (sk not in latest or latest[sk][1] < year):
+            latest[sk] = (code, year, "ticket holder")
+
+    years = [e.year for e in att.editions]
+
+    def label(e):
+        return str(e.year) if years.count(e.year) == 1 else f"{e.label} ({e.year})"
+
+    def rows():
+        yield ["last_order_code", "last_edition", "role_in_that_order", "editions_attended", "first_edition",
+               "editions"]
+        for p in sorted(target, key=lambda p: (-len(history.get(p, [])), p)):
+            h = history.get(p, [])
+            code, year, role = latest.get(p, ("", h[-1].year if h else "", "imported list only"))
+            yield [code, year, role, len(h), h[0].year if h else "", " · ".join(label(e) for e in h)]
+    return _csv_response(rows(), _safe_filename(f"{event.slug}_{kind}", "csv"))
+
+
 def export_pdf(request, event) -> HttpResponse:
     """Printable report of every dashboard section (WeasyPrint, as used by Pretix)."""
     try:

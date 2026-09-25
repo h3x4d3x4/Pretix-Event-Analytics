@@ -107,7 +107,12 @@ def _focus(att: Attendance, focus: str) -> Dict:
 
     identified = len(current)
     unidentified = att.unidentified.get(focus, 0)
+    # Win-back audiences: last edition's people not (yet) back, and people
+    # who came before that but skipped the last edition too.
+    older = set().union(*prior_sets[:-1]) if len(prior_sets) > 1 else set()
+    lapsed = older - prev - current
     return {
+        "lapsed": len(lapsed),
         "label": _label(editions[idx], editions),
         "participants": identified,
         "first_timers": len(first_timers),

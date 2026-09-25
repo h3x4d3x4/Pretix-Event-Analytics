@@ -125,8 +125,34 @@ class AnalyticsPageView(EventPermissionRequiredMixin, TemplateView):
             "last_synced": facts.aggregate(m=Max("updated_at"))["m"],
             "currency": scope.currency,
             "export_qs": f"?{filter_qs}" if filter_qs else "",
+            "date_presets": _date_presets(request, scope),
+            "can_annotate": can_resync,
         })
         return ctx
+
+
+def _date_presets(request, scope):
+    """Quick date ranges for the filter bar (links, no JavaScript needed)."""
+    from django.utils.timezone import now
+    from django.utils.translation import gettext
+
+    today = scope.local_date(now())
+    current = (request.GET.get("date_from"), request.GET.get("date_to"))
+    presets = [(gettext("Last 7 days"), today - datetime.timedelta(days=6), None),
+               (gettext("Last 30 days"), today - datetime.timedelta(days=29), None),
+               (gettext("Last 90 days"), today - datetime.timedelta(days=89), None)]
+    out = []
+    for label, start, end in presets:
+        q = request.GET.copy()
+        q["date_from"] = start.isoformat()
+        q.pop("date_to", None)
+        out.append({"label": label, "qs": q.urlencode(),
+                    "active": current == (start.isoformat(), None)})
+    q = request.GET.copy()
+    q.pop("date_from", None)
+    q.pop("date_to", None)
+    out.append({"label": gettext("All time"), "qs": q.urlencode(), "active": not any(current)})
+    return out
 
 
 def _collect_charts(obj, path, out):
@@ -154,6 +180,40 @@ class SalesView(AnalyticsPageView):
     template_name = "pretix_event_analytics/pages/sales.html"
     tab = "sales"
     section = "sales"
+
+    def get_context_data(self, **kwargs):
+        from .models import SalesAnnotation
+
+        ctx = super().get_context_data(**kwargs)
+        ctx["annotations"] = SalesAnnotation.objects.filter(event=self.request.event)
+        ctx["annotation_url"] = _event_url(self.request, "annotations")
+        ctx["today"] = datetime.date.today().isoformat()
+        return ctx
+
+
+class AnnotationView(EventPermissionRequiredMixin, View):
+    """Add or remove a dated note on this edition's sales timeline."""
+    permission = CHANGE_EVENT_SETTINGS
+
+    def post(self, request, *args, **kwargs):
+        from .models import SalesAnnotation
+        from .services.versioning import bump
+
+        back = redirect(_event_url(request, "sales") + "#annotations")
+        if request.POST.get("delete"):
+            SalesAnnotation.objects.filter(event=request.event, pk=request.POST.get("delete")).delete()
+        else:
+            label = (request.POST.get("label") or "").strip()[:120]
+            try:
+                date = datetime.date.fromisoformat(request.POST.get("date") or "")
+            except ValueError:
+                date = None
+            if not label or not date:
+                messages.error(request, _("Enter a date and a short description."))
+                return back
+            SalesAnnotation.objects.create(event=request.event, date=date, label=label)
+        bump(request.organizer.pk)
+        return back
 
 
 class AudienceView(AnalyticsPageView):
@@ -441,6 +501,8 @@ class ExportView(EventPermissionRequiredMixin, View):
             "csv": exporters.export_orders_csv,
             "tickets": exporters.export_tickets_csv,
             "loyalty": exporters.export_loyalty_csv,
+            "winback": exporters.export_winback_csv,
+            "lapsed": exporters.export_winback_csv,
             "pdf": exporters.export_pdf,
         }
         if kind not in handlers:

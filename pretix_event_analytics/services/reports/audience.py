@@ -60,6 +60,20 @@ def _build(scope: ReportScope) -> Dict:
     local = sum(r["local"] for r in rows)
     out["local_pct"] = pct(local, total) if scope.config and scope.config.home_country else None
 
+    # ── Cities (free text from invoice addresses, normalised) ───────────────
+    from django.db.models.functions import Lower, Trim
+    city_rows = list(orders.exclude(city="").annotate(c=Lower(Trim("city"))).values("country_code", "c").annotate(
+        orders=Count("id"), tickets=Sum("ticket_count"), revenue=Sum("total_gross"),
+        returning=Count("id", filter=Q(is_repeat_buyer=True)),
+    ).order_by("-orders")[:15])
+    with_city = orders.exclude(city="").count()
+    out["cities"] = [{
+        "name": r["c"].title(), "flag": country_flag(r["country_code"]), "orders": r["orders"],
+        "tickets": r["tickets"] or 0, "revenue": float(r["revenue"] or 0),
+        "returning_pct": pct(r["returning"], r["orders"]), "share": pct(r["orders"], with_city),
+    } for r in city_rows]
+    out["city_coverage"] = pct(with_city, total)
+
     # ── Age (per ticket where known, else per order) ─────────────────────────
     ages = dict(scope.admissions.exclude(age_range="").values_list("age_range").annotate(n=Count("id")))
     basis = _("tickets")

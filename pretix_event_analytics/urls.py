@@ -21,7 +21,9 @@ urlpatterns = [
     re_path(EVENT + r"operations/$", views.OperationsView.as_view(), name="operations"),
     re_path(EVENT + r"resale/$", views.ResaleView.as_view(), name="resale"),
     re_path(EVENT + r"config/$", views.EventConfigView.as_view(), name="config"),
-    re_path(EVENT + r"export/(?P<kind>csv|tickets|loyalty|pdf)/$", views.ExportView.as_view(), name="export"),
+    re_path(EVENT + r"export/(?P<kind>csv|tickets|loyalty|winback|lapsed|pdf)/$", views.ExportView.as_view(),
+            name="export"),
+    re_path(EVENT + r"annotations/$", views.AnnotationView.as_view(), name="annotations"),
     re_path(EVENT + r"resync/$", views.TriggerResyncView.as_view(), name="trigger_resync"),
 
     re_path(ORG + r"series/$", views.SeriesListView.as_view(), name="series_list"),

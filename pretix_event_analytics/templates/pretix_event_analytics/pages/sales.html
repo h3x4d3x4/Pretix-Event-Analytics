@@ -33,11 +33,35 @@
   <div class="pa-panel"><div class="pa-empty">{% trans "No sales match the current filters." %}</div></div>
 {% else %}
   {% trans "Tickets sold" as t_title %}
-  {% trans "Admission tickets; add-ons are not counted as tickets. Numbered markers show when a product started selling at a new price." as t_note %}
+  {% trans "Admission tickets; add-ons are not counted as tickets. Markers: your moments (solid) and price-tier changes (dashed)." as t_note %}
   {% include "pretix_event_analytics/_chart.html" with chart=data.tickets_chart title=t_title note=t_note group="sales" %}
   {% trans "Revenue" as r_title %}
   {% include "pretix_event_analytics/_chart.html" with chart=data.revenue_chart title=r_title note=data.revenue_note group="sales" %}
 {% endif %}
+
+<div class="pa-panel" id="annotations">
+  <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Moments" %}</div>
+    <div class="pa-panel-note">{% trans "Mark what happened — line-up announcements, newsletters, campaigns — to explain spikes. Shown on the charts above and on the edition comparison." %}</div></div></div>
+  <div class="pa-panel-body">
+    {% if annotations %}
+    <ul class="pa-annotations">
+      {% for a in annotations %}<li><span><strong>{{ a.date|date:"SHORT_DATE_FORMAT" }}</strong> · {{ a.label }}</span>
+        {% if can_annotate %}<form method="post" action="{{ annotation_url }}" class="pa-m0">{% csrf_token %}<input type="hidden" name="delete" value="{{ a.pk }}">
+          <button type="submit" class="btn btn-xs btn-default" title="{% trans 'Remove' %}"><span class="fa fa-times"></span></button></form>{% endif %}</li>{% endfor %}
+    </ul>
+    {% else %}<p class="text-muted small">{% trans "No moments recorded yet." %}</p>{% endif %}
+    {% if can_annotate %}
+    <form method="post" action="{{ annotation_url }}" class="pa-annotation-form">
+      {% csrf_token %}
+      <div><label class="small text-muted" for="pa-ann-date">{% trans "Date" %}</label>
+        <input type="date" id="pa-ann-date" name="date" value="{{ today }}" class="form-control input-sm" required></div>
+      <div><label class="small text-muted" for="pa-ann-label">{% trans "What happened" %}</label>
+        <input type="text" id="pa-ann-label" name="label" maxlength="120" class="form-control input-sm" placeholder="{% trans 'Line-up announced' %}" required></div>
+      <button type="submit" class="btn btn-default btn-sm"><span class="fa fa-plus"></span> {% trans "Add" %}</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
 
 {% if f %}
 <h3 class="pa-section-title">{% trans "Forecast" %}<small>{% blocktrans with d=f.days_left %}{{ d }} days to go{% endblocktrans %}</small></h3>

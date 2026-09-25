@@ -60,6 +60,20 @@ resync runs, the dashboard shows a notice for rows produced by 1.x.
 - The salt could only be set as a Django setting, which Pretix installs do
   not load; `pretix.cfg` and environment variables now work.
 
+### New — also in 2.0.0
+- **Win-back lists:** people from the previous edition who have not
+  bought yet, and people who came earlier but skipped the last edition —
+  exported as the order code of their most recent visit.
+- **Moments:** dated notes ("line-up announced") drawn on the sales charts
+  and on the edition comparison, next to automatic price-tier markers.
+- **Capacity** per quota (paid, pending, available, waiting list), live
+  from Pretix.
+- **Payment completion** by method: paid vs pending vs expired unpaid.
+- **Top cities** in the Audience page.
+- **Quick date ranges** (7 / 30 / 90 days, all time) in the filter bar.
+- **Pretix dashboard widgets:** returning buyers and first-time attendees
+  on the event's main dashboard.
+
 ### Security
 - The "merge editions" filter and all series-wide figures (Loyalty,
   first-timer headline, edition comparisons, resale by edition, series

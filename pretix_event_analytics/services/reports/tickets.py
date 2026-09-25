@@ -94,6 +94,9 @@ def _build(scope: ReportScope) -> Dict:
                          "pct": pct(r["w"], r["total"])})
         out["addon_segments"] = segs
 
+    if not scope.merged:
+        out["capacity"] = _capacity(scope.event)
+
     # Vouchers
     vouchers = list(scope.tickets.exclude(voucher_code="").values("voucher_tag").annotate(
         tickets=Count("id"), orders=Count("order_fact_id", distinct=True), codes=Count("voucher_code", distinct=True),
@@ -108,3 +111,33 @@ def _build(scope: ReportScope) -> Dict:
         out["voucher_share"] = pct(sum(v["tickets"] for v in vouchers), scope.tickets.count())
         out["no_voucher_avg"] = float(paid_avg or 0)
     return out
+
+
+def _capacity(event):
+    """
+    Quota usage straight from Pretix's own availability engine (read-only):
+    how much of each quota is paid, pending, and still available.
+    """
+    from pretix.base.services.quotas import QuotaAvailability
+
+    quotas = list(event.quotas.filter(subevent__isnull=True).prefetch_related("items").order_by("name"))
+    quotas = [q for q in quotas if q.size]
+    if not quotas:
+        return []
+    qa = QuotaAvailability(full_results=True, count_waitinglist=True)
+    qa.queue(*quotas)
+    qa.compute()
+    rows = []
+    for q in quotas:
+        paid = qa.count_paid_orders.get(q, 0)
+        pending = qa.count_pending_orders.get(q, 0)
+        state, available = qa.results.get(q, (None, None))
+        rows.append({
+            "name": q.name, "size": q.size, "paid": paid, "pending": pending,
+            "available": available if available is not None else max(q.size - paid - pending, 0),
+            "waiting": qa.count_waitinglist.get(q, 0),
+            "sold_pct": pct(paid, q.size),
+            "reserved_pct": pct(paid + pending, q.size),
+            "products": ", ".join(str(i.name) for i in q.items.all()),
+        })
+    return rows

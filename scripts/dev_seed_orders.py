@@ -252,6 +252,41 @@ def seed_edition(event, people, attended_before, n_people, rng, now, open_date):
     return created, {x for _p, x in sold}
 
 
+def add_extras(event, rng, now):
+    """Idempotent demo extras: a capacity quota, timeline notes, abandoned orders."""
+    from pretix.base.models import Order, OrderPayment
+    from pretix_event_analytics.models import SalesAnnotation
+
+    items = {str(i.name): i for i in event.items.all()}
+    if not event.quotas.exists():
+        q = event.quotas.create(name="Festival capacity", size=650)
+        q.items.add(items["Festival Pass"], items["VIP Pass"], items["Day Pass"])
+        q.variations.add(*items["Day Pass"].variations.all())  # variations only count when listed
+        v = event.quotas.create(name="Camper van spots", size=60)
+        v.items.add(items["Camper Van Pass"])
+    if not SalesAnnotation.objects.filter(event=event).exists() and event.presale_start:
+        start = event.presale_start.date()
+        for offset, label in ((0, "Tickets on sale"), (45, "Line-up wave 1"), (150, "Newsletter: early bird ends"),
+                              (230, "Line-up wave 2")):
+            d = start + dt.timedelta(days=offset)
+            if d < event.date_from.date() and d < now.date():
+                SalesAnnotation.objects.create(event=event, date=d, label=label)
+    if not Order.objects.filter(event=event, status__in=("e", "n")).exists():
+        channel = event.organizer.sales_channels.get(identifier="web")
+        for i in range(rng.randint(15, 30)):
+            when = dt.datetime.combine(event.presale_start.date() + dt.timedelta(days=rng.randint(0, 200)),
+                                       dt.time(12), tzinfo=dt.timezone.utc)
+            if when >= now:
+                continue
+            status = rng.choice(["e", "e", "e", "n"])
+            o = Order.objects.create(code=f"X{event.pk}{i:03d}", event=event, email=f"abandon{i}@example.org",
+                                     status=status, datetime=when, expires=when + dt.timedelta(days=7),
+                                     total=Decimal("89.00"), sales_channel=channel, locale="en")
+            o.all_positions.create(item=items["Festival Pass"], price=Decimal("89.00"))
+            o.payments.create(provider=rng.choice(["banktransfer", "banktransfer", "stripe", "paypal"]),
+                              amount=Decimal("89.00"), state=OrderPayment.PAYMENT_STATE_CREATED)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--organizer", required=True)
@@ -278,10 +313,12 @@ def main():
         for year, date_from, n, open_date in EDITIONS:
             event = ensure_event(org, series, year, date_from, open_date)
             if Order.objects.filter(event=event).exists():
-                print(f"{event.slug}: already has orders, skipping")
+                add_extras(event, rng, now)
+                print(f"{event.slug}: already has orders — added demo extras only")
                 continue
             created, came = seed_edition(event, people, attended_before, n, rng, now, open_date)
             attended_before |= came
+            add_extras(event, rng, now)
             print(f"{event.slug}: {created} orders")
     print("Done. Now run: python -m pretix analytics_resync --organizer", args.organizer, "--all")
 

@@ -31,7 +31,7 @@ from pretix.base.signals import (
     order_reactivated,
     order_split,
 )
-from pretix.control.signals import nav_event, nav_event_settings, nav_organizer
+from pretix.control.signals import event_dashboard_widgets, nav_event, nav_event_settings, nav_organizer
 from ._compat import CHANGE_EVENT_SETTINGS, CHANGE_ORGANIZER_SETTINGS, VIEW_ORDERS
 
 logger = logging.getLogger(__name__)
@@ -125,6 +125,47 @@ def on_periodic_task(sender, **kwargs):
         resolve_dirty_scopes()
     except Exception:
         logger.exception("analytics: periodic people resolution failed")
+
+
+# ── Pretix event dashboard ─────────────────────────────────────────────────
+
+@receiver(event_dashboard_widgets, dispatch_uid="pretix_analytics_dashboard_widgets")
+def analytics_dashboard_widgets(sender, subevent=None, lazy=False, **kwargs):
+    """
+    Headline figures on Pretix's own event dashboard. Pretix only asks for
+    widgets when the user can view this event's orders, and no request is
+    passed — so widgets use this event's facts only, never other editions.
+    """
+    from django.db.models import Count, Q
+    from django.utils.translation import gettext as _
+
+    from .models import AnalyticsOrderFact, AnalyticsTicketFact, EventAnalyticsConfig
+
+    if subevent or not EventAnalyticsConfig.objects.filter(event=sender).exists():
+        return []
+    loyalty_url = reverse("plugins:pretix_event_analytics:loyalty",
+                          kwargs={"organizer": sender.organizer.slug, "event": sender.slug})
+    widget = '<div class="numwidget"><span class="num">{num}</span><span class="text">{text}</span></div>'
+    if lazy:
+        return [
+            {"content": None, "lazy": "analytics-returning", "display_size": "small", "priority": 50, "url": loyalty_url},
+            {"content": None, "lazy": "analytics-firsttime", "display_size": "small", "priority": 49, "url": loyalty_url},
+        ]
+    orders = AnalyticsOrderFact.objects.filter(event=sender, order_status="p", is_refunded=False).aggregate(
+        identified=Count("id", filter=~Q(person_key="")),
+        returning=Count("id", filter=Q(is_repeat_buyer=True)),
+    )
+    tickets = AnalyticsTicketFact.objects.filter(
+        event=sender, is_addon=False, order_fact__order_status="p", order_fact__is_refunded=False,
+    ).exclude(attendee_person_key="").aggregate(n=Count("id"), new=Count("id", filter=Q(is_returning_attendee=False)))
+    returning = round(orders["returning"] / orders["identified"] * 100) if orders["identified"] else 0
+    first_time = round(tickets["new"] / tickets["n"] * 100) if tickets["n"] else 0
+    return [
+        {"content": widget.format(num=f"{returning}%", text=_("Returning buyers")),
+         "lazy": "analytics-returning", "display_size": "small", "priority": 50, "url": loyalty_url},
+        {"content": widget.format(num=f"{first_time}%", text=_("First-time attendees")),
+         "lazy": "analytics-firsttime", "display_size": "small", "priority": 49, "url": loyalty_url},
+    ]
 
 
 # ── Navigation ────────────────────────────────────────────────────────────────

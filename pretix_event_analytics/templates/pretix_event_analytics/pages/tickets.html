@@ -21,6 +21,21 @@
   </div>
 </div>
 
+{% if data.capacity %}
+<div class="pa-panel">
+  <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Capacity" %}</div>
+    <div class="pa-panel-note">{% trans "Live from Pretix quotas: paid, reserved (pending payment) and still available." %}</div></div></div>
+  <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
+    <thead><tr><th>{% trans "Quota" %}</th><th class="num">{% trans "Size" %}</th><th class="num">{% trans "Paid" %}</th><th class="num">{% trans "Pending" %}</th><th class="num">{% trans "Available" %}</th><th class="num">{% trans "Waiting list" %}</th><th></th></tr></thead>
+    <tbody>{% for q in data.capacity %}<tr title="{{ q.products }}">
+      <td>{{ q.name }}</td><td class="num">{{ q.size }}</td><td class="num">{{ q.paid }}</td><td class="num">{{ q.pending }}</td>
+      <td class="num">{{ q.available }}</td><td class="num">{{ q.waiting }}</td>
+      <td><span class="pa-bar-cell">{{ q.sold_pct }}%<span class="pa-capacity-bar"><i class="paid" data-bar="{{ q.sold_pct|floatformat:0 }}"></i><i class="pending" data-bar="{{ q.reserved_pct|floatformat:0 }}" data-bar-minus="{{ q.sold_pct|floatformat:0 }}"></i></span></span></td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+
 {% if data.categories or data.variations %}
 <div class="pa-grid">
   {% if data.categories %}

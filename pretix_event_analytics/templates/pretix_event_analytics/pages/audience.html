@@ -20,6 +20,19 @@
   </div>
 </div>
 
+{% if data.cities %}
+<div class="pa-panel">
+  <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Top cities" %}</div>
+    <div class="pa-panel-note">{% blocktrans with p=data.city_coverage %}From invoice addresses ({{ p }}% of orders include a city){% endblocktrans %}</div></div></div>
+  <div class="pa-panel-body flush pa-table-wrap pa-scroll"><table class="table pa-table">
+    <thead><tr><th>{% trans "City" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Returning" %}</th></tr></thead>
+    <tbody>{% for c in data.cities %}<tr><td>{{ c.flag }} {{ c.name }}</td>
+      <td class="num"><span class="pa-bar-cell">{{ c.orders }} <span class="text-muted">{{ c.share }}%</span><span class="pa-minibar"><i data-bar="{{ c.share|floatformat:0 }}"></i></span></span></td>
+      <td class="num">{{ c.tickets }}</td><td class="num">{{ c.revenue|money:currency }}</td><td class="num">{{ c.returning_pct }}%</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+
 <h3 class="pa-section-title">{% trans "Who they are" %}</h3>
 <div class="pa-grid">
   {% if data.age_chart %}

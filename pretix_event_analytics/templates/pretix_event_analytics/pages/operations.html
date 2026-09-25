@@ -57,6 +57,19 @@
 </div>
 {% endif %}
 
+{% if data.funnel %}
+<h3 class="pa-section-title">{% trans "Payment completion" %}<small>{% trans "every order started in this event, by payment method" %}</small></h3>
+<div class="pa-panel">
+  <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
+    <thead><tr><th>{% trans "Payment method" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Paid" %}</th><th class="num">{% trans "Pending" %}</th><th class="num">{% trans "Expired unpaid" %}</th><th class="num">{% trans "Canceled" %}</th><th class="num">{% trans "Completed" %}</th></tr></thead>
+    <tbody>{% for r in data.funnel.rows %}<tr><td>{{ r.label }}</td><td class="num">{{ r.total }}</td><td class="num">{{ r.paid }}</td><td class="num">{{ r.pending }}</td><td class="num">{{ r.expired }}</td><td class="num">{{ r.canceled }}</td>
+      <td class="num"><span class="pa-bar-cell">{{ r.conversion }}%<span class="pa-minibar"><i data-bar="{{ r.conversion|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}
+    <tr class="current"><td>{% trans "All methods" %}</td><td class="num">{{ data.funnel.totals.total }}</td><td class="num">{{ data.funnel.totals.paid }}</td><td class="num">{{ data.funnel.totals.pending }}</td><td class="num">{{ data.funnel.totals.expired }}</td><td class="num">{{ data.funnel.totals.canceled }}</td><td class="num">{{ data.funnel.totals.conversion }}%</td></tr></tbody>
+  </table></div>
+  <div class="pa-panel-foot">{% trans "A low completion rate for one method points to friction at that payment step (bank transfers that are never paid, failed card checks)." %}</div>
+</div>
+{% endif %}
+
 <h3 class="pa-section-title">{% trans "Questions" %}<small>{% trans "yes/no and multiple-choice answers, split by first-time and returning attendees" %}</small></h3>
 {% if data.questions %}
 <div class="pa-grid">

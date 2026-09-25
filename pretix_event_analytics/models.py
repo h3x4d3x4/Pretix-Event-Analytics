@@ -437,3 +437,27 @@ class LegacyIdentity(models.Model):
                 name="unique_legacy_identity",
             ),
         ]
+
+
+class SalesAnnotation(models.Model):
+    """
+    A dated note on an edition's sales timeline ("line-up announced",
+    "newsletter sent", "price rise"). Drawn as markers on the sales and
+    pacing charts so spikes can be explained.
+    """
+    event = models.ForeignKey(
+        "pretixbase.Event",
+        on_delete=models.CASCADE,
+        related_name="analytics_annotations",
+    )
+    date = models.DateField(verbose_name=_("Date"))
+    label = models.CharField(max_length=120, verbose_name=_("What happened"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("date", "pk")
+        verbose_name = _("Sales annotation")
+        verbose_name_plural = _("Sales annotations")
+
+    def __str__(self):
+        return f"{self.date}: {self.label}"

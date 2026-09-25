@@ -194,3 +194,16 @@
 .pa-target-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 .pa-input-sm { width: 110px; } .pa-input-md { width: 150px; } .pa-input-lg { max-width: 320px; }
 [hidden] { display: none !important; }
+.pa-markers .pa-note { color: var(--pa-text-2); font-weight: 600; }
+.pa-presets { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; font-size: 12px; margin-top: 8px; }
+.pa-presets a { padding: 1px 8px; border: 1px solid var(--pa-border); border-radius: 10px; color: var(--pa-text-2); text-decoration: none; background: var(--pa-surface); }
+.pa-presets a.active { background: var(--pa-s1); border-color: var(--pa-s1); color: #fff; }
+.pa-annotations { list-style: none; padding: 0; margin: 0; }
+.pa-annotations li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--pa-grid); font-size: 13px; }
+.pa-annotation-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-top: 10px; }
+.pa-annotation-form .form-control { width: auto; }
+.pa-winback { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pa-capacity-bar { display: flex; height: 8px; width: 140px; background: var(--pa-grid); border-radius: 4px; overflow: hidden; }
+.pa-capacity-bar i { display: block; height: 100%; }
+.pa-capacity-bar i.paid { background: var(--pa-s1); }
+.pa-capacity-bar i.pending { background: var(--pa-seq-2); }

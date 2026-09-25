@@ -24,6 +24,7 @@ def _build(scope: ReportScope) -> Dict:
         "checkin": _checkin(scope),
         "refunds": _refunds(scope),
         "questions": _questions(scope),
+        "funnel": _payment_funnel(scope) if not scope.merged else None,
     }
 
 
@@ -130,3 +131,40 @@ def _questions(scope: ReportScope) -> list:
             ], stacked=True, horizontal=True),
         })
     return out
+
+
+def _payment_funnel(scope: ReportScope) -> Dict:
+    """
+    Orders by payment method and how they ended: paid, still pending,
+    expired unpaid, canceled. Read-only against Pretix's orders — the fact
+    tables only hold orders that were paid.
+    """
+    from pretix.base.models import OrderPayment
+
+    from ...forms import provider_label
+
+    qs = OrderPayment.objects.filter(order__event=scope.event)
+    f = scope.filters
+    if f.get("date_from"):
+        qs = qs.filter(order__datetime__gte=datetime.datetime.combine(f["date_from"], datetime.time.min, scope.tz))
+    if f.get("date_to"):
+        qs = qs.filter(order__datetime__lt=datetime.datetime.combine(
+            f["date_to"] + datetime.timedelta(days=1), datetime.time.min, scope.tz))
+    rows = defaultdict(lambda: {"p": 0, "n": 0, "e": 0, "c": 0})
+    for r in qs.values("provider", "order__status").annotate(n=Count("order", distinct=True)):
+        rows[r["provider"]][r["order__status"]] += r["n"]
+    out = []
+    for provider, c in rows.items():
+        total = sum(c.values())
+        if not total:
+            continue
+        out.append({
+            "label": provider_label(provider), "total": total, "paid": c["p"], "pending": c["n"],
+            "expired": c["e"], "canceled": c["c"], "conversion": pct(c["p"], total),
+        })
+    out.sort(key=lambda r: -r["total"])
+    if not out:
+        return None
+    totals = {k: sum(r[k] for r in out) for k in ("total", "paid", "pending", "expired", "canceled")}
+    totals["conversion"] = pct(totals["paid"], totals["total"])
+    return {"rows": out, "totals": totals}

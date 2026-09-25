@@ -69,21 +69,30 @@
             const { top, bottom } = chart.chartArea;
             const ctx = chart.ctx;
             ctx.save();
+            let lastLabelX = -Infinity;
             markers.forEach((m, i) => {
-                const px = x.getPixelForValue(chart.data.labels.indexOf(m.x));
-                if (!isFinite(px)) return;
-                ctx.strokeStyle = TEXT3;
-                ctx.setLineDash([3, 3]);
+                const px = x.type === 'linear'
+                    ? x.getPixelForValue(m.x)
+                    : x.getPixelForValue(chart.data.labels.indexOf(m.x));
+                if (!isFinite(px) || px < chart.chartArea.left || px > chart.chartArea.right) return;
+                // Organiser notes: solid accent line; automatic tier changes: dashed grey.
+                ctx.strokeStyle = m.kind === 'note' ? SLOTS[1] : TEXT3;
+                ctx.setLineDash(m.kind === 'note' ? [] : [3, 3]);
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(px, top);
                 ctx.lineTo(px, bottom);
                 ctx.stroke();
                 ctx.setLineDash([]);
-                ctx.fillStyle = TEXT2;
-                ctx.font = '600 10px ' + Chart.defaults.font.family;
-                ctx.textAlign = 'center';
-                ctx.fillText(String(i + 1), px, top - 4);
+                // Numbers that would collide are skipped; the list under the
+                // chart still names every marker.
+                if (px - lastLabelX >= 16) {
+                    ctx.fillStyle = TEXT2;
+                    ctx.font = '600 10px ' + Chart.defaults.font.family;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(String(i + 1), px, top - 4);
+                    lastLabelX = px;
+                }
             });
             ctx.restore();
         },
@@ -187,7 +196,7 @@
                 scales,
                 plugins: {
                     legend: { display: false },
-                    paMarkers: { markers: cumulative || spec.x === 'linear' ? null : spec.markers },
+                    paMarkers: { markers: spec.markers },
                     tooltip: {
                         backgroundColor: '#1d1d1b',
                         padding: 10,
@@ -243,10 +252,11 @@
         const holder = el.parentNode.querySelector('.pa-markers[data-for="' + el.dataset.chart + '"]');
         if (!holder) return;
         holder.innerHTML = '';
-        if (!spec.markers || !spec.markers.length || cumulative) return;
+        if (!spec.markers || !spec.markers.length) return;
         spec.markers.forEach((m, i) => {
             const d = document.createElement('div');
-            d.textContent = (i + 1) + ' · ' + m.x + ' — ' + m.text;
+            d.textContent = (i + 1) + ' · ' + (m.label || m.x) + ' — ' + m.text;
+            if (m.kind === 'note') d.className = 'pa-note';
             holder.appendChild(d);
         });
     }
@@ -286,7 +296,8 @@
     // Pretix's CSP forbids style attributes in markup; widths are applied
     // through the CSSOM instead, which the policy allows.
     document.querySelectorAll('[data-bar]').forEach((el) => {
-        const v = Math.max(0, Math.min(100, parseFloat(el.dataset.bar) || 0));
+        const minus = parseFloat(el.dataset.barMinus) || 0;  // stacked segment (capacity: pending after paid)
+        const v = Math.max(0, Math.min(100, (parseFloat(el.dataset.bar) || 0) - minus));
         el.style.width = v + '%';
     });
     document.querySelectorAll('[data-chart]').forEach(render);

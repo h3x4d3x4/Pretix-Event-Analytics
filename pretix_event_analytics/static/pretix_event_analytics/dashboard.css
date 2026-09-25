@@ -36,7 +36,8 @@
   --pa-good-text: #006300;
   --pa-bad: #d03b3b;
   --pa-warn: #fab219;
-  --pa-on-accent: #ffffff;       /* text on --pa-s1 / dark ramp steps */
+  --pa-accent: var(--pa-s1);     /* UI accent (active tabs/buttons); themes may decouple it from chart series */
+  --pa-on-accent: #ffffff;       /* text on --pa-accent / dark ramp steps */
   --pa-accent-bg: #e7f0fb;       /* chips, info callouts */
   --pa-accent-text: #184f95;
   --pa-highlight: #f1f6fd;       /* current row */
@@ -64,7 +65,7 @@
 .pa-tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--pa-hover); margin-bottom: 14px; }
 .pa-tabs a { padding: 8px 14px; color: inherit; opacity: .72; border-bottom: 2px solid transparent; margin-bottom: -1px; text-decoration: none; font-weight: 500; }
 .pa-tabs a:hover { opacity: 1; background: var(--pa-hover); }
-.pa-tabs a.active { opacity: 1; border-bottom-color: var(--pa-s1); }
+.pa-tabs a.active { opacity: 1; border-bottom-color: var(--pa-accent); }
 .pa-tabs .fa { margin-right: 5px; opacity: .7; }
 
 /* ── Filter bar ─────────────────────────────────────────────────────────── */
@@ -89,7 +90,7 @@
 .pa-seg { display: inline-flex; border: 1px solid var(--pa-border); border-radius: 4px; overflow: hidden; }
 .pa-seg a, .pa-seg button { padding: 4px 11px; font-size: 12px; color: var(--pa-text-2); background: var(--pa-surface); border: 0; border-right: 1px solid var(--pa-border); text-decoration: none; line-height: 1.6; }
 .pa-seg a:last-child, .pa-seg button:last-child { border-right: 0; }
-.pa-seg a.active, .pa-seg button.active { background: var(--pa-s1); color: var(--pa-on-accent); }
+.pa-seg a.active, .pa-seg button.active { background: var(--pa-accent); color: var(--pa-on-accent); }
 .pa-controls .pa-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: inherit; opacity: .65; margin-right: 4px; }
 
 /* ── KPI tiles ──────────────────────────────────────────────────────────── */
@@ -164,10 +165,10 @@
 /* ── Combination dots (UpSet-style) ────────────────────────────────────── */
 .pa-dots { display: inline-flex; gap: 6px; }
 .pa-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--pa-grid); display: inline-block; }
-.pa-dot.on { background: var(--pa-s1); }
+.pa-dot.on { background: var(--pa-accent); }
 
 /* ── Callouts ───────────────────────────────────────────────────────────── */
-.pa-callout { border-left: 3px solid var(--pa-s1); background: var(--pa-highlight); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: var(--pa-text-2); border-radius: 0 4px 4px 0; }
+.pa-callout { border-left: 3px solid var(--pa-accent); background: var(--pa-highlight); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: var(--pa-text-2); border-radius: 0 4px 4px 0; }
 .pa-callout.warn { border-left-color: var(--pa-warn); background: var(--pa-warn-bg); }
 .pa-callout strong { color: var(--pa-text); }
 .pa-headline { font-size: 15px; color: inherit; margin: 0 0 14px; }
@@ -212,7 +213,7 @@
 .pa-markers .pa-note { color: var(--pa-text-2); font-weight: 600; }
 .pa-presets { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; font-size: 12px; margin-top: 8px; }
 .pa-presets a { padding: 1px 8px; border: 1px solid var(--pa-border); border-radius: 10px; color: var(--pa-text-2); text-decoration: none; background: var(--pa-surface); }
-.pa-presets a.active { background: var(--pa-s1); border-color: var(--pa-s1); color: var(--pa-on-accent); }
+.pa-presets a.active { background: var(--pa-accent); border-color: var(--pa-accent); color: var(--pa-on-accent); }
 .pa-annotations { list-style: none; padding: 0; margin: 0; }
 .pa-annotations li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--pa-grid); font-size: 13px; }
 .pa-annotation-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-top: 10px; }
@@ -265,4 +266,4 @@
 /* ── In-page jump bar for long pages ───────────────────────────────────── */
 .pa-jump { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; margin: -4px 0 14px; color: inherit; opacity: .8; }
 .pa-jump a { color: inherit; text-decoration: underline; text-decoration-color: var(--pa-hover); }
-.pa-toggle-form > summary { cursor: pointer; font-size: 13px; color: var(--pa-s1); margin-top: 10px; }
+.pa-toggle-form > summary { cursor: pointer; font-size: 13px; color: var(--pa-accent); margin-top: 10px; }

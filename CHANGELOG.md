@@ -3,6 +3,14 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.0.2] — 2026-09-25
+
+### Changed
+- New `--pa-accent` variable for UI states (active tab, selected segment,
+  quick-range pill, callout border, toggles, attendance dots). It defaults to
+  the first chart colour, so nothing changes visually, but a theme can now
+  give the UI its brand accent without recolouring the chart series.
+
 ## [2.0.1] — 2026-09-25
 
 ### Fixed

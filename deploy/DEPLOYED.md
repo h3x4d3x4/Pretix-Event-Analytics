@@ -3,9 +3,37 @@
 **How production is built now:** `~/suti-upgrade/build/` on suti0 describes the full image
 (Pretix 2026.7.0 + TicketSwap + SUTI theme + analytics). The theme agent and analytics share it.
 To upgrade analytics: `bash ~/suti-analytics/upgrade_analytics.sh <old> <new>` — swaps only the analytics
-wheel, refuses if migrations are planned, dump + fingerprint + page checks + auto-rollback, then updates the
+wheel, allows only analytics migrations (3rd arg = expected analytics migration count, reversed on rollback), dump + fingerprint + page checks + auto-rollback, then updates the
 shared folder. **TicketSwap belongs to Sena — never modify its wheel or Dockerfile line.**
 Coordinate with whoever is working on the theme before building or restarting.
+
+## 2026-09-25 19:00 UTC — analytics 2.1.0 (on SUTI theme 1.0.4) — deployed and verified by dev-a2
+
+People matched on name + birth date only (when in doubt unknown); customers on order e-mail only; country with
+source + derived (inferred/probable) countries in separate fields; PayPal v2 country; combined resale (TicketSwap
+read-only + manual name changes); widget HTML fix. Migration 0009 (analytics only).
+
+- **Rehearsal** on a fresh prod dump in a throwaway DB: 0009 up/down/up OK, ticket fingerprint identical each step;
+  inferred country contradicting the customer's known country 0/152; nothing derived leaked into `country_code`;
+  all analytics pages 200 and themed; widgets render (24% returning buyers / 80% first-time attendees).
+- **Live:** switch 19:00:26 UTC, image `:2026.7.0-analytics2.1.0-theme1.0.4` (previous `:2026.7.0-analytics2.0.3`),
+  dump `~/suti-upgrade/backup/pretix-pre-analytics210-20260925-190014.dump`. `migrate --check` clean, fingerprint
+  identical, no log errors. Resync `--organizer suti --all`: 266 + 557 + 627 + 1,103 orders, 0 skipped, ~1m40.
+- **Countries** (orders | exact unknown | inferred | probable | still unknown; before = unknown on 2.0.3):
+
+  | Edition | Orders | Exact unknown | Inferred | Probable | Still unknown | Before |
+  |---|---|---|---|---|---|---|
+  | 2026 | 1,103 | 347 | 73 | 16 | 258 | 454 |
+  | 2024 | 627 | 218 | 29 | 13 | 176 | 300 |
+  | 2023 | 557 | 232 | 30 | 18 | 184 | 302 |
+  | 2022 (event `2020`) | 266 | 99 | 20 | 7 | 72 | 100 |
+
+  2026 exact sources: card issuer 397, invoice 175, PayPal account 107, card billing 77. Most remaining unknowns
+  are free orders (children's tickets) — only a "Country of residence" checkout question will cover them.
+- **Rollback (in order):** stop pretix → run the NEW image with `--entrypoint python3 -m pretix migrate
+  pretix_event_analytics 0008_pace_alerts` (live conf/data) → tag `:2026.7.0-analytics2.0.3` as latest →
+  `up -d --no-build`. Last resort: restore the dump.
+- **Open (Andrei):** set the ID-number question for 2026 in Settings → "Where people come from" (opt-in), then resync.
 
 ## 2026-09-25 16:58 UTC — analytics 2.0.3 (on SUTI theme 1.0.4)
 

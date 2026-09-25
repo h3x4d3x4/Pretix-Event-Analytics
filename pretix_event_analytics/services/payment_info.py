@@ -45,21 +45,78 @@ def stripe_card(info: Dict) -> Dict:
 
 
 def paypal_payer(info: Dict) -> Dict:
+    """Payer details: v1 ``payer.payer_info``, else the v2 ``payer`` object (has ``payer_id``)."""
     if not isinstance(info, dict):
         return {}
-    return (info.get("payer") or {}).get("payer_info") or {}
+    payer = info.get("payer") or {}
+    return payer.get("payer_info") or (payer if payer.get("payer_id") else {})
+
+
+def _code(value) -> Optional[str]:
+    if isinstance(value, str) and len(value) == 2 and value.isalpha():
+        return value.upper()
+    return None
+
+
+def stripe_billing_country(info: Dict) -> Optional[str]:
+    """Country of the card's billing address, when the buyer entered one."""
+    if not isinstance(info, dict):
+        return None
+    for obj in _charges(info):
+        address = ((obj.get("billing_details") or {}).get("address")) or {}
+        code = _code(address.get("country"))
+        if code:
+            return code
+    return None
+
+
+def paypal_countries(info: Dict) -> Dict[str, str]:
+    """{"paypal_address": …, "paypal_account": …} from PayPal v1 or v2 order data."""
+    if not isinstance(info, dict):
+        return {}
+    out = {}
+    payer_info = paypal_payer(info)
+    shipping = (payer_info.get("shipping_address") or {}).get("country_code")
+    for unit in info.get("purchase_units") or []:
+        if isinstance(unit, dict) and not shipping:
+            shipping = (((unit.get("shipping") or {}).get("address")) or {}).get("country_code")
+    source = ((info.get("payment_source") or {}).get("paypal")) or {}
+    account = (((info.get("payer") or {}).get("address") or {}).get("country_code")      # v2 order
+               or (source.get("address") or {}).get("country_code")                      # v2 payment_source
+               or payer_info.get("country_code"))                                        # v1
+    if _code(shipping):
+        out["paypal_address"] = _code(shipping)
+    if _code(account):
+        out["paypal_account"] = _code(account)
+    return out
+
+
+def payment_countries(provider: str, info: Dict) -> Dict[str, str]:
+    """
+    Every country the payment reveals, keyed by source:
+    paypal_address, paypal_account, card_billing, iban, card_issuer.
+    """
+    out: Dict[str, str] = {}
+    if provider in STRIPE_PROVIDERS:
+        billing = stripe_billing_country(info)
+        if billing:
+            out["card_billing"] = billing
+        issuer = _code(stripe_card(info).get("country"))
+        if issuer:
+            out["card_issuer"] = issuer
+    elif provider in PAYPAL_PROVIDERS:
+        out.update(paypal_countries(info))
+    elif provider == "banktransfer":
+        iban = str((info or {}).get("iban") or "").replace(" ", "")
+        if _code(iban[:2]):
+            out["iban"] = iban[:2].upper()
+    return out
 
 
 def payment_country(provider: str, info: Dict) -> Optional[str]:
-    """Two-letter country from payment details, or None."""
-    code = None
-    if provider in STRIPE_PROVIDERS:
-        code = stripe_card(info).get("country")
-    elif provider in PAYPAL_PROVIDERS:
-        code = paypal_payer(info).get("country_code")
-    elif provider == "banktransfer":
-        iban = str((info or {}).get("iban") or "")
-        code = iban[:2] if iban[:2].isalpha() else None
-    if isinstance(code, str) and len(code) == 2 and code.isalpha():
-        return code.upper()
+    """Best single country from payment details, or None (kept for callers of 2.0)."""
+    found = payment_countries(provider, info)
+    for source in ("paypal_address", "paypal_account", "card_billing", "iban", "card_issuer"):
+        if source in found:
+            return found[source]
     return None

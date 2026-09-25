@@ -55,29 +55,29 @@ def test_legacy_list_marks_returning(make_edition, series):
     assert not _fact(fresh).is_repeat_buyer
 
 
-def test_payment_fingerprint_links_different_emails(make_edition, series):
+def test_payment_fingerprint_does_not_link_buyers(make_edition, series):
     e24, e26 = make_edition(2024), make_edition(2026)
     card = {"payment_method_details": {"card": {"fingerprint": "fp_123", "country": "PT"}}}
     e24.order("work@example.org", provider="stripe", payment_info=card)
     o = e26.order("home@example.org", provider="stripe", payment_info=card)
     resync_series(series)
-    assert _fact(o).is_repeat_buyer
+    assert _fact(o).is_repeat_buyer is False
 
 
 def test_attendance_and_cohort_use_people(make_edition, series):
     e24, e26 = make_edition(2024), make_edition(2026)
     # 2024: one buyer with two attendees; 2026: one of the attendees returns
     e24.order("buyer@example.org", [
-        {"item": e24.ga, "attendee_email": "p1@example.org"},
-        {"item": e24.ga, "attendee_email": "p2@example.org"},
+        {"item": e24.ga, "attendee_name": "Paula Reis", "birth": "1990-02-02"},
+        {"item": e24.ga, "attendee_name": "Pedro Reis", "birth": "1988-08-08"},
     ])
-    e26.order("p1@example.org")
+    e26.order("p1@example.org", [{"item": e26.ga, "attendee_name": "Paula Reis", "birth": "1990-02-02"}])
     resync_series(series)
 
     people = load_attendance(series.organizer_id, series.slug, "people")
     sizes = {e.year: len(people.sets[e.key]) for e in people.editions}
-    assert sizes == {2024: 3, 2026: 1}  # buyer + 2 attendees; p1
-    assert build_cohort_matrix(series.slug, series.organizer_id) == {2024: {2026: round(1 / 3, 4)}, 2026: {}}
+    assert sizes == {2024: 2, 2026: 1}  # the two ticket holders; Paula
+    assert build_cohort_matrix(series.slug, series.organizer_id) == {2024: {2026: 0.5}, 2026: {}}
 
     buyers = load_attendance(series.organizer_id, series.slug, "buyers")
     assert {e.year: len(buyers.sets[e.key]) for e in buyers.editions} == {2024: 1, 2026: 1}
@@ -90,7 +90,7 @@ def test_unidentified_tickets_are_counted_separately(make_edition, series):
     resync_series(series)
     att = load_attendance(series.organizer_id, series.slug, "people")
     key = att.editions[0].key
-    assert len(att.sets[key]) == 1          # the buyer
+    assert len(att.sets[key]) == 0          # nobody identifiable by name + birth date
     assert att.unidentified[key] == 3       # three anonymous group tickets
 
 

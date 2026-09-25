@@ -83,7 +83,8 @@
       <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Import an attendee list" %}</div></div>
       <div class="pa-panel-body">
         <p class="small text-muted">
-          {% trans "Upload any file that contains the e-mail addresses of a past edition (for example a 2019 mailing list or an export from your old ticketing system). Addresses are hashed on the server with the same secret key as all analytics data; the file itself and the plain addresses are discarded immediately. People on the list then count as returning when they buy for a later edition." %}
+          {% trans "Best: a CSV with a header row and columns for the name and the birth date (e.g. “Name, Birth date” or “First name, Last name, DOB”) — people are then matched to later ticket holders exactly like Pretix tickets. Otherwise, any file with e-mail addresses (a mailing list, an old ticketing export) counts those addresses as past customers." %}
+          {% trans "Everything is hashed on the server with the same secret key as all analytics data; the file itself and the plain values are discarded immediately." %}
         </p>
         <form method="post" enctype="multipart/form-data" action="{% url 'plugins:pretix_event_analytics:legacy_import' organizer=request.organizer.slug pk=series.pk %}">
           {% csrf_token %}
@@ -98,7 +99,7 @@
     <div class="pa-panel">
       <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Imported editions" %}</div></div>
       <div class="pa-panel-body flush"><table class="table pa-table">
-        <thead><tr><th>{% trans "Edition" %}</th><th class="num">{% trans "Addresses" %}</th><th>{% trans "Imported" %}</th><th></th></tr></thead>
+        <thead><tr><th>{% trans "Edition" %}</th><th class="num">{% trans "People" %}</th><th>{% trans "Imported" %}</th><th></th></tr></thead>
         <tbody>{% for le in legacy_editions %}<tr>
           <td>{{ le.label }} ({{ le.edition_year }})</td><td class="num">{{ le.n }}</td><td>{{ le.created_at|date:"SHORT_DATE_FORMAT" }}</td>
           <td class="text-right"><form method="post" action="{% url 'plugins:pretix_event_analytics:legacy_delete' organizer=request.organizer.slug pk=series.pk legacy_pk=le.pk %}" class="pa-m0">{% csrf_token %}

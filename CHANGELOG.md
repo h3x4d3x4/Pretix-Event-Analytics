@@ -3,6 +3,61 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] — 2026-09-25
+
+**Run a resync of every edition after upgrading** — returning-people figures
+change meaning (see below). One database migration (fields added, one
+constraint widened).
+
+### Changed
+- **Returning people are matched on name + birth date only.** A person is a
+  ticket holder. Sharing a card, a PayPal account or an e-mail no longer makes
+  two ticket holders the same person (people buy for friends). Names are
+  compared ignoring accents, case, word order, middle names and added second
+  surnames; different birth dates never match.
+- **When in doubt, unknown.** Tickets without a usable name + birth date,
+  ambiguous names and placeholder data (the same identity on 3+ tickets of one
+  edition) are left out of returning-people figures instead of being guessed.
+  A conservative *probable* tier (no birth date, one matching person, shared
+  e-mail or card) is shown only as "including probable matches".
+- **Customers** (returning buyers) are matched on the order e-mail only;
+  payment fingerprints are no longer used to link buyers.
+- **Country of residence** comes from the first available source, stored with
+  it: residence question → invoice address → PayPal address/account → card
+  billing address → ID-document country (opt-in) → IBAN → card's issuing
+  bank. Invoice addresses now beat card countries. Exact country names only
+  (no fuzzy matching).
+- **Resale** shows one "changed hands" total: TicketSwap resales (read-only,
+  from the TicketSwap plugin's ticket data) plus manual name changes, counted
+  once per ticket, with a channel breakdown, by product, current holders and a
+  CSV of order codes. A manual name change counts only with evidence (birth
+  date or attendee e-mail changed too, or a clearly different second rename);
+  other single edits are reported as "unclear".
+
+### Added
+- **Derived countries, kept apart from exact ones.** For orders with no exact
+  source: *inferred* — the same customer's country on their other orders
+  (same order e-mail, or the buyer holding a ticket as the same person),
+  only when all of them agree; *probable* — the e-mail's country domain
+  (.pt, .es, .uk …; generic and vanity domains ignored). Stored in separate
+  fields, never in the country used by filters and other pages. Audience has
+  an **Exact / + inferred / + probable** switch; orders CSV has the columns.
+- PayPal v2 order data: country from `payer.address` and
+  `payment_source.paypal.address` (pretix 2025+ stores v2).
+- "Travelling from" question support and a breakdown on the Audience page,
+  plus "How the country is known" coverage by source.
+- Opt-in ID-document country (settings → "Where people come from"): issuing
+  country from national ID formats with a valid check digit; the number is
+  never stored.
+- Past-edition imports accept a CSV with name + birth-date columns.
+- Tickets CSV: match tier, returning incl. probable, document country.
+
+### Fixed
+- Dashboard widgets showed raw HTML on Pretix 2026.7 (content is now marked safe).
+- Two tickets of one order carrying the same signal (e.g. the same attendee
+  e-mail) kept it only on the first ticket.
+- Win-back list and loyalty CSV mixed customer and person keys.
+
 ## [2.0.3] — 2026-09-25
 
 ### Fixed

@@ -6,6 +6,15 @@
 {% else %}
 
 <h3 class="pa-section-title">{% trans "Where buyers come from" %}{% if data.local_pct is not None %}<small>{% blocktrans with p=data.local_pct %}{{ p }}% local{% endblocktrans %}</small>{% endif %}</h3>
+<div class="pa-controls">
+  <div><span class="pa-label">{% trans "Countries" %}</span>
+    <span class="pa-seg">
+      <a href="?{% qs_with countries='exact' %}" class="{% if data.country_mode == 'exact' %}active{% endif %}" title="{% trans 'Only countries the buyer or their payment stated' %}">{% trans "Exact" %}</a>
+      <a href="?{% qs_with countries='inferred' %}" class="{% if data.country_mode == 'inferred' %}active{% endif %}" title="{% trans 'Plus the country of the same customer on their other orders' %}">{% trans "+ inferred" %}</a>
+      <a href="?{% qs_with countries='probable' %}" class="{% if data.country_mode == 'probable' %}active{% endif %}" title="{% trans 'Plus the country of the e-mail domain (.pt, .es …)' %}">{% trans "+ probable" %}</a>
+    </span>
+  </div>
+</div>
 <div class="pa-grid">
   {% trans "Orders by country" as ct %}
   {% include "pretix_event_analytics/_chart.html" with chart=data.country_chart title=ct size="tall" %}
@@ -18,6 +27,40 @@
         <td class="num">{{ c.tickets }}</td><td class="num">{{ c.revenue|money:currency }}</td><td class="num">{{ c.aov|money:currency }}</td><td class="num">{{ c.returning_pct }}%</td></tr>{% endfor %}</tbody>
     </table></div>
   </div>
+</div>
+
+<div class="pa-grid">
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "How the country is known" %}</div>
+      <div class="pa-panel-note">{% trans "First available source per order. Italic sources describe the bank or document, not necessarily where the buyer lives. Inferred and probable countries are shown only when switched on above." %}</div></div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Source" %}</th><th class="num">{% trans "Orders" %}</th></tr></thead>
+      <tbody>{% for r in data.country_sources %}<tr><td>{% if r.indirect %}<em>{{ r.label }}</em>{% else %}{{ r.label }}{% endif %}{% if r.tier == "inferred" %} <span class="pa-tag">{% trans "inferred" %}</span>{% elif r.tier == "probable" %} <span class="pa-tag">{% trans "probable" %}</span>{% endif %}</td>
+        <td class="num"><span class="pa-bar-cell">{{ r.orders }} <span class="text-muted">{{ r.share }}%</span><span class="pa-minibar"><i data-bar="{{ r.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% if data.travel %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Travelling from" %}</div>
+      <div class="pa-panel-note">{% blocktrans with p=data.travel_coverage %}Answers to the “travelling from” question ({{ p }}% of orders){% endblocktrans %}</div></div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Country" %}</th><th class="num">{% trans "Orders" %}</th></tr></thead>
+      <tbody>{% for c in data.travel %}<tr><td>{{ c.flag }} {{ c.name }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ c.n }} <span class="text-muted">{{ c.share }}%</span><span class="pa-minibar"><i data-bar="{{ c.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
+  {% if data.documents %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "ID-document country" %}</div>
+      <div class="pa-panel-note">{% blocktrans with p=data.document_coverage %}Issuing country of recognisable ID numbers ({{ p }}% of tickets) — usually nationality, not residence.{% endblocktrans %}</div></div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Country" %}</th><th class="num">{% trans "Tickets" %}</th></tr></thead>
+      <tbody>{% for c in data.documents %}<tr><td>{{ c.flag }} {{ c.name }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ c.n }} <span class="text-muted">{{ c.share }}%</span><span class="pa-minibar"><i data-bar="{{ c.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
 </div>
 
 {% if data.cities %}

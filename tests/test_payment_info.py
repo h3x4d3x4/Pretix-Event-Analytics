@@ -27,11 +27,24 @@ def test_stripe_shapes():
     assert payment_country("stripe", "not a dict") is None
 
 
-def test_payment_intent_links_people_and_sets_country(make_edition, series):
+def test_payment_intent_sets_country_but_never_links_buyers(make_edition, series):
     e24, e26 = make_edition(2024), make_edition(2026)
     e24.order("old-mail@example.org", provider="stripe", payment_info=PAYMENT_INTENT, country="")
     o = e26.order("new-mail@example.org", provider="stripe", payment_info=PAYMENT_INTENT, country="")
     resync_series(series)
     fact = AnalyticsOrderFact.objects.get(event=e26.event, order_code=o.code)
     assert fact.country_code == "ES"
-    assert fact.is_repeat_buyer  # same card, different e-mail
+    assert fact.is_repeat_buyer is False  # same card, different e-mail: not proof of one person
+
+
+def test_paypal_v2_shapes():
+    from pretix_event_analytics.services.payment_info import paypal_countries, paypal_payer
+
+    v2 = {"payer": {"payer_id": "P2", "address": {"country_code": "ES"}},
+          "purchase_units": [{"shipping": {"address": {"country_code": "FR"}}}]}
+    assert paypal_countries(v2) == {"paypal_address": "FR", "paypal_account": "ES"}
+    assert paypal_payer(v2)["payer_id"] == "P2"
+    src = {"payer": {"payer_id": "P3"}, "payment_source": {"paypal": {"address": {"country_code": "DE"}}}}
+    assert paypal_countries(src) == {"paypal_account": "DE"}
+    assert payment_country("paypal2", src) == "DE"
+    assert paypal_countries(PAYPAL) == {"paypal_account": "GB"}   # v1 still works

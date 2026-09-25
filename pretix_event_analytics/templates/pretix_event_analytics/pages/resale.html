@@ -2,22 +2,74 @@
 {% load i18n %}
 {% block filters %}{% endblock %}
 {% block section %}
+{% if data.error %}
+<div class="pa-panel"><div class="pa-empty">{% trans "Resale figures could not be calculated. Check the server log." %}</div></div>
+{% else %}
 {% with s=data.stats %}
-<p class="pa-headline">{% trans "Attendee names that change to a clearly different person are a signal of tickets being passed on or resold. Typo fixes and added middle names are ignored." %}</p>
-<div class="pa-kpis">
-  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Orders with a name change" %}</div>
-    <div class="pa-kpi-value">{{ s.name_change_rate|floatformat:1 }}<small>%</small></div>
-    <div class="pa-kpi-sub">{% blocktrans with n=s.orders_with_changes t=s.total_orders %}{{ n }} of {{ t }} orders{% endblocktrans %}</div></div>
-  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Name changes" %}</div>
-    <div class="pa-kpi-value">{{ s.total_name_changes }}</div></div>
-</div>
+<p class="pa-headline">
+  {% blocktrans with pct=s.rate n=s.changed t=s.tickets %}<strong>{{ pct }}%</strong> of tickets changed hands ({{ n }} of {{ t }}).{% endblocktrans %}
+  <span class="text-muted small">{% trans "TicketSwap resales and manual name changes together, each ticket counted once." %}</span>
+</p>
+
+{% if not s.changed %}
+<div class="pa-panel"><div class="pa-empty">
+  {% trans "No ticket has changed hands for this event yet." %}
+  {% if not s.ticketswap_active %}<br><span class="small">{% trans "TicketSwap is not enabled for this event; only manual name changes are checked." %}</span>{% endif %}
+</div></div>
+{% else %}
 <div class="pa-grid">
-  {% trans "Name changes per month" as mt %}
-  {% include "pretix_event_analytics/_chart.html" with chart=data.monthly_chart title=mt size="short" %}
-  {% trans "By edition" as et %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "How they changed hands" %}</div>
+      {% if not s.ticketswap_active %}<div class="pa-panel-note">{% trans "TicketSwap is not enabled for this event." %}</div>{% endif %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Channel" %}</th><th class="num">{% trans "Tickets" %}</th></tr></thead>
+      <tbody>{% for r in data.channel_rows %}<tr><td>{{ r.label }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ r.count }} <span class="text-muted">{{ r.share }}%</span><span class="pa-minibar"><i data-bar="{{ r.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
+      <tfoot><tr><th>{% trans "Changed hands" %}</th><th class="num">{{ s.changed }}</th></tr></tfoot>
+    </table></div>
+    {% if s.chains or s.personalized %}<div class="pa-panel-foot small text-muted">
+      {% blocktrans count n=s.chains %}{{ n }} ticket was resold more than once on TicketSwap.{% plural %}{{ n }} tickets were resold more than once on TicketSwap.{% endblocktrans %}
+      {% blocktrans with n=s.personalized %}{{ n }} carry the new holder's name.{% endblocktrans %}
+    </div>{% endif %}
+  </div>
+
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Who holds them now" %}</div>
+      <div class="pa-panel-note">{% trans "Current holders of the tickets that changed hands" %}</div></div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table"><tbody>
+      <tr><td>{% trans "Been before" %}</td><td class="num">{{ s.holders.returning }}</td></tr>
+      <tr><td>{% trans "First time" %}</td><td class="num">{{ s.holders.first_time }}</td></tr>
+      <tr><td>{% trans "Unknown (no name + birth date)" %}</td><td class="num">{{ s.holders.unknown }}</td></tr>
+    </tbody></table></div>
+  </div>
+
+  {% if s.by_product %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "By product" %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Product" %}</th><th class="num">{% trans "Changed hands" %}</th><th class="num">{% trans "Of sold" %}</th></tr></thead>
+      <tbody>{% for r in s.by_product %}<tr><td>{{ r.label }}</td><td class="num">{{ r.changed }}</td><td class="num">{{ r.rate }}%</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
+</div>
+
+{% endif %}
+
+<div class="pa-grid">
+  {% trans "Manual name changes per month" as mt %}
+  {% trans "TicketSwap does not record when a swap happened, so only manual changes have a date." as mn %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.monthly_chart title=mt note=mn size="short" %}
+  {% trans "Changed hands by edition" as et %}
   {% include "pretix_event_analytics/_chart.html" with chart=data.edition_chart title=et size="short" %}
 </div>
-{% if not data.monthly_chart %}<div class="pa-panel"><div class="pa-empty">{% trans "No attendee name changes recorded for this event." %}</div></div>{% endif %}
-<p class="small text-muted">{% trans "Filters do not apply here: this view reads Pretix's change log for the whole event." %}</p>
+
+<p class="small text-muted">
+  {% trans "A manual name change counts when the birth date or attendee e-mail changed with the name, or when a later rename clearly differs from the previous one. Pretix does not log the previous name, so other single edits cannot be told apart from corrections:" %}
+  {% blocktrans count n=s.unclear %}{{ n }} ticket with such an unclear edit is not counted.{% plural %}{{ n }} tickets with such unclear edits are not counted.{% endblocktrans %}
+  {% trans "Filters do not apply here." %}
+  {% if s.changed %}<a href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='resale' %}"><span class="fa fa-download"></span> {% trans "Order codes (CSV)" %}</a>{% endif %}
+</p>
 {% endwith %}
+{% endif %}
 {% endblock %}

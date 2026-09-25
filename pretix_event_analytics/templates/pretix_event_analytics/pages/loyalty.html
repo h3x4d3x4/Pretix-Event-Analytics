@@ -19,8 +19,8 @@
 <div class="pa-controls">
   <div><span class="pa-label">{% trans "Count" %}</span>
     <span class="pa-seg">
-      <a href="?{% qs_with unit='people' %}" class="{% if data.unit == 'people' %}active{% endif %}" title="{% trans 'Buyers and ticket holders, matched by e-mail, name + birth date or payment fingerprint' %}">{% trans "People (buyers + attendees)" %}</a>
-      <a href="?{% qs_with unit='buyers' %}" class="{% if data.unit == 'buyers' %}active{% endif %}">{% trans "Buyers only" %}</a>
+      <a href="?{% qs_with unit='people' %}" class="{% if data.unit == 'people' %}active{% endif %}" title="{% trans 'Ticket holders, matched by name + birth date' %}">{% trans "People (ticket holders)" %}</a>
+      <a href="?{% qs_with unit='buyers' %}" class="{% if data.unit == 'buyers' %}active{% endif %}" title="{% trans 'Customers, matched by the order e-mail' %}">{% trans "Customers (order e-mail)" %}</a>
     </span>
   </div>
 </div>
@@ -40,6 +40,7 @@
   {% if fo.editions_so_far > 1 %}
     {% blocktrans with pct=fo.returning_pct %}<strong>{{ pct }}%</strong> have been before.{% endblocktrans %}
   {% endif %}
+  {% if fo.incl %}<span class="text-muted">{% blocktrans with pct=fo.incl.pct %}Including probable matches: {{ pct }}% first-timers.{% endblocktrans %}</span>{% endif %}
 </p>
 <div class="pa-callout">
   {% blocktrans with year=data.history_start %}History starts in <strong>{{ year }}</strong>: someone whose last visit was before that counts as a first-timer.{% endblocktrans %}
@@ -49,7 +50,7 @@
     {% trans "only hashes of the addresses are kept." %}
   {% endif %}
   {% if fo.unidentified %}
-  <br>{% blocktrans with n=fo.unidentified pct=fo.coverage_pct %}{{ n }} tickets carry no attendee e-mail or name + birth date and cannot be matched to a person ({{ pct }}% coverage). Asking for attendee e-mails at checkout improves this.{% endblocktrans %}
+  <br>{% if data.unit == "buyers" %}{% blocktrans with n=fo.unidentified pct=fo.coverage_pct %}{{ n }} orders have no e-mail and cannot be matched ({{ pct }}% coverage).{% endblocktrans %}{% else %}{% blocktrans with n=fo.unidentified pct=fo.coverage_pct %}{{ n }} tickets have no attendee name + birth date, or only an unclear match, and are left unknown rather than guessed ({{ pct }}% coverage). Asking for the attendee name and birth date on every ticket improves this.{% endblocktrans %}{% endif %}
   {% endif %}
 </div>
 

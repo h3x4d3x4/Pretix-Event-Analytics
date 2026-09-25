@@ -94,8 +94,8 @@ def test_timing_buckets_cover_all_tickets(make_edition, series):
 def test_loyalty_frequency_counts_people_once(make_edition, series, unit):
     e1, e2, e3 = make_edition(2023), make_edition(2024), make_edition(2025)
     for kit in (e1, e2, e3):
-        kit.order("always@example.org")
-    e1.order("once@example.org")
+        kit.order("always@example.org", [{"item": kit.ga, "attendee_name": "Alva Reis", "birth": "1990-01-01"}])
+    e1.order("once@example.org", [{"item": e1.ga, "attendee_name": "Otto Lima", "birth": "1991-01-01"}])
     resync_series(series)
     data = loyalty.build(_scope(e3, unit=unit))
     freq = {r["label"]: r["count"] for r in data["frequency_table"]}

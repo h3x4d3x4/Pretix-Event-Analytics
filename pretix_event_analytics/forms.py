@@ -137,6 +137,21 @@ class EventAnalyticsConfigForm(forms.ModelForm):
         if self.instance and self.instance.tracked_question_ids:
             self.fields["tracked_questions"].initial = [str(i) for i in self.instance.tracked_question_ids]
 
+        # Opt-in: text question holding an ID-document number, read in memory
+        # to derive the issuing country. The number itself is never stored.
+        id_choices = [("", _("— Not used —"))]
+        if event:
+            from django_scopes import scopes_disabled
+            with scopes_disabled():
+                for q in event.questions.filter(type="S").order_by("position", "pk"):
+                    id_choices.append((str(q.pk), str(q.question)))
+        self.fields["id_question"] = forms.ChoiceField(
+            choices=id_choices, required=False, label=_("ID-document question"),
+            widget=forms.Select(attrs={"class": "form-control pa-input-lg"}),
+        )
+        if self.instance and self.instance.id_question_id:
+            self.fields["id_question"].initial = str(self.instance.id_question_id)
+
     def clean_pace_alert_recipients(self):
         from django.core.validators import validate_email
 
@@ -159,6 +174,8 @@ class EventAnalyticsConfigForm(forms.ModelForm):
         if (self.instance.pk and "pace_alert_threshold" in self.changed_data):
             instance.pace_alert_last_sent = None  # new threshold: allow an alert right away
         instance.tracked_question_ids = [int(i) for i in self.cleaned_data.get("tracked_questions") or []]
+        idq = self.cleaned_data.get("id_question")
+        instance.id_question_id = int(idq) if idq else None
         if commit:
             instance.save()
         return instance
@@ -337,14 +354,15 @@ class DashboardFilterForm(forms.Form):
 
 
 class LegacyImportForm(forms.Form):
-    """Upload a past attendee list; only HMAC hashes of the e-mails are kept."""
+    """Upload a past attendee list; only HMAC hashes are kept."""
     label = forms.CharField(max_length=100, label=_("Edition name"),
                             widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Suti 2019"}))
     edition_year = forms.IntegerField(min_value=1990, max_value=2100, label=_("Edition year"),
                                       widget=forms.NumberInput(attrs={"class": "form-control pa-input-sm"}))
     emails_file = forms.FileField(
         required=False, label=_("CSV or text file"),
-        help_text=_("Any file containing e-mail addresses — one per line or a CSV column. Other data is ignored."),
+        help_text=_("A CSV with name + birth-date columns, or any file containing e-mail addresses. "
+                    "Other data is ignored."),
     )
     emails_text = forms.CharField(
         required=False, label=_("…or paste addresses"),

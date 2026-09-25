@@ -129,7 +129,40 @@
       {% endif %}
     </details>
 
-    {# ── 4. Advanced ───────────────────────────────────────────────────── #}
+    {# ── 4. Where people come from (optional) ───────────────────────────── #}
+    <details class="pa-card" {% if origin_open %}open{% endif %}>
+      <summary>
+        <h2>{% trans "Where people come from" %}</h2>
+        <span class="pa-summary">{{ origin_summary }}</span>
+      </summary>
+      <p class="pa-card-intro">{% trans "Each order's country of residence is taken from the first of: a “Country of residence” question, the invoice address, PayPal, the card's billing address, the ID document (if enabled below), the IBAN, and finally the country of the bank that issued the card. Nothing else is guessed — without a source the country stays unknown. The Audience page shows how many orders each source covers." %}</p>
+
+      <div class="pa-field">
+        <label>{% trans "Checkout questions" %}</label>
+        <div>
+          <ul class="pa-checklist">
+            <li>{% if origin_questions.residence %}<span class="fa fa-check text-success"></span> {% trans "Residence:" %} <em>{{ origin_questions.residence }}</em>{% else %}<span class="fa fa-circle-o"></span> {% trans "No “Country of residence” question" %}{% endif %}</li>
+            <li>{% if origin_questions.travel %}<span class="fa fa-check text-success"></span> {% trans "Travel:" %} <em>{{ origin_questions.travel }}</em>{% else %}<span class="fa fa-circle-o"></span> {% trans "No “Travelling from” question" %}{% endif %}</li>
+          </ul>
+          <p class="pa-hint">{% trans "Most accurate: add the questions “Country of residence” and “Which country are you travelling from?” (question type Country) under Products → Questions. Ask for residence, not “origin” or nationality, and mention the purpose in your privacy notice." %}</p>
+        </div>
+      </div>
+
+      <div class="pa-field">
+        <label for="{{ form.id_question.id_for_label }}">{% trans "ID-document country" %}</label>
+        <div>
+          {{ form.id_question }}
+          {% for e in form.id_question.errors %}<p class="text-danger small">{{ e }}</p>{% endfor %}
+          <p class="pa-hint">{% trans "Optional. If checkout asks for an ID-document number, the issuing country can be read from recognisable national formats with a valid check digit (e.g. Spanish DNI/NIE, Portuguese Cartão de Cidadão). Unclear numbers are left unknown. Only the country is stored — never the number." %}</p>
+          <details class="pa-explain">
+            <summary>{% trans "Before you enable this (GDPR)" %}</summary>
+            <p>{% blocktrans %}ID numbers are collected for entry checks. Reusing them for statistics is a new purpose: list it in your privacy notice (e.g. “aggregate statistics on where visitors come from”) and make sure you have a legal basis such as legitimate interest. A document shows the issuing country — usually nationality, not residence — so it is used only when no residence source exists.{% endblocktrans %}</p>
+          </details>
+        </div>
+      </div>
+    </details>
+
+    {# ── 5. Advanced ───────────────────────────────────────────────────── #}
     <details class="pa-card" {% if not form.instance.is_active %}open{% endif %}>
       <summary>
         <h2>{% trans "Advanced" %}</h2>

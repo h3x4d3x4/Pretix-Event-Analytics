@@ -7,7 +7,7 @@ from typing import Dict, Optional
 from django.db.models import Avg, Count, Q, Sum
 
 from ...models import FACT_VERSION, AnalyticsOrderFact
-from ..attendance import load_attendance
+from ..attendance import PEOPLE_INCL, first_timers, load_attendance
 from . import sales
 from .scope import ReportScope, pct
 
@@ -37,6 +37,7 @@ def _build(scope: ReportScope) -> Dict:
     admissions = scope.admissions.aggregate(
         n=Count("id"), revenue=Sum("price"), checked=Count("id", filter=Q(checked_in=True)),
         identified=Count("id", filter=~Q(attendee_person_key="")),
+        probable=Count("id", filter=Q(attendee_match="probable")),
         returning=Count("id", filter=Q(is_returning_attendee=True)),
     )
     status = scope.orders_any_status.aggregate(
@@ -68,17 +69,13 @@ def _build(scope: ReportScope) -> Dict:
     if scope.series and scope.can_see_series:
         att = load_attendance(scope.organizer_id, scope.series.slug, "people")
         key = f"e{scope.event.pk}"
-        if key in att.sets:
+        ft = first_timers(att, key)
+        if ft:
             idx = [e.key for e in att.editions].index(key)
-            prior = set().union(*[att.sets[e.key] for e in att.editions[:idx]]) if idx else set()
-            cur = att.sets[key]
-            out["first_timers"] = {
-                "pct": pct(len(cur - prior), len(cur)),
-                "count": len(cur - prior),
-                "people": len(cur),
-                "history_start": att.editions[0].year,
-                "editions_before": idx,
-            }
+            out["first_timers"] = {**ft, "history_start": att.editions[0].year, "editions_before": idx}
+            incl = first_timers(load_attendance(scope.organizer_id, scope.series.slug, PEOPLE_INCL), key)
+            if incl and (incl["pct"], incl["people"]) != (ft["pct"], ft["people"]):
+                out["first_timers"]["incl"] = incl
 
     # Like-for-like comparison with the previous edition
     prev = scope.previous_edition
@@ -110,5 +107,6 @@ def _build(scope: ReportScope) -> Dict:
     out["coverage"] = {
         "identified_pct": pct(admissions["identified"], admissions["n"]),
         "unidentified": admissions["n"] - admissions["identified"],
+        "probable": admissions["probable"],
     }
     return out

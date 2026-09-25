@@ -61,6 +61,7 @@ ORDER_HEADER = [
     "country_code", "city", "postal_code", "is_local_buyer", "age_range", "is_age_confirmed", "language",
     "has_caravan_pass", "camper_van_length_bucket", "is_repeat_buyer", "repeat_from_last_edition", "repeat_count",
     "first_seen_edition_year", "editions_attended", "checkin_completed", "predicted_repeat_probability",
+    "country_source", "country_inferred", "country_inferred_source", "travel_country_code",
 ]
 
 
@@ -76,7 +77,8 @@ def order_rows(qs, tz=None):
             _yn(f.is_local_buyer), f.age_range, _yn(f.is_age_confirmed), f.language, _yn(f.has_caravan_pass),
             f.camper_van_length_bucket, _yn(f.is_repeat_buyer), _yn(f.repeat_from_last_edition), f.repeat_count,
             f.first_seen_edition_year or "", f.editions_attended, _yn(f.checkin_completed),
-            f.predicted_repeat_probability,
+            f.predicted_repeat_probability, f.country_source, f.country_inferred, f.country_inferred_source,
+            f.travel_country_code,
         ]
 
 
@@ -84,7 +86,7 @@ TICKET_HEADER = [
     "event", "order_code", "order_status", "product", "category", "variation", "is_addon", "price", "net_price",
     "tax_rate", "voucher_code", "voucher_tag", "age_range", "checked_in", "first_checkin_at",
     "attendee_identified", "attendee_is_buyer", "is_returning_attendee", "attendee_previous_editions",
-    "attendee_first_seen_year",
+    "attendee_first_seen_year", "match", "returning_incl_probable", "document_country",
 ]
 
 
@@ -96,7 +98,8 @@ def ticket_rows(qs, tz=None):
             t.item_category, t.variation_name, _yn(t.is_addon), t.price, t.net_price, t.tax_rate, t.voucher_code,
             t.voucher_tag, t.age_range, _yn(t.checked_in), _dt(t.first_checkin_at, tz), _yn(t.attendee_identified),
             _yn(t.attendee_is_buyer), _yn(t.is_returning_attendee), t.attendee_previous_editions,
-            t.attendee_first_seen_year or "",
+            t.attendee_first_seen_year or "", t.attendee_match or "unknown", _yn(t.is_returning_attendee_incl),
+            t.document_country,
         ]
 
 
@@ -158,7 +161,8 @@ def export_loyalty_csv(request, event):
     scope = _scope(request, event)
     labels_by_person = {}
     if scope.series and scope.can_see_series:
-        att = load_attendance(scope.organizer_id, scope.series.slug, "people")
+        # Order rows describe the buyer, who is identified by the order e-mail.
+        att = load_attendance(scope.organizer_id, scope.series.slug, "buyers")
         years = [e.year for e in att.editions]
         for e in att.editions:
             label = str(e.year) if years.count(e.year) == 1 else f"{e.label} ({e.year})"
@@ -167,7 +171,8 @@ def export_loyalty_csv(request, event):
 
     def rows():
         yield ["order_code", "buyer_status", "previous_editions", "first_seen", "last_edition_attended",
-               "editions_attended", "tickets", "returning_attendees_in_order", "identified"]
+               "editions_attended", "tickets", "returning_attendees_in_order",
+               "returning_attendees_incl_probable", "identified"]
         qs = scope.orders.filter(event=event).prefetch_related("ticket_facts").order_by("order_datetime")
         for f in qs.iterator(chunk_size=500):
             tickets = [t for t in f.ticket_facts.all() if not t.is_addon]
@@ -178,6 +183,7 @@ def export_loyalty_csv(request, event):
                 f.repeat_count, f.first_seen_edition_year or "",
                 "yes" if f.repeat_from_last_edition else "no",
                 " · ".join(hist), len(tickets), sum(1 for t in tickets if t.is_returning_attendee),
+                sum(1 for t in tickets if t.is_returning_attendee_incl),
                 "yes" if f.person_key else "no",
             ]
     return _csv_response(rows(), _safe_filename(f"{event.slug}_loyalty", "csv"))
@@ -196,7 +202,7 @@ def export_winback_csv(request, event):
     """
     from django.http import Http404
 
-    from .models import AnalyticsOrderFact, AnalyticsTicketFact
+    from .models import AnalyticsTicketFact
     from .services.attendance import load_attendance, short_key
 
     kind = request.resolver_match.kwargs.get("kind", "winback")
@@ -224,23 +230,17 @@ def export_winback_csv(request, event):
             if p in target:
                 history.setdefault(p, []).append(e)
 
-    # Most recent order code per person: as buyer, else as ticket holder.
+    # Most recent order code per person: the order holding their ticket.
     event_ids = [e.event_id for e in earlier if e.event_id]
     latest = {}
-    for code, key, year, dt in AnalyticsOrderFact.objects.filter(
-            event_id__in=event_ids, order_status="p", is_refunded=False).exclude(person_key="").values_list(
-            "order_code", "person_key", "edition_year", "order_datetime").order_by("order_datetime"):
-        sk = short_key(key)
-        if sk in target:
-            latest[sk] = (code, year, "buyer")
-    for code, key, year in AnalyticsTicketFact.objects.filter(
+    for code, key, year, own in AnalyticsTicketFact.objects.filter(
             event_id__in=event_ids, is_addon=False, order_fact__order_status="p",
             order_fact__is_refunded=False).exclude(attendee_person_key="").values_list(
-            "order_fact__order_code", "attendee_person_key", "order_fact__edition_year").order_by(
-            "order_fact__order_datetime"):
+            "order_fact__order_code", "attendee_person_key", "order_fact__edition_year",
+            "attendee_is_buyer").order_by("order_fact__order_datetime"):
         sk = short_key(key)
-        if sk in target and (sk not in latest or latest[sk][1] < year):
-            latest[sk] = (code, year, "ticket holder")
+        if sk in target:
+            latest[sk] = (code, year, "buyer" if own else "ticket holder")
 
     years = [e.year for e in att.editions]
 
@@ -255,6 +255,21 @@ def export_winback_csv(request, event):
             code, year, role = latest.get(p, ("", h[-1].year if h else "", "imported list only"))
             yield [code, year, role, len(h), h[0].year if h else "", " · ".join(label(e) for e in h)]
     return _csv_response(rows(), _safe_filename(f"{event.slug}_{kind}", "csv"))
+
+
+def export_resale_csv(request, event):
+    """Tickets that changed hands, as order codes (no names) with channel and counts."""
+    from .services.resale import resale_stats
+
+    tz = event.timezone
+    rows_in = resale_stats(event)["rows"]
+
+    def rows():
+        yield ["order_code", "position_id", "channel", "ticketswap_swaps", "manual_name_changes",
+               "last_manual_change"]
+        for t in rows_in:
+            yield [t.order_code, t.position_id or "", t.channel, t.swaps, t.manual, _dt(t.last_manual, tz)]
+    return _csv_response(rows(), _safe_filename(f"{event.slug}_resale", "csv"))
 
 
 def export_pdf(request, event) -> HttpResponse:

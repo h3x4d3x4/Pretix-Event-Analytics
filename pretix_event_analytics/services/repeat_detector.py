@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def evaluate_repeat_status(event, identities: list[dict]) -> dict:
     """
-    Check previous editions for matching identities (Stripe cards, Name+DOB, Emails).
+    Check previous editions for the buyer's order-level identities (the order e-mail).
     Returns the "best" match—meaning if ANY of the included identities attended
     a previous edition, the overall order is flagged as a repeat.
 
@@ -57,7 +57,8 @@ def evaluate_repeat_status(event, identities: list[dict]) -> dict:
     for identity in identities:
         identity_query |= Q(
             identities__identity_type=identity["type"],
-            identities__identity_hash=identity["hash"]
+            identities__identity_hash=identity["hash"],
+            identities__ticket_fact__isnull=True,
         )
 
     # Find all previous-edition facts for ANY of these identities within the series.

@@ -271,6 +271,7 @@ class EventConfigView(EventPermissionRequiredMixin, FormView):
         before = EventAnalyticsConfig.objects.select_related("series").get(pk=form.instance.pk)
         old_series = before.series
         old_questions = list(before.tracked_question_ids or [])
+        old_id_question = before.id_question_id
         data = form.cleaned_data
         changed = (
             old_series != data.get("series")
@@ -290,7 +291,8 @@ class EventConfigView(EventPermissionRequiredMixin, FormView):
             from .services.versioning import bump
             bump(config.event.organizer_id)
         messages.success(self.request, _("Analytics configuration saved."))
-        if sorted(old_questions) != sorted(config.tracked_question_ids):
+        if (sorted(old_questions) != sorted(config.tracked_question_ids)
+                or old_id_question != config.id_question_id):
             messages.info(self.request, _("Run a resync to apply the new question selection to existing orders."))
         return redirect(_event_url(self.request, "dashboard"))
 
@@ -322,7 +324,28 @@ class EventConfigView(EventPermissionRequiredMixin, FormView):
         n = len(cfg.tracked_question_ids or [])
         ctx["questions_summary"] = (ngettext("%(n)s question analysed", "%(n)s questions analysed", n) % {"n": n}
                                     if n else gettext("None selected"))
+        ctx["origin_open"] = bool(form.errors.get("id_question"))
+        ctx["origin_questions"] = _origin_questions(self.request.event)
+        ctx["origin_summary"] = (gettext("ID-document country on") if cfg.id_question_id
+                                 else gettext("Automatic"))
         return ctx
+
+
+def _origin_questions(event):
+    """Labels of this event's residence / travelling-from questions, if it asks them."""
+    from django_scopes import scopes_disabled
+
+    from .services.country_resolver import _is_country_question, _is_travel_question
+
+    found = {"residence": "", "travel": ""}
+    with scopes_disabled():
+        for q in event.questions.all():
+            label = str(q.question)
+            if not found["travel"] and _is_travel_question(label):
+                found["travel"] = label
+            elif not found["residence"] and _is_country_question(label):
+                found["residence"] = label
+    return found
 
 
 # ── Series Management (organizer level) ───────────────────────────────────────
@@ -423,8 +446,6 @@ class SeriesDetailView(SeriesMixin, TemplateView):
     template_name = "pretix_event_analytics/series_detail.html"
 
     def get_context_data(self, **kwargs):
-        from django.db.models import Count
-
         from .services.reports import series as series_report
 
         ctx = super().get_context_data(**kwargs)
@@ -448,10 +469,19 @@ class SeriesDetailView(SeriesMixin, TemplateView):
             "unit": unit,
             "charts_json": script_json(charts),
             "legacy_form": LegacyImportForm(),
-            "legacy_editions": series.legacy_editions.annotate(n=Count("identities")),
+            "legacy_editions": _legacy_editions(series),
             "currency": first_config.event.currency if first_config else "",
         })
         return ctx
+
+
+def _legacy_editions(series):
+    from .services.legacy import _count
+
+    editions = list(series.legacy_editions.all())
+    for le in editions:
+        le.n = _count(le)
+    return editions
 
 
 class LegacyImportView(SeriesMixin, FormView):
@@ -475,8 +505,11 @@ class LegacyImportView(SeriesMixin, FormView):
             raw = form.cleaned_data["emails_file"].read().decode("utf-8", errors="ignore")
         raw += "\n" + (form.cleaned_data.get("emails_text") or "")
         result = import_legacy_list(series, form.cleaned_data["label"], form.cleaned_data["edition_year"], raw)
-        messages.success(request, _("Imported %(n)s unique addresses into “%(label)s”. The list itself was not stored.") % {
-            "n": result["imported"], "label": form.cleaned_data["label"]})
+        if result["people"]:
+            msg = _("Imported %(n)s people (name + birth date) into “%(label)s”. The list itself was not stored.")
+        else:
+            msg = _("Imported %(n)s unique addresses into “%(label)s”. The list itself was not stored.")
+        messages.success(request, msg % {"n": result["imported"], "label": form.cleaned_data["label"]})
         return redirect(target)
 
 
@@ -524,6 +557,7 @@ class ExportView(EventPermissionRequiredMixin, View):
             "loyalty": exporters.export_loyalty_csv,
             "winback": exporters.export_winback_csv,
             "lapsed": exporters.export_winback_csv,
+            "resale": exporters.export_resale_csv,
             "pdf": exporters.export_pdf,
         }
         if kind not in handlers:

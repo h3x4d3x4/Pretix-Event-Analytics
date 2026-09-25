@@ -254,6 +254,10 @@
 .pa-question-list ul { list-style: none; padding: 0; margin: 0 0 0 22px; columns: 2; }
 .pa-question-list li { break-inside: avoid; padding: 2px 0; }
 .pa-question-list label { font-weight: normal; color: var(--pa-text); }
+.pa-tag { display: inline-block; padding: 0 6px; margin-left: 4px; border: 1px solid var(--pa-grid); border-radius: 8px; font-size: 11px; color: var(--pa-text-3); }
+.pa-checklist { list-style: none; padding: 0; margin: 0 0 4px; }
+.pa-checklist li { padding: 2px 0; color: var(--pa-text); }
+.pa-checklist .fa-circle-o { color: var(--pa-text-3); }
 .pa-settings-save { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 16px; }
 .pa-settings-save .pa-hint { margin: 0; }
 

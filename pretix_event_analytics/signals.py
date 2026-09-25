@@ -150,7 +150,12 @@ def analytics_dashboard_widgets(sender, subevent=None, lazy=False, **kwargs):
         return []
     loyalty_url = reverse("plugins:pretix_event_analytics:loyalty",
                           kwargs={"organizer": sender.organizer.slug, "event": sender.slug})
-    widget = '<div class="numwidget"><span class="num">{num}</span><span class="text">{text}</span></div>'
+    from django.utils.html import format_html
+
+    def widget(num, text):
+        # Pretix 2026.7 escapes widget content unless it is marked safe;
+        # format_html escapes the values and marks the result safe.
+        return format_html('<div class="numwidget"><span class="num">{}</span><span class="text">{}</span></div>', num, text)
     if lazy:
         return [
             {"content": None, "lazy": "analytics-returning", "display_size": "small", "priority": 50, "url": loyalty_url},
@@ -166,9 +171,9 @@ def analytics_dashboard_widgets(sender, subevent=None, lazy=False, **kwargs):
     returning = round(orders["returning"] / orders["identified"] * 100) if orders["identified"] else 0
     first_time = round(tickets["new"] / tickets["n"] * 100) if tickets["n"] else 0
     return [
-        {"content": widget.format(num=f"{returning}%", text=_("Returning buyers")),
+        {"content": widget(f"{returning}%", _("Returning buyers")),
          "lazy": "analytics-returning", "display_size": "small", "priority": 50, "url": loyalty_url},
-        {"content": widget.format(num=f"{first_time}%", text=_("First-time attendees")),
+        {"content": widget(f"{first_time}%", _("First-time attendees")),
          "lazy": "analytics-firsttime", "display_size": "small", "priority": 49, "url": loyalty_url},
     ]
 

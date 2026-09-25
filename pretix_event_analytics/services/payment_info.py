@@ -45,9 +45,11 @@ def stripe_card(info: Dict) -> Dict:
 
 
 def paypal_payer(info: Dict) -> Dict:
+    """Payer details: v1 ``payer.payer_info``, else the v2 ``payer`` object (has ``payer_id``)."""
     if not isinstance(info, dict):
         return {}
-    return (info.get("payer") or {}).get("payer_info") or {}
+    payer = info.get("payer") or {}
+    return payer.get("payer_info") or (payer if payer.get("payer_id") else {})
 
 
 def _code(value) -> Optional[str]:
@@ -78,7 +80,10 @@ def paypal_countries(info: Dict) -> Dict[str, str]:
     for unit in info.get("purchase_units") or []:
         if isinstance(unit, dict) and not shipping:
             shipping = (((unit.get("shipping") or {}).get("address")) or {}).get("country_code")
-    account = payer_info.get("country_code") or ((info.get("payer") or {}).get("address") or {}).get("country_code")
+    source = ((info.get("payment_source") or {}).get("paypal")) or {}
+    account = (((info.get("payer") or {}).get("address") or {}).get("country_code")      # v2 order
+               or (source.get("address") or {}).get("country_code")                      # v2 payment_source
+               or payer_info.get("country_code"))                                        # v1
     if _code(shipping):
         out["paypal_address"] = _code(shipping)
     if _code(account):

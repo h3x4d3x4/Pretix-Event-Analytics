@@ -35,3 +35,16 @@ def test_payment_intent_sets_country_but_never_links_buyers(make_edition, series
     fact = AnalyticsOrderFact.objects.get(event=e26.event, order_code=o.code)
     assert fact.country_code == "ES"
     assert fact.is_repeat_buyer is False  # same card, different e-mail: not proof of one person
+
+
+def test_paypal_v2_shapes():
+    from pretix_event_analytics.services.payment_info import paypal_countries, paypal_payer
+
+    v2 = {"payer": {"payer_id": "P2", "address": {"country_code": "ES"}},
+          "purchase_units": [{"shipping": {"address": {"country_code": "FR"}}}]}
+    assert paypal_countries(v2) == {"paypal_address": "FR", "paypal_account": "ES"}
+    assert paypal_payer(v2)["payer_id"] == "P2"
+    src = {"payer": {"payer_id": "P3"}, "payment_source": {"paypal": {"address": {"country_code": "DE"}}}}
+    assert paypal_countries(src) == {"paypal_account": "DE"}
+    assert payment_country("paypal2", src) == "DE"
+    assert paypal_countries(PAYPAL) == {"paypal_account": "GB"}   # v1 still works

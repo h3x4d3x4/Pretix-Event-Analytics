@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('pretixbase', '0298_alter_customer_locale_alter_user_locale'),
+        ('pretixbase', '0001_initial'),  # plugin only needs Event/Organizer; never pin a recent core migration
         ('pretix_event_analytics', '0006_people_resolved_at'),
     ]
 

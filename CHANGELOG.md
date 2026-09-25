@@ -35,6 +35,15 @@ constraint widened).
   other single edits are reported as "unclear".
 
 ### Added
+- **Derived countries, kept apart from exact ones.** For orders with no exact
+  source: *inferred* — the same customer's country on their other orders
+  (same order e-mail, or the buyer holding a ticket as the same person),
+  only when all of them agree; *probable* — the e-mail's country domain
+  (.pt, .es, .uk …; generic and vanity domains ignored). Stored in separate
+  fields, never in the country used by filters and other pages. Audience has
+  an **Exact / + inferred / + probable** switch; orders CSV has the columns.
+- PayPal v2 order data: country from `payer.address` and
+  `payment_source.paypal.address` (pretix 2025+ stores v2).
 - "Travelling from" question support and a breakdown on the Audience page,
   plus "How the country is known" coverage by source.
 - Opt-in ID-document country (settings → "Where people come from"): issuing

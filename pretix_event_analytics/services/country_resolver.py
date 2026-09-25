@@ -128,6 +128,31 @@ def resolve_country(order, positions=None, payment=None) -> str:
     return code or "UNKNOWN"
 
 
+# Country domains used as generic/vanity endings, not as a place (never mapped).
+_VANITY_TLDS = frozenset({
+    "io", "co", "me", "tv", "ai", "ly", "fm", "gg", "to", "cc", "ws", "nu", "tk", "ml", "ga", "cf", "gq", "la",
+    "ag", "am", "ac", "sh", "vc", "gd",
+})
+
+
+def email_domain_country(email: str) -> str:
+    """
+    Country of the e-mail's domain (".pt" → PT, ".uk" → GB), or "".
+    A *probable* signal only: measured on SUTI data .pt/.es/.uk ≈ 100%,
+    .de/.fr ≈ 60–70%. Generic domains (.com, .org, .eu, .io …) say nothing.
+    """
+    domain = (email or "").strip().lower().rsplit("@", 1)[-1]
+    tld = domain.rsplit(".", 1)[-1] if "." in domain else ""
+    if len(tld) != 2 or not tld.isalpha():
+        return ""
+    if tld == "uk":
+        return "GB"
+    if tld in _VANITY_TLDS:
+        return ""
+    code = tld.upper()
+    return code if pycountry.countries.get(alpha_2=code) else ""
+
+
 def resolve_travel_country(positions: Iterable) -> str:
     """Answer to a "travelling from" question, or ""."""
     return _answer_country(positions, _is_travel_question) or ""

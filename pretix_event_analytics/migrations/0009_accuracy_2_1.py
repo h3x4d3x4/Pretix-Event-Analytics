@@ -38,6 +38,21 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='analyticsorderfact',
+            name='country_inferred',
+            field=models.CharField(blank=True, default='', max_length=2),
+        ),
+        migrations.AddField(
+            model_name='analyticsorderfact',
+            name='country_inferred_source',
+            field=models.CharField(blank=True, default='', max_length=20),
+        ),
+        migrations.AddField(
+            model_name='analyticsorderfact',
+            name='email_country',
+            field=models.CharField(blank=True, default='', max_length=2),
+        ),
+        migrations.AddField(
+            model_name='analyticsorderfact',
             name='travel_country_code',
             field=models.CharField(default='', max_length=2),
         ),

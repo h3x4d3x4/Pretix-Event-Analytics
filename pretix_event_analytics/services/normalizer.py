@@ -40,6 +40,7 @@ from .age_bucketer import (
 from .country_resolver import (
     last_confirmed_payment,
     resolve_city_and_postal,
+    email_domain_country,
     resolve_country_source,
     resolve_travel_country,
 )
@@ -203,6 +204,10 @@ def normalize_order(order, config, *, checkins: Optional[Dict[int, object]] = No
         "is_refunded": is_refunded,
         "country_code": resolved_country,
         "country_source": country_source,
+        "email_country": email_domain_country(buyer_email),
+        # Refined series-wide by services.people (other orders of the same customer).
+        "country_inferred": "" if resolved_country else email_domain_country(buyer_email),
+        "country_inferred_source": "" if resolved_country or not email_domain_country(buyer_email) else "email_domain",
         "travel_country_code": resolve_travel_country(positions),
         "city": city,
         "postal_code": postal_code,

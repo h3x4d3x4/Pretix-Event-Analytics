@@ -183,6 +183,13 @@ class AnalyticsOrderFact(models.Model):
     country_source = models.CharField(max_length=20, blank=True, default="")
     # Answer to a "travelling from" question, when the event asks one.
     travel_country_code = models.CharField(max_length=2, blank=True, default="")
+    # Derived when no exact source exists — never mixed into country_code:
+    #   other_order   the same customer's country on their other orders (inferred)
+    #   email_domain  the order e-mail's country domain, e.g. ".pt" (probable)
+    country_inferred = models.CharField(max_length=2, blank=True, default="")
+    country_inferred_source = models.CharField(max_length=20, blank=True, default="")
+    # Country of the order e-mail's domain (".pt" → PT), kept for the resolver.
+    email_country = models.CharField(max_length=2, blank=True, default="")
     city = models.CharField(max_length=100, blank=True)
     postal_code = models.CharField(max_length=20, blank=True)
 

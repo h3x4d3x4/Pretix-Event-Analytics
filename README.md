@@ -44,8 +44,14 @@ were synced.
 
 Each order's country of residence comes from the first available source: a "Country of residence" question →
 invoice address → PayPal address / account → card billing address → ID-document country (opt-in) → IBAN → the
-card's issuing bank. The source is stored with the country and shown on the Audience page. Nothing else is guessed
-(no e-mail domains, names or phone formats). A "travelling from" question is reported separately.
+card's issuing bank. The source is stored with the country and shown on the Audience page. A "travelling from"
+question is reported separately.
+
+When none of these exist, two *derived* countries are kept in separate fields — never mixed into the exact
+country that filters and other pages use — and can be switched on on the Audience page:
+**inferred** (the same customer's country on their other orders, only when they all agree) and **probable** (the
+e-mail's country domain, e.g. `.pt`; generic domains like `.com` or `.io` say nothing). Names and phone formats
+are never used.
 
 The most accurate data comes from asking: add **"Country of residence"** and **"Which country are you travelling
 from?"** (question type *Country*) at checkout. Ask for residence, not "origin" or nationality, and mention the

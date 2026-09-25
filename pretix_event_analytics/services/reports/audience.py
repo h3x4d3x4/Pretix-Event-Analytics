@@ -5,7 +5,7 @@ when they buy (personas) and how they group.
 from typing import Dict
 
 import pycountry
-from django.db.models import Avg, Count, Min, Q, Sum
+from django.db.models import Avg, Case, CharField, Count, F, Min, Q, Sum, Value, When
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _lazy
 
@@ -42,18 +42,33 @@ SOURCE_LABELS = {
     "id_document": _lazy("ID document"),
     "iban": _lazy("Bank account (IBAN)"),
     "card_issuer": _lazy("Card's issuing bank"),
+    "other_order": _lazy("Same customer's other orders"),
+    "email_domain": _lazy("E-mail country domain"),
     "": _lazy("Unknown"),
 }
+COUNTRY_MODES = ("exact", "inferred", "probable")
 # Sources that describe the bank or document rather than where the buyer lives.
 INDIRECT_SOURCES = ("id_document", "iban", "card_issuer")
 
 
 def _country_sources(orders, total):
-    counts = dict(orders.values_list("country_source").annotate(n=Count("id")))
+    counts = dict(orders.exclude(country_source="").values_list("country_source").annotate(n=Count("id")))
+    derived = dict(orders.filter(country_source="").exclude(country_inferred_source="").values_list(
+        "country_inferred_source").annotate(n=Count("id")))
+    counts.update(derived)
+    counts[""] = orders.filter(country_source="", country_inferred_source="").count()
     order = list(SOURCE_LABELS)
     return [{"source": s, "label": str(SOURCE_LABELS.get(s, s)), "orders": n, "share": pct(n, total),
-             "indirect": s in INDIRECT_SOURCES}
-            for s, n in sorted(counts.items(), key=lambda kv: order.index(kv[0]) if kv[0] in order else 99)]
+             "indirect": s in INDIRECT_SOURCES, "tier": _tier(s)}
+            for s, n in sorted(counts.items(), key=lambda kv: order.index(kv[0]) if kv[0] in order else 99) if n]
+
+
+def _tier(source: str) -> str:
+    if source == "other_order":
+        return "inferred"
+    if source == "email_domain":
+        return "probable"
+    return "unknown" if not source else "exact"
 
 
 def _country_table(qs, field, n=10):
@@ -71,11 +86,21 @@ def _build(scope: ReportScope) -> Dict:
         return out
 
     # ── Countries ─────────────────────────────────────────────────────────────
-    rows = list(orders.values("country_code").annotate(
+    mode = scope.params.get("countries", "exact")
+    mode = mode if mode in COUNTRY_MODES else "exact"
+    out["country_mode"] = mode
+    extra = {"exact": [], "inferred": ["other_order"], "probable": ["other_order", "email_domain"]}[mode]
+    whens = [When(~Q(country_code=""), then=F("country_code"))]
+    if extra:
+        whens.append(When(country_inferred_source__in=extra, then=F("country_inferred")))
+    orders_c = orders.annotate(country_shown=Case(*whens, default=Value(""), output_field=CharField()))
+    rows = list(orders_c.values("country_shown").annotate(
         orders=Count("id"), tickets=Sum("ticket_count"), revenue=Sum("total_gross"),
         returning=Count("id", filter=Q(is_repeat_buyer=True)),
         local=Count("id", filter=Q(is_local_buyer=True)),
     ))
+    for r in rows:
+        r["country_code"] = r.pop("country_shown")
     table = []
     for r in sorted(rows, key=lambda r: -r["orders"]):
         table.append({

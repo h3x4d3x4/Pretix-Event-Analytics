@@ -471,13 +471,16 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
         EventAnalyticsConfig.objects.filter(event_id__in=list(rank_by_event)).values_list("event_id", "home_country")
     )
 
+    inferred = _infer_countries(res, list(rank_by_event))
+
     changed_orders = 0
     order_fields = [
         "is_local_buyer", "person_key", "is_repeat_buyer", "repeat_from_any_previous", "repeat_from_last_edition",
         "repeat_count", "first_seen_edition_year", "editions_attended", "predicted_repeat_probability",
+        "country_inferred", "country_inferred_source",
     ]
     qs = AnalyticsOrderFact.objects.filter(event_id__in=list(rank_by_event)).only(
-        "id", "event_id", "country_code", "ticket_count", "is_group_order", "days_before_event",
+        "id", "event_id", "country_code", "email_country", "ticket_count", "is_group_order", "days_before_event",
         "checkin_completed", *order_fields,
     )
     pending = []
@@ -498,6 +501,7 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
             "repeat_count": rf["count"],
             "first_seen_edition_year": rf["first_year"],
             "editions_attended": rf["attended"],
+            **_inferred_fields(fact, inferred.get(fact.pk, "")),
         }
         before = tuple(getattr(fact, f) for f in order_fields)
         for f, v in new.items():
@@ -556,6 +560,51 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
     logger.info("analytics: resolved people for %s/%s — %d orders, %d tickets",
                 organizer_id, series_slug or event_ids, changed_orders, changed_tickets)
     return {"orders": changed_orders, "tickets": changed_tickets}
+
+
+def _infer_countries(res: "Resolution", event_ids: List[int]) -> Dict[int, str]:
+    """
+    Country for orders without an exact source, from the same customer's
+    other orders in the series: same order e-mail, or the buyer holding a
+    ticket as the same person (name + birth date). Only when all of that
+    customer's known countries agree — otherwise nothing.
+    """
+    from ..models import AnalyticsOrderFact
+
+    country = dict(AnalyticsOrderFact.objects.filter(event_id__in=event_ids).values_list("id", "country_code"))
+    own_people: Dict[int, Set[str]] = defaultdict(set)
+    for tid, oid, is_buyer, _ev in res.ticket_rows:
+        if is_buyer and res.ticket_person.get(tid):
+            own_people[oid].add(res.ticket_person[tid])
+    by_buyer: Dict[str, Set[str]] = defaultdict(set)
+    by_person: Dict[str, Set[str]] = defaultdict(set)
+    for oid, code in country.items():
+        if not code:
+            continue
+        if res.order_person.get(oid):
+            by_buyer[res.order_person[oid]].add(code)
+        for p in own_people.get(oid, ()):
+            by_person[p].add(code)
+    out = {}
+    for oid, code in country.items():
+        if code:
+            continue
+        evidence = set(by_buyer.get(res.order_person.get(oid) or "", set()))
+        for p in own_people.get(oid, ()):
+            evidence |= by_person.get(p, set())
+        if len(evidence) == 1:
+            out[oid] = evidence.pop()
+    return out
+
+
+def _inferred_fields(fact, other_order: str) -> dict:
+    if fact.country_code:
+        return {"country_inferred": "", "country_inferred_source": ""}
+    if other_order:
+        return {"country_inferred": other_order, "country_inferred_source": "other_order"}
+    if fact.email_country:
+        return {"country_inferred": fact.email_country, "country_inferred_source": "email_domain"}
+    return {"country_inferred": "", "country_inferred_source": ""}
 
 
 def _write_legacy_keys(res: "Resolution") -> None:

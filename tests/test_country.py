@@ -125,3 +125,73 @@ def test_group_with_mixed_documents_says_nothing(make_edition):
 ])
 def test_document_country_rules(raw, code):
     assert document_country(raw) == code
+
+
+# ── Derived countries: inferred (other orders) and probable (e-mail domain) ──
+
+from pretix_event_analytics.services.country_resolver import email_domain_country  # noqa: E402
+
+
+@pytest.mark.parametrize("email,code", [
+    ("a@sapo.pt", "PT"), ("a@x.co.uk", "GB"), ("a@web.de", "DE"), ("a@gmail.com", ""), ("a@startup.io", ""),
+    ("a@x.eu", ""), ("broken", ""),
+])
+def test_email_domain_country(email, code):
+    assert email_domain_country(email) == code
+
+
+def test_same_customer_other_order_gives_inferred_country(make_edition, series):
+    from pretix_event_analytics.services.resync_service import resync_series
+
+    e24, e26 = make_edition(2024), make_edition(2026)
+    e24.order("fan@gmail.com", country="ES")
+    free = e26.order("fan@gmail.com", country="")                # e.g. a child ticket, no payment data
+    resync_series(series)
+    f = AnalyticsOrderFact.objects.get(order_code=free.code)
+    assert f.country_code == ""                                  # never mixed into the exact country
+    assert (f.country_inferred, f.country_inferred_source) == ("ES", "other_order")
+
+
+def test_conflicting_other_orders_fall_back_to_probable_or_nothing(make_edition, series):
+    from pretix_event_analytics.services.resync_service import resync_series
+
+    e23, e24, e26 = make_edition(2023), make_edition(2024), make_edition(2026)
+    e23.order("mover@mail.de", country="ES")
+    e24.order("mover@mail.de", country="FR")
+    o = e26.order("mover@mail.de", country="")
+    nobody = e26.order("nobody@gmail.com", country="")
+    resync_series(series)
+    f = AnalyticsOrderFact.objects.get(order_code=o.code)
+    assert (f.country_inferred, f.country_inferred_source) == ("DE", "email_domain")
+    n = AnalyticsOrderFact.objects.get(order_code=nobody.code)
+    assert (n.country_inferred, n.country_inferred_source) == ("", "")
+
+
+def test_exact_country_clears_derived_fields(make_edition):
+    kit = make_edition(2026)
+    f = _fact(kit.order("a@sapo.pt", country="NL"))
+    assert (f.country_code, f.country_inferred, f.email_country) == ("NL", "", "PT")
+
+
+def test_audience_country_switch(admin_client, make_edition, series):
+    from django.urls import reverse
+    from pretix_event_analytics.services.resync_service import resync_series
+
+    e24, e26 = make_edition(2024), make_edition(2026)
+    e24.order("fan@gmail.com", country="ES")
+    e26.order("fan@gmail.com", country="")
+    e26.order("x@sapo.pt", country="")
+    e26.order("y@example.org", country="NL")
+    resync_series(series)
+    url = reverse("plugins:pretix_event_analytics:audience",
+                  kwargs={"organizer": e26.event.organizer.slug, "event": e26.event.slug})
+
+    def countries(mode):
+        data = admin_client.get(url, {"countries": mode}).context["data"]
+        return {c["code"]: c["orders"] for c in data["countries"]}, {r["source"]: r["orders"] for r in data["country_sources"]}
+
+    exact, sources = countries("exact")
+    assert exact == {"NL": 1, "": 2}
+    assert sources == {"invoice": 1, "other_order": 1, "email_domain": 1}
+    assert countries("inferred")[0] == {"NL": 1, "ES": 1, "": 1}
+    assert countries("probable")[0] == {"NL": 1, "ES": 1, "PT": 1}

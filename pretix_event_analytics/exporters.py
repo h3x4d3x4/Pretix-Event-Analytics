@@ -61,6 +61,7 @@ ORDER_HEADER = [
     "country_code", "city", "postal_code", "is_local_buyer", "age_range", "is_age_confirmed", "language",
     "has_caravan_pass", "camper_van_length_bucket", "is_repeat_buyer", "repeat_from_last_edition", "repeat_count",
     "first_seen_edition_year", "editions_attended", "checkin_completed", "predicted_repeat_probability",
+    "country_source", "country_inferred", "country_inferred_source", "travel_country_code",
 ]
 
 
@@ -76,7 +77,8 @@ def order_rows(qs, tz=None):
             _yn(f.is_local_buyer), f.age_range, _yn(f.is_age_confirmed), f.language, _yn(f.has_caravan_pass),
             f.camper_van_length_bucket, _yn(f.is_repeat_buyer), _yn(f.repeat_from_last_edition), f.repeat_count,
             f.first_seen_edition_year or "", f.editions_attended, _yn(f.checkin_completed),
-            f.predicted_repeat_probability,
+            f.predicted_repeat_probability, f.country_source, f.country_inferred, f.country_inferred_source,
+            f.travel_country_code,
         ]
 
 

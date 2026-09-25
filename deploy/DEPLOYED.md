@@ -1,5 +1,12 @@
 # Production deployment log
 
+**How production is built now:** `~/suti-upgrade/build/` on suti0 describes the full image
+(Pretix 2026.7.0 + TicketSwap + SUTI theme + analytics). The theme agent and analytics share it.
+To upgrade analytics: `bash ~/suti-analytics/upgrade_analytics.sh <old> <new>` — swaps only the analytics
+wheel, refuses if migrations are planned, dump + fingerprint + page checks + auto-rollback, then updates the
+shared folder. **TicketSwap belongs to Sena — never modify its wheel or Dockerfile line.**
+Coordinate with whoever is working on the theme before building or restarting.
+
 ## 2026-09-25 — pretix_event_analytics 2.0.0 on tickets.sutifestival.com (suti0)
 
 **Result:** live since 16:25 UTC. Pretix 2026.7.0 + SUTI theme 1.0.2 + TicketSwap 1.0.4 + analytics 2.0.0.

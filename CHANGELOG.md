@@ -3,6 +3,18 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.0.3] — 2026-09-25
+
+### Fixed
+- Stripe card details were read from the wrong place. Pretix stores Stripe
+  payments as PaymentIntents (card under `charges.data[].payment_method_details`),
+  so card country and card fingerprint were never found: buyers without an
+  invoice address showed as "Unknown" country, and returning buyers who
+  changed e-mail but paid with the same card were not recognised. Now reads
+  PaymentIntent, `latest_charge`, Charge and legacy card-source shapes; also
+  accepts the `stripe_cc` / `paypal2` provider identifiers.
+  **Run a resync after upgrading** so existing orders pick this up.
+
 ## [2.0.2] — 2026-09-25
 
 ### Changed

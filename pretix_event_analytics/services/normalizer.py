@@ -332,12 +332,14 @@ def buyer_identities(order, confirmed_payment) -> List[Dict]:
         info = confirmed_payment.info_data
         provider = confirmed_payment.provider
 
-        if provider == "stripe":
-            fingerprint = info.get("payment_method_details", {}).get("card", {}).get("fingerprint")
+        from .payment_info import PAYPAL_PROVIDERS, STRIPE_PROVIDERS, paypal_payer, stripe_card
+
+        if provider in STRIPE_PROVIDERS:
+            fingerprint = stripe_card(info).get("fingerprint")
             if fingerprint:
                 identities.append({"type": "stripe_card", "hash": generate_repeat_hash(fingerprint)})
-        elif provider == "paypal":
-            payer_id = info.get("payer", {}).get("payer_info", {}).get("payer_id")
+        elif provider in PAYPAL_PROVIDERS:
+            payer_id = paypal_payer(info).get("payer_id")
             if payer_id:
                 identities.append({"type": "paypal_payer", "hash": generate_repeat_hash(payer_id)})
         elif provider == "banktransfer":

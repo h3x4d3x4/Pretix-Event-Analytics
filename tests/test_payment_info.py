@@ -1,0 +1,37 @@
+"""Card/payer details are read from the shapes Pretix really stores."""
+from pretix_event_analytics.models import AnalyticsOrderFact
+from pretix_event_analytics.services.payment_info import payment_country, stripe_card
+from pretix_event_analytics.services.resync_service import resync_series
+
+PAYMENT_INTENT = {  # structure of pretix's stripe info_data (PaymentIntent with charges)
+    "object": "payment_intent",
+    "payment_method_options": {"card": {"request_three_d_secure": "automatic"}},
+    "charges": {"data": [
+        {"status": "failed", "payment_method_details": {"card": {"fingerprint": "fp_old", "country": "US"}}},
+        {"status": "succeeded", "payment_method_details": {"card": {"fingerprint": "fp_ok", "country": "ES", "brand": "visa"}}},
+    ]},
+}
+LATEST_CHARGE = {"object": "payment_intent", "latest_charge": {"payment_method_details": {"card": {"fingerprint": "fp_lc", "country": "DE"}}}}
+LEGACY_SOURCE = {"object": "charge", "source": {"object": "card", "fingerprint": "fp_src", "country": "FR"}}
+PAYPAL = {"payer": {"payer_info": {"payer_id": "PAYER1", "country_code": "GB"}}}
+
+
+def test_stripe_shapes():
+    assert stripe_card(PAYMENT_INTENT)["fingerprint"] == "fp_ok"
+    assert stripe_card(LATEST_CHARGE)["fingerprint"] == "fp_lc"
+    assert stripe_card(LEGACY_SOURCE)["fingerprint"] == "fp_src"
+    assert stripe_card({"object": "payment_intent"}) == {}
+    assert payment_country("stripe", PAYMENT_INTENT) == "ES"
+    assert payment_country("paypal", PAYPAL) == "GB"
+    assert payment_country("banktransfer", {"iban": "PT50 0000"}) == "PT"
+    assert payment_country("stripe", "not a dict") is None
+
+
+def test_payment_intent_links_people_and_sets_country(make_edition, series):
+    e24, e26 = make_edition(2024), make_edition(2026)
+    e24.order("old-mail@example.org", provider="stripe", payment_info=PAYMENT_INTENT, country="")
+    o = e26.order("new-mail@example.org", provider="stripe", payment_info=PAYMENT_INTENT, country="")
+    resync_series(series)
+    fact = AnalyticsOrderFact.objects.get(event=e26.event, order_code=o.code)
+    assert fact.country_code == "ES"
+    assert fact.is_repeat_buyer  # same card, different e-mail

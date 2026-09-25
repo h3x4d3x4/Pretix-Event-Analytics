@@ -30,28 +30,11 @@ def resolve_country(order, positions=None, payment=None) -> str:
     # 1. Payment Provider Metadata (High Confidence)
     confirmed_payment = payment if payment is not None else last_confirmed_payment(order)
     if confirmed_payment and confirmed_payment.info_data:
-        info = confirmed_payment.info_data
-        provider = confirmed_payment.provider
+        from .payment_info import payment_country
 
-        if provider == "stripe":
-            # Stripe provides the 2-letter country code of the card's issuing bank
-            stripe_country = info.get("payment_method_details", {}).get("card", {}).get("country")
-            if stripe_country and len(stripe_country) == 2:
-                return stripe_country.upper()
-                
-        elif provider == "paypal":
-            # PayPal provides the registered country code of the buyer's account
-            paypal_country = info.get("payer", {}).get("payer_info", {}).get("country_code")
-            if paypal_country and len(paypal_country) == 2:
-                return paypal_country.upper()
-                
-        elif provider == "banktransfer":
-            # Extract first two letters of the IBAN (always the ISO country code)
-            iban = info.get("iban", "")
-            if iban and len(iban) >= 2:
-                iban_country = iban[:2].upper()
-                if iban_country.isalpha():
-                    return iban_country
+        code = payment_country(confirmed_payment.provider, confirmed_payment.info_data)
+        if code:
+            return code
 
     # 2. InvoiceAddress
     try:

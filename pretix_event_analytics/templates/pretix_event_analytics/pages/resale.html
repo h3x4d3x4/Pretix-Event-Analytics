@@ -57,8 +57,8 @@
 {% endif %}
 
 <div class="pa-grid">
-  {% trans "Manual name changes per month" as mt %}
-  {% trans "TicketSwap does not record when a swap happened, so only manual changes have a date." as mn %}
+  {% trans "Changed hands per month" as mt %}
+  {% if s.ticketswap_active and not s.swaps_dated %}{% trans "This TicketSwap version does not record when a swap happened, so only manual changes have a date." as mn %}{% else %}{% trans "By the month of the latest change of each ticket." as mn %}{% endif %}
   {% include "pretix_event_analytics/_chart.html" with chart=data.monthly_chart title=mt note=mn size="short" %}
   {% trans "Changed hands by edition" as et %}
   {% include "pretix_event_analytics/_chart.html" with chart=data.edition_chart title=et size="short" %}

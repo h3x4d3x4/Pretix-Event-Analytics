@@ -34,9 +34,12 @@ def _build(scope: ReportScope) -> Dict:
         for k, label in CHANNEL_LABELS
     ]}
     if stats["by_month"]:
-        out["monthly_chart"] = spec("bar", [r["month"] for r in stats["by_month"]],
-                                    [serie(_("Manual name changes"), [r["count"] for r in stats["by_month"]])],
-                                    y_title=_("Tickets"))
+        months = [r["month"] for r in stats["by_month"]]
+        series = []
+        if stats["swaps_dated"]:
+            series.append(serie("TicketSwap", [r["ticketswap"] for r in stats["by_month"]]))
+        series.append(serie(_("Manual name change"), [r["manual"] for r in stats["by_month"]]))
+        out["monthly_chart"] = spec("bar", months, series, stacked=len(series) > 1, y_title=_("Tickets"))
     if scope.series and scope.can_see_series:
         try:
             by_edition = resale_by_edition(scope.series, scope.event.organizer)

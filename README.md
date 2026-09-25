@@ -1,7 +1,7 @@
 # Pretix Event Analytics
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Pretix](https://img.shields.io/badge/Pretix-2025.x%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.1.0-green.svg)
+[![Pretix](https://img.shields.io/badge/Pretix-2025.x%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.1.1-green.svg)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://python.org)
 
 Analytics suite for [Pretix](https://pretix.eu): sales over time and against previous editions, first-timers and returning people across every edition of a recurring event, audience, tickets, check-in and refunds — without storing personal data.

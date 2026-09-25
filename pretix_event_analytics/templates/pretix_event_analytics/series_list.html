@@ -1,5 +1,5 @@
 {% extends "pretixcontrol/organizers/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}{% trans "Analytics Series" %} — {{ request.organizer.name }}{% endblock %}
 
@@ -48,7 +48,7 @@
                     <span class="text-muted">{% trans "No editions linked" %}</span>
                   {% endfor %}
                   {% for le in series.legacy_editions.all %}
-                    <span class="label label-default" style="opacity:.7" title="{% trans 'Imported list' %}">{{ le.edition_year }} ({% trans "imported" %})</span>
+                    <span class="label label-default pa-muted-label" title="{% trans 'Imported list' %}">{{ le.edition_year }} ({% trans "imported" %})</span>
                   {% endfor %}
                 </td>
                 <td class="text-muted small">{{ series.created_at|date:"Y-m-d" }}</td>
@@ -80,4 +80,5 @@
 
   </div>
 </div>
+<link rel="stylesheet" type="text/css" href="{% static 'pretix_event_analytics/dashboard.css' %}">
 {% endblock %}

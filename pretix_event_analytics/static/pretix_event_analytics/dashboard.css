@@ -172,3 +172,25 @@
 @media print {
   .pa-tabs, .pa-filters, .pa-actions, .pa-chart-tools, .btn-back-to-top { display: none !important; }
 }
+
+/* ── Utilities (Pretix's CSP forbids inline style attributes) ───────────── */
+.pa-scroll { max-height: 420px; overflow-y: auto; }
+.pa-scroll-sm { max-height: 320px; overflow-y: auto; }
+.pa-markers { margin-top: 6px; }
+.pa-inline-form { display: inline; margin-left: 6px; }
+.pa-mt { margin-top: 6px; }
+.pa-mt-lg { margin-top: 24px; }
+.pa-m0 { margin: 0; }
+.pa-muted-label { opacity: .7; }
+.pa-sw { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
+.pa-sw.l0 { background: var(--pa-seq-0); } .pa-sw.l1 { background: var(--pa-seq-1); } .pa-sw.l2 { background: var(--pa-seq-2); }
+.pa-sw.l3 { background: var(--pa-seq-3); } .pa-sw.l4 { background: var(--pa-seq-4); } .pa-sw.l5 { background: var(--pa-seq-5); }
+.pa-sw.l6 { background: var(--pa-seq-6); }
+.pa-optional { font-size: 10px; font-weight: normal; vertical-align: middle; margin-left: 4px; }
+.pa-explainer { margin-bottom: 12px; font-size: 13px; }
+.pa-explainer p { margin: 6px 0 4px; }
+.pa-explainer .pa-explainer-foot { margin: 8px 0 0; color: #555; }
+.pa-tree { font-family: monospace; font-size: 12px; background: #fff; border-radius: 4px; padding: 8px 12px; color: #555; }
+.pa-target-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+.pa-input-sm { width: 110px; } .pa-input-md { width: 150px; } .pa-input-lg { max-width: 320px; }
+[hidden] { display: none !important; }

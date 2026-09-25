@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from pretix.base.forms.widgets import DatePickerWidget
 
 from .models import EventAnalyticsConfig, EventSeries
+from ._compat import VIEW_ORDERS
 
 
 def _country_choices():
@@ -82,11 +83,11 @@ class EventAnalyticsConfigForm(forms.ModelForm):
         widgets = {
             "series": forms.Select(attrs={"class": "form-control"}),
             "edition_year": forms.NumberInput(
-                attrs={"class": "form-control", "min": 1990, "max": 2100, "style": "width:110px;"}
+                attrs={"class": "form-control pa-input-sm", "min": 1990, "max": 2100}
             ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "ticket_target": forms.NumberInput(attrs={"class": "form-control", "style": "width:140px;"}),
-            "revenue_target": forms.NumberInput(attrs={"class": "form-control", "style": "width:160px;"}),
+            "ticket_target": forms.NumberInput(attrs={"class": "form-control pa-input-md"}),
+            "revenue_target": forms.NumberInput(attrs={"class": "form-control pa-input-md"}),
         }
 
     def __init__(self, *args, event=None, **kwargs):
@@ -103,7 +104,7 @@ class EventAnalyticsConfigForm(forms.ModelForm):
             choices=_country_choices(),
             required=False,
             label=_("Event Country"),
-            widget=forms.Select(attrs={"class": "form-control", "style": "max-width:320px;"}),
+            widget=forms.Select(attrs={"class": "form-control pa-input-lg"}),
         )
         # Pre-select current value if editing
         if self.instance and self.instance.home_country:
@@ -300,7 +301,7 @@ class DashboardFilterForm(forms.Form):
         request = self._request
         if request is None or not getattr(request, "user", None):
             return qs.filter(pk=self._event.pk)
-        allowed = request.user.get_events_with_permission("can_view_orders", request)
+        allowed = request.user.get_events_with_permission(VIEW_ORDERS, request)
         return qs.filter(pk__in=allowed.values("pk"))
 
     def clean(self):
@@ -317,7 +318,7 @@ class LegacyImportForm(forms.Form):
     label = forms.CharField(max_length=100, label=_("Edition name"),
                             widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Suti 2019"}))
     edition_year = forms.IntegerField(min_value=1990, max_value=2100, label=_("Edition year"),
-                                      widget=forms.NumberInput(attrs={"class": "form-control", "style": "width:110px"}))
+                                      widget=forms.NumberInput(attrs={"class": "form-control pa-input-sm"}))
     emails_file = forms.FileField(
         required=False, label=_("CSV or text file"),
         help_text=_("Any file containing e-mail addresses — one per line or a CSV column. Other data is ignored."),

@@ -27,7 +27,7 @@
     <div class="pa-panel-body flush"><table class="table pa-table">
       <thead><tr><th>{% trans "Product" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Checked in" %}</th></tr></thead>
       <tbody>{% for p in ci.by_product %}<tr><td>{{ p.name }}</td><td class="num">{{ p.tickets }}</td>
-        <td class="num"><span class="pa-bar-cell">{{ p.rate }}%<span class="pa-minibar"><i style="width:{{ p.rate|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+        <td class="num"><span class="pa-bar-cell">{{ p.rate }}%<span class="pa-minibar"><i data-bar="{{ p.rate|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
     </table></div>
   </div>
 </div>

@@ -57,7 +57,7 @@
     <strong>{% trans "No analytics data yet." %}</strong>
     {% trans "New paid orders are picked up automatically. To import orders placed before the plugin was enabled, run a resync." %}
     {% if can_resync %}
-    <form method="post" action="{{ resync_url }}" style="display:inline; margin-left:6px;">
+    <form method="post" action="{{ resync_url }}" class="pa-inline-form">
       {% csrf_token %}
       <button type="submit" class="btn btn-primary btn-xs"><span class="fa fa-refresh"></span> {% trans "Run initial resync" %}</button>
     </form>
@@ -100,7 +100,7 @@
         <button type="submit" class="btn btn-primary btn-sm"><span class="fa fa-filter"></span> {% trans "Apply" %}</button>
       </div>
     </div>
-    {% if filter_form.non_field_errors %}<div class="text-danger small" style="margin-top:6px">{{ filter_form.non_field_errors|join:" " }}</div>{% endif %}
+    {% if filter_form.non_field_errors %}<div class="text-danger small pa-mt">{{ filter_form.non_field_errors|join:" " }}</div>{% endif %}
   </form>
   {% if filter_chips %}
   <div class="pa-chips">

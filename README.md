@@ -34,7 +34,7 @@ Tickets without any signal (group tickets with no attendee e-mail or birth date)
 
 | Component | Version |
 |-----------|---------|
-| Pretix    | 2025.x or later |
+| Pretix    | 2026.2 or later (tested on 2026.2.0 and 2026.3.1) |
 | Python    | 3.10, 3.11, or 3.12 |
 | Django    | 4.2 LTS (ships with Pretix) |
 | Redis     | Recommended (for caching and Celery task queue) |
@@ -63,9 +63,12 @@ python -m pretix migrate
 
 ### Enable the plugin
 
-1. Log in to the Pretix control panel
-2. Go to your **Organizer** settings &rarr; **Plugins**
-3. Enable **Event Analytics**
+The plugin works at two levels (Pretix "event + organizer" plugin):
+
+1. **Organizer** → Settings → **Plugins** → enable **Event Analytics** (unlocks the series pages).
+2. **Each event** → Settings → **Plugins** → enable **Event Analytics** (dashboards and order processing).
+
+Orders are only processed for events where it is enabled at both levels.
 
 The plugin is auto-discovered via its entry point &mdash; no changes to `INSTALLED_APPS` are needed.
 

@@ -19,7 +19,7 @@
     <div class="pa-chart {{ size }}" data-chart="{{ chart.id }}"{% if group %} data-cumulative-group="{{ group }}"{% endif %}>
       <canvas role="img" aria-label="{{ title }}"></canvas>
     </div>
-    <div class="pa-markers small text-muted" data-for="{{ chart.id }}" style="margin-top:6px"></div>
+    <div class="pa-markers small text-muted" data-for="{{ chart.id }}"></div>
     <div class="pa-table-view" data-for="{{ chart.id }}"></div>
   </div>
   {% if foot %}<div class="pa-panel-foot">{{ foot }}</div>{% endif %}

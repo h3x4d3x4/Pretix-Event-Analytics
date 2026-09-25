@@ -32,6 +32,7 @@ from pretix.base.signals import (
     order_split,
 )
 from pretix.control.signals import nav_event, nav_event_settings, nav_organizer
+from ._compat import CHANGE_EVENT_SETTINGS, CHANGE_ORGANIZER_SETTINGS, VIEW_ORDERS
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +139,7 @@ def add_analytics_nav(sender, request=None, **kwargs):
 
     if not request or not getattr(request, "event", None):
         return []
-    if not request.user.has_event_permission(request.organizer, request.event, "can_view_orders", request):
+    if not request.user.has_event_permission(request.organizer, request.event, VIEW_ORDERS, request):
         return []
 
     url_name = getattr(getattr(request, "resolver_match", None), "url_name", "") or ""
@@ -174,7 +175,7 @@ def add_analytics_settings_nav(sender, request=None, **kwargs):
     if not request or not request.event:
         return []
     if not request.user.has_event_permission(
-        request.organizer, request.event, "can_change_event_settings", request
+        request.organizer, request.event, CHANGE_EVENT_SETTINGS, request
     ):
         return []
 
@@ -205,7 +206,7 @@ def add_organizer_nav(sender, request=None, **kwargs):
     if not request or not request.organizer:
         return []
     if not request.user.has_organizer_permission(
-        request.organizer, "can_change_organizer_settings", request
+        request.organizer, CHANGE_ORGANIZER_SETTINGS, request
     ):
         return []
 

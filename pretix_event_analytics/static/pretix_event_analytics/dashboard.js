@@ -283,6 +283,12 @@
     }
 
     // ── Wire up ──────────────────────────────────────────────────────────────
+    // Pretix's CSP forbids style attributes in markup; widths are applied
+    // through the CSSOM instead, which the policy allows.
+    document.querySelectorAll('[data-bar]').forEach((el) => {
+        const v = Math.max(0, Math.min(100, parseFloat(el.dataset.bar) || 0));
+        el.style.width = v + '%';
+    });
     document.querySelectorAll('[data-chart]').forEach(render);
 
     document.addEventListener('click', (ev) => {
@@ -312,7 +318,7 @@
             group.querySelectorAll('[data-switch]').forEach((b) => b.classList.toggle('active', b === sw));
             root.querySelectorAll('[data-switch-pane="' + name + '"]').forEach((pane) => {
                 const show = pane.dataset.pane === sw.dataset.switch;
-                pane.style.display = show ? '' : 'none';
+                pane.hidden = !show;
                 if (show) pane.querySelectorAll('[data-chart]').forEach((c) => {
                     const inst = instances[c.dataset.chart];
                     if (inst) inst.resize(); else render(c);

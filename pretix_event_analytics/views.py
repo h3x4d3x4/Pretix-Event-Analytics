@@ -35,6 +35,7 @@ from pretix.control.permissions import EventPermissionRequiredMixin, OrganizerPe
 
 from .forms import DashboardFilterForm, EventAnalyticsConfigForm, EventSeriesForm, LegacyImportForm
 from .models import AnalyticsOrderFact, EventAnalyticsConfig, EventSeries, LegacyEdition
+from ._compat import CHANGE_EVENT_SETTINGS, CHANGE_ORGANIZER_SETTINGS, VIEW_ORDERS
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ FILTER_FIELDS = set(DashboardFilterForm.base_fields)
 
 class AnalyticsPageView(EventPermissionRequiredMixin, TemplateView):
     """Base class: filter bar, tabs, header and chart plumbing."""
-    permission = "can_view_orders"
+    permission = VIEW_ORDERS
     tab = "dashboard"
     section = None  # module in services.reports with build(scope)
 
@@ -102,7 +103,7 @@ class AnalyticsPageView(EventPermissionRequiredMixin, TemplateView):
         charts = {}
         _collect_charts(data, "", charts)
         can_resync = request.user.has_event_permission(request.organizer, request.event,
-                                                       "can_change_event_settings", request)
+                                                       CHANGE_EVENT_SETTINGS, request)
         facts = AnalyticsOrderFact.objects.filter(event=request.event)
         ctx.update({
             "scope": scope,
@@ -189,7 +190,7 @@ class ResaleView(AnalyticsPageView):
 
 class EventConfigView(EventPermissionRequiredMixin, FormView):
     """Configure series, edition year, targets and tracked questions for an event."""
-    permission = "can_change_event_settings"
+    permission = CHANGE_EVENT_SETTINGS
     template_name = "pretix_event_analytics/config.html"
     form_class = EventAnalyticsConfigForm
 
@@ -246,7 +247,7 @@ class EventConfigView(EventPermissionRequiredMixin, FormView):
 # ── Series Management (organizer level) ───────────────────────────────────────
 
 class SeriesMixin(OrganizerPermissionRequiredMixin):
-    permission = "can_change_organizer_settings"
+    permission = CHANGE_ORGANIZER_SETTINGS
 
     def series_url(self, name, **kw):
         return reverse(f"plugins:pretix_event_analytics:{name}", kwargs={"organizer": self.request.organizer.slug, **kw})
@@ -350,7 +351,7 @@ class SeriesDetailView(SeriesMixin, TemplateView):
         # Organizer-settings access does not imply order access: the overview
         # aggregates orders of every edition, so require both.
         edition_ids = set(series.event_configs.values_list("event_id", flat=True))
-        allowed = set(self.request.user.get_events_with_permission("can_view_orders", self.request)
+        allowed = set(self.request.user.get_events_with_permission(VIEW_ORDERS, self.request)
                       .filter(pk__in=edition_ids).values_list("pk", flat=True))
         if edition_ids - allowed:
             raise PermissionDenied(_("You need order access to every edition of this series."))
@@ -430,7 +431,7 @@ class SeriesResyncView(SeriesMixin, View):
 # ── Exports ───────────────────────────────────────────────────────────────────
 
 class ExportView(EventPermissionRequiredMixin, View):
-    permission = "can_view_orders"
+    permission = VIEW_ORDERS
 
     def get(self, request, *args, **kwargs):
         from . import exporters
@@ -454,7 +455,7 @@ class TriggerResyncView(EventPermissionRequiredMixin, View):
     Queue an async full resync for this event. POST-only; redirects back.
     Requires can_change_event_settings so only admins can trigger it.
     """
-    permission = "can_change_event_settings"
+    permission = CHANGE_EVENT_SETTINGS
     # Per-user throttle, independent of the per-event in-progress lock.
     RATE_LIMIT_SECONDS = 60
 

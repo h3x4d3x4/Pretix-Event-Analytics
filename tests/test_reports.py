@@ -2,6 +2,8 @@
 import datetime
 
 import pytest
+
+from conftest import make_team
 from django.test import RequestFactory
 from django.utils import timezone
 
@@ -24,7 +26,7 @@ def viewer(organizer):
     from pretix.base.models import User
     user = User.objects.create_user("viewer@example.org", "x")
     with scopes_disabled():
-        team = organizer.teams.create(name="Viewers", all_events=True, can_view_orders=True)
+        team = make_team(organizer, "Viewers", can_view_orders=True)
         team.members.add(user)
     return user
 

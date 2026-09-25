@@ -11,7 +11,7 @@
   {% include "pretix_event_analytics/_chart.html" with chart=data.country_chart title=ct size="tall" %}
   <div class="pa-panel">
     <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Countries" %}</div></div>
-    <div class="pa-panel-body flush pa-table-wrap" style="max-height:392px; overflow-y:auto"><table class="table pa-table">
+    <div class="pa-panel-body flush pa-table-wrap pa-scroll"><table class="table pa-table">
       <thead><tr><th>{% trans "Country" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg order" %}</th><th class="num">{% trans "Returning" %}</th></tr></thead>
       <tbody>{% for c in data.countries %}<tr>
         <td>{{ c.flag }} {{ c.name }}</td><td class="num">{{ c.orders }} <span class="text-muted">{{ c.share }}%</span></td>
@@ -38,7 +38,7 @@
     <div class="pa-panel-body flush"><table class="table pa-table">
       <thead><tr><th>{% trans "Method" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg order" %}</th></tr></thead>
       <tbody>{% for p in data.payments %}<tr><td>{{ p.label }}</td>
-        <td class="num"><span class="pa-bar-cell">{{ p.orders }} <span class="text-muted">{{ p.share }}%</span><span class="pa-minibar"><i style="width:{{ p.share|floatformat:0 }}%"></i></span></span></td>
+        <td class="num"><span class="pa-bar-cell">{{ p.orders }} <span class="text-muted">{{ p.share }}%</span><span class="pa-minibar"><i data-bar="{{ p.share|floatformat:0 }}"></i></span></span></td>
         <td class="num">{{ p.revenue|money:currency }}</td><td class="num">{{ p.aov|money:currency }}</td></tr>{% endfor %}</tbody>
     </table></div>
   </div>

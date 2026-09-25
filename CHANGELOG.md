@@ -67,6 +67,15 @@ resync runs, the dashboard shows a notice for rows produced by 1.x.
   event can no longer read other editions' data.
 - CSV exports neutralise spreadsheet formulas in buyer-supplied fields.
 
+### Compatibility
+- Tested on Pretix 2026.2.0 and 2026.3.1. Uses the new permission names
+  (`event.orders:read`, …) on 2026.3+ and the legacy ones before.
+- Declared as an event + organizer plugin: **enable it in the organizer's
+  plugin settings as well as per event.**
+- All markup is compatible with Pretix's Content-Security-Policy
+  (`style-src 'self'`): no inline style attributes; 1.x's inline styles
+  were silently ignored by browsers.
+
 ### Changed
 - Resync upserts instead of delete-and-rebuild, always includes check-ins,
   keeps its lock alive per chunk, and resolves returning people once per

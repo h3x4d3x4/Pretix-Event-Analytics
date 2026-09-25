@@ -11,7 +11,7 @@
   {% include "pretix_event_analytics/_chart.html" with chart=data.product_chart title=pt size="tall" %}
   <div class="pa-panel">
     <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Product performance" %}</div></div>
-    <div class="pa-panel-body flush pa-table-wrap" style="max-height:392px; overflow-y:auto"><table class="table pa-table">
+    <div class="pa-panel-body flush pa-table-wrap pa-scroll"><table class="table pa-table">
       <thead><tr><th>{% trans "Product" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg price" %}</th><th class="num" title="{% trans 'Share of identified ticket holders who attended an earlier edition' %}">{% trans "Returning" %}</th>{% if data.products.0.checkin_pct is not None %}<th class="num">{% trans "Checked in" %}</th>{% endif %}</tr></thead>
       <tbody>{% for p in data.products %}<tr><td>{{ p.name }}</td><td class="num">{{ p.tickets }} <span class="text-muted">{{ p.share }}%</span></td>
         <td class="num">{{ p.revenue|money:currency }}</td><td class="num">{{ p.avg|money:currency }}</td>
@@ -35,7 +35,7 @@
   {% if data.variations %}
   <div class="pa-panel">
     <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Variations" %}</div></div>
-    <div class="pa-panel-body flush pa-table-wrap" style="max-height:320px; overflow-y:auto"><table class="table pa-table">
+    <div class="pa-panel-body flush pa-table-wrap pa-scroll-sm"><table class="table pa-table">
       <thead><tr><th>{% trans "Product" %}</th><th>{% trans "Variation" %}</th><th class="num">{% trans "Sold" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg price" %}</th></tr></thead>
       <tbody>{% for v in data.variations %}<tr><td>{{ v.product }}</td><td>{{ v.name }}</td><td class="num">{{ v.count }}</td><td class="num">{{ v.revenue|money:currency }}</td><td class="num">{{ v.avg|money:currency }}</td></tr>{% endfor %}</tbody>
     </table></div>
@@ -73,7 +73,7 @@
     <div class="pa-panel-body flush"><table class="table pa-table">
       <thead><tr><th>{% trans "Segment" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "With add-ons" %}</th></tr></thead>
       <tbody>{% for s in data.addon_segments %}<tr><td>{{ s.label }}</td><td class="num">{{ s.total }}</td>
-        <td class="num"><span class="pa-bar-cell">{{ s.pct }}%<span class="pa-minibar"><i style="width:{{ s.pct|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+        <td class="num"><span class="pa-bar-cell">{{ s.pct }}%<span class="pa-minibar"><i data-bar="{{ s.pct|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
     </table></div>
   </div>
   {% endif %}

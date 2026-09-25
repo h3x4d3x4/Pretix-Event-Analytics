@@ -101,7 +101,7 @@
         <thead><tr><th>{% trans "Edition" %}</th><th class="num">{% trans "Addresses" %}</th><th>{% trans "Imported" %}</th><th></th></tr></thead>
         <tbody>{% for le in legacy_editions %}<tr>
           <td>{{ le.label }} ({{ le.edition_year }})</td><td class="num">{{ le.n }}</td><td>{{ le.created_at|date:"SHORT_DATE_FORMAT" }}</td>
-          <td class="text-right"><form method="post" action="{% url 'plugins:pretix_event_analytics:legacy_delete' organizer=request.organizer.slug pk=series.pk legacy_pk=le.pk %}" style="margin:0">{% csrf_token %}
+          <td class="text-right"><form method="post" action="{% url 'plugins:pretix_event_analytics:legacy_delete' organizer=request.organizer.slug pk=series.pk legacy_pk=le.pk %}" class="pa-m0">{% csrf_token %}
             <button type="submit" class="btn btn-xs btn-danger" data-confirm="{% trans 'Remove this imported edition?' %}"><span class="fa fa-trash"></span></button></form></td>
         </tr>{% empty %}<tr><td colspan="4" class="text-muted">{% trans "None yet." %}</td></tr>{% endfor %}</tbody>
       </table></div>

@@ -16,6 +16,7 @@ from django.db.models import Q, QuerySet
 from ...forms import DashboardFilterForm
 from ...models import AnalyticsOrderFact, AnalyticsTicketFact, EventAnalyticsConfig
 from ..versioning import cached
+from ..._compat import VIEW_ORDERS
 
 
 def pct(part, whole, digits=1) -> float:
@@ -60,7 +61,7 @@ class ReportScope:
         if user is None:
             return False
         ids = set(Cfg.objects.filter(series=self.series).values_list("event_id", flat=True))
-        allowed = set(user.get_events_with_permission("can_view_orders", self.request)
+        allowed = set(user.get_events_with_permission(VIEW_ORDERS, self.request)
                       .filter(pk__in=ids).values_list("pk", flat=True))
         return ids <= allowed
 
@@ -135,7 +136,7 @@ class ReportScope:
         user = getattr(self.request, "user", None)
         if user is None or not getattr(user, "is_authenticated", False):
             return {self.event.pk}
-        return set(user.get_events_with_permission("can_view_orders", self.request).filter(
+        return set(user.get_events_with_permission(VIEW_ORDERS, self.request).filter(
             organizer_id=self.organizer_id).values_list("pk", flat=True)) | {self.event.pk}
 
     @cached_property

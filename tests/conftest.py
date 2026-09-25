@@ -42,7 +42,7 @@ def _clear_cache(_real_cache):
 def organizer(db):
     from pretix.base.models import Organizer
     with scopes_disabled():
-        return Organizer.objects.create(name="Suti", slug="suti")
+        return Organizer.objects.create(name="Suti", slug="suti", plugins="pretix_event_analytics")
 
 
 @pytest.fixture
@@ -172,10 +172,8 @@ def admin_client(client, organizer):
     from pretix.base.models import User
     user = User.objects.create_user("admin@example.org", "admin")
     with scopes_disabled():
-        team = organizer.teams.create(
-            name="Admins", all_events=True, can_view_orders=True, can_change_event_settings=True,
-            can_change_organizer_settings=True, can_change_items=True,
-        )
+        team = make_team(organizer, "Admins", can_view_orders=True, can_change_event_settings=True,
+                         can_change_organizer_settings=True, can_change_items=True)
         team.members.add(user)
     client.login(email="admin@example.org", password="admin")
     return client
@@ -183,3 +181,30 @@ def admin_client(client, organizer):
 
 def now():
     return timezone.now()
+
+
+# Pretix 2026.3 replaced the boolean team permissions with permission
+# groups ("event.orders:read"). Fixtures create teams for either model.
+LEGACY_TO_NEW = {
+    "can_view_orders": ("event", "event.orders", ["read"]),
+    "can_change_event_settings": ("event", "event.settings.general", ["write"]),
+    "can_change_items": ("event", "event.items", ["write"]),
+    "can_change_organizer_settings": ("organizer", "organizer.settings.general", ["write"]),
+}
+
+
+def make_team(organizer, name, *, all_events=True, **perms):
+    from pretix.base.models import Team
+    field_names = {f.name for f in Team._meta.get_fields()}
+    if "limit_event_permissions" not in field_names:
+        return organizer.teams.create(name=name, all_events=all_events, **perms)
+    event_perms, org_perms = {}, {}
+    for legacy, enabled in perms.items():
+        if not enabled:
+            continue
+        scope, group, actions = LEGACY_TO_NEW[legacy]
+        target = event_perms if scope == "event" else org_perms
+        for a in actions:
+            target[f"{group}:{a}"] = True
+    return organizer.teams.create(name=name, all_events=all_events,
+                                  limit_event_permissions=event_perms, limit_organizer_permissions=org_perms)

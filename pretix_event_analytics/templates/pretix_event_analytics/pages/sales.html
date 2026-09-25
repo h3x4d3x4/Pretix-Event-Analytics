@@ -84,7 +84,7 @@
   {% trans "Cumulative tickets" as pt %}
   {% include "pretix_event_analytics/_chart.html" with chart=data.pacing_tickets title=pt size="tall" %}
 </div>
-<div data-switch-pane="pace" data-pane="revenue" style="display:none">
+<div data-switch-pane="pace" data-pane="revenue" hidden>
   {% trans "Cumulative revenue" as pr %}
   {% include "pretix_event_analytics/_chart.html" with chart=data.pacing_revenue title=pr size="tall" %}
 </div>
@@ -141,14 +141,14 @@
         {% endfor %}
         </tbody>
       </table>
-      <div class="pa-heat-legend">{% trans "fewer" %} <i style="background:var(--pa-seq-0)"></i><i style="background:var(--pa-seq-1)"></i><i style="background:var(--pa-seq-2)"></i><i style="background:var(--pa-seq-3)"></i><i style="background:var(--pa-seq-4)"></i><i style="background:var(--pa-seq-5)"></i><i style="background:var(--pa-seq-6)"></i> {% trans "more" %} · {% blocktrans with n=data.heatmap.peak %}busiest hour: {{ n }} orders{% endblocktrans %}</div>
+      <div class="pa-heat-legend">{% trans "fewer" %} <i class="pa-sw l0"></i><i class="pa-sw l1"></i><i class="pa-sw l2"></i><i class="pa-sw l3"></i><i class="pa-sw l4"></i><i class="pa-sw l5"></i><i class="pa-sw l6"></i> {% trans "more" %} · {% blocktrans with n=data.heatmap.peak %}busiest hour: {{ n }} orders{% endblocktrans %}</div>
     </div>
   </div>
 </div>
 
 <h3 class="pa-section-title">{% trans "By period" %}</h3>
 <div class="pa-panel">
-  <div class="pa-panel-body flush pa-table-wrap" style="max-height:420px; overflow-y:auto">
+  <div class="pa-panel-body flush pa-table-wrap pa-scroll">
     <table class="table pa-table">
       <thead><tr><th>{% trans "Period" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Tickets to date" %}</th><th class="num">{% trans "Revenue to date" %}</th></tr></thead>
       <tbody>

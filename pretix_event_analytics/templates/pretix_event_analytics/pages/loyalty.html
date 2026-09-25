@@ -73,7 +73,7 @@
     <div class="pa-panel-body flush"><table class="table pa-table">
       <thead><tr><th></th><th class="num">{% trans "People" %}</th><th class="num">{% trans "Share" %}</th></tr></thead>
       <tbody>{% for r in fo.previous_table %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }}</td>
-        <td class="num"><span class="pa-bar-cell">{{ r.share }}%<span class="pa-minibar"><i style="width:{{ r.share|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+        <td class="num"><span class="pa-bar-cell">{{ r.share }}%<span class="pa-minibar"><i data-bar="{{ r.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
     </table></div>
   </div>
 </div>
@@ -90,7 +90,7 @@
     <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
       <thead><tr><th>{{ seg.column }}</th><th class="num">{% if data.unit == 'people' %}{% trans "Tickets" %}{% else %}{% trans "Orders" %}{% endif %}</th><th class="num">{% trans "First-timers" %}</th></tr></thead>
       <tbody>{% for r in seg.rows %}<tr><td>{{ r.label }}</td><td class="num">{{ r.total }}</td>
-        <td class="num"><span class="pa-bar-cell">{{ r.new_pct }}%<span class="pa-minibar"><i style="width:{{ r.new_pct|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+        <td class="num"><span class="pa-bar-cell">{{ r.new_pct }}%<span class="pa-minibar"><i data-bar="{{ r.new_pct|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
     </table></div>
   </div>
 {% endfor %}
@@ -123,7 +123,7 @@
     <div class="pa-panel-body flush"><table class="table pa-table">
       <thead><tr><th></th><th class="num">{% trans "People" %}</th><th class="num">{% trans "Share" %}</th></tr></thead>
       <tbody>{% for r in data.frequency_table %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }}</td>
-        <td class="num"><span class="pa-bar-cell">{{ r.share }}%<span class="pa-minibar"><i style="width:{{ r.share|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+        <td class="num"><span class="pa-bar-cell">{{ r.share }}%<span class="pa-minibar"><i data-bar="{{ r.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
     </table></div>
   </div>
 </div>
@@ -151,9 +151,9 @@
   <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Most common attendance patterns" %}</div>
     <div class="pa-panel-note">{% trans "Exactly these editions and none of the other selected ones." %}</div></div></div>
   <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
-    <thead><tr>{% for l in data.selected_labels %}<th style="text-align:center">{{ l }}</th>{% endfor %}<th class="num">{% trans "People" %}</th><th class="num">{% trans "Share" %}</th></tr></thead>
+    <thead><tr>{% for l in data.selected_labels %}<th class="text-center">{{ l }}</th>{% endfor %}<th class="num">{% trans "People" %}</th><th class="num">{% trans "Share" %}</th></tr></thead>
     <tbody>{% for c in data.combos %}<tr title="{{ c.label }}">
-      {% for m in c.marks %}<td style="text-align:center"><span class="pa-dot{% if m %} on{% endif %}" aria-label="{% if m %}{% trans 'attended' %}{% else %}{% trans 'not attended' %}{% endif %}"></span></td>{% endfor %}
+      {% for m in c.marks %}<td class="text-center"><span class="pa-dot{% if m %} on{% endif %}" aria-label="{% if m %}{% trans 'attended' %}{% else %}{% trans 'not attended' %}{% endif %}"></span></td>{% endfor %}
       <td class="num">{{ c.count }}</td><td class="num">{{ c.share }}%</td></tr>{% endfor %}</tbody>
   </table></div>
   {% if data.combos_hidden %}<div class="pa-panel-foot">{% blocktrans count n=data.combos_hidden %}{{ n }} rarer pattern not shown.{% plural %}{{ n }} rarer patterns not shown.{% endblocktrans %}</div>{% endif %}

@@ -1,5 +1,5 @@
 {% extends "pretixcontrol/event/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}{% trans "Analytics Configuration" %} — {{ request.event.name }}{% endblock %}
 
@@ -69,27 +69,27 @@
           <div class="form-group">
             <label class="col-md-3 control-label">
               {% trans "Event Series" %}
-              <span class="label label-default" style="font-size:10px; font-weight:normal; vertical-align:middle; margin-left:4px;">{% trans "Optional" %}</span>
+              <span class="label label-default pa-optional">{% trans "Optional" %}</span>
             </label>
             <div class="col-md-8">
 
               {# Concept explainer — shown only when no series is assigned yet #}
               {% if not form.instance.series_id %}
-              <div class="alert alert-info" style="margin-bottom:12px; font-size:13px;">
+              <div class="alert alert-info pa-explainer">
                 <strong><span class="fa fa-info-circle"></span> {% trans "What is an Event Series?" %}</strong>
-                <p style="margin: 6px 0 4px;">
+                <p>
                   {% blocktrans %}
                     A <em>series</em> is the brand name of your recurring event — e.g. <strong>"My Festival"</strong>.
                     Each year you run it is one <em>edition</em>.
                   {% endblocktrans %}
                 </p>
-                <div style="font-family: monospace; font-size: 12px; background:#fff; border-radius:4px; padding: 8px 12px; color: #555;">
+                <div class="pa-tree">
                   {% trans "My Festival" %} &nbsp;(<em>{% trans "series" %}</em>)<br>
                   &nbsp;├── {% trans "My Festival 2023" %} — {% trans "edition year: 2023" %}<br>
                   &nbsp;├── {% trans "My Festival 2024" %} — {% trans "edition year: 2024" %}<br>
                   &nbsp;└── <strong>{% trans "My Festival 2025" %} — {% trans "edition year: 2025" %}</strong> ← {% trans "this event" %}
                 </div>
-                <p style="margin: 8px 0 0; color: #555;">
+                <p class="pa-explainer-foot">
                   {% trans "Linking editions unlocks the Cohort Retention Matrix and cross-edition buyer comparison. You can skip this for a one-off event." %}
                 </p>
               </div>
@@ -97,7 +97,7 @@
 
               {{ form.series }}
 
-              <p class="help-block" style="margin-top: 6px;">
+              <p class="help-block pa-mt">
                 {% blocktrans %}
                   Group this event with other editions of the same recurring event.
                   All events in the same series are compared for repeat buyer and cohort analysis.
@@ -157,10 +157,10 @@
           {# ── Targets ───────────────────────────────────────────────────── #}
           <div class="form-group">
             <label class="col-md-3 control-label">{% trans "Sales targets" %}
-              <span class="label label-default" style="font-size:10px; font-weight:normal; vertical-align:middle; margin-left:4px;">{% trans "Optional" %}</span>
+              <span class="label label-default pa-optional">{% trans "Optional" %}</span>
             </label>
             <div class="col-md-8">
-              <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
+              <div class="pa-target-row">
                 <div><label class="small text-muted" for="{{ form.ticket_target.id_for_label }}">{% trans "Tickets" %}</label>{{ form.ticket_target }}</div>
                 <div><label class="small text-muted" for="{{ form.revenue_target.id_for_label }}">{% trans "Revenue" %} ({{ request.event.currency }})</label>{{ form.revenue_target }}</div>
               </div>
@@ -171,7 +171,7 @@
           {# ── Tracked questions ─────────────────────────────────────────── #}
           <div class="form-group">
             <label class="col-md-3 control-label">{{ form.tracked_questions.label }}
-              <span class="label label-default" style="font-size:10px; font-weight:normal; vertical-align:middle; margin-left:4px;">{% trans "Optional" %}</span>
+              <span class="label label-default pa-optional">{% trans "Optional" %}</span>
             </label>
             <div class="col-md-8">
               {% if form.tracked_questions.field.choices %}
@@ -183,7 +183,7 @@
             </div>
           </div>
 
-          <div class="form-group" style="margin-top: 24px;">
+          <div class="form-group pa-mt-lg">
             <div class="col-md-8 col-md-offset-3">
               <button type="submit" class="btn btn-primary">
                 <span class="fa fa-save"></span> {% trans "Save configuration" %}
@@ -217,4 +217,5 @@
 
   </div>
 </div>
+<link rel="stylesheet" type="text/css" href="{% static 'pretix_event_analytics/dashboard.css' %}">
 {% endblock %}

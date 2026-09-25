@@ -1,7 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 
 try:
-    from pretix.base.plugins import PluginConfig  # noqa
+    from pretix.base.plugins import PLUGIN_LEVEL_EVENT_ORGANIZER_HYBRID, PluginConfig  # noqa
 except ImportError:
     raise RuntimeError("Please use pretix in INSTALLED_APPS")
 
@@ -17,4 +17,8 @@ class PretixPluginMeta:
         "across every edition, audience, tickets, check-in and refunds — without storing personal data."
     )
     category = "FEATURE"
-    compatibility = "pretix>=2025.0.0"
+    # Enabled for the organizer (series pages, series-wide comparisons) and
+    # per event (dashboards, ingestion). Event-only plugins lose access to
+    # organizer-level signals in upcoming Pretix releases.
+    level = PLUGIN_LEVEL_EVENT_ORGANIZER_HYBRID
+    compatibility = "pretix>=2026.2.0"

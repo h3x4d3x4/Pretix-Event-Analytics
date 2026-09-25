@@ -3,6 +3,8 @@ import json
 import re
 
 import pytest
+
+from conftest import make_team
 from django.urls import reverse
 from django_scopes import scopes_disabled
 
@@ -229,7 +231,7 @@ def limited_client(client, populated):
     from pretix.base.models import User
     user = User.objects.create_user("limited@example.org", "pw")
     with scopes_disabled():
-        team = populated.event.organizer.teams.create(name="2026 only", all_events=False, can_view_orders=True)
+        team = make_team(populated.event.organizer, "2026 only", all_events=False, can_view_orders=True)
         team.limit_events.add(populated.event)
         team.members.add(user)
     client.login(email="limited@example.org", password="pw")

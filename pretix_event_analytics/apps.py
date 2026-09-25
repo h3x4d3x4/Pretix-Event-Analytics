@@ -14,3 +14,4 @@ class PluginApp(AppConfig):
     def ready(self):
         from . import signals  # noqa – registers signal handlers
         from . import shredder  # noqa – registers GDPR data shredder
+        from . import exporters  # noqa – registers Pretix export-menu exporters

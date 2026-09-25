@@ -1,0 +1,123 @@
+{% extends "pretixcontrol/event/base.html" %}
+{% load i18n %}
+{% load static %}
+{% block title %}{% trans "Analytics" %} · {{ request.event.name }}{% endblock %}
+{% block content %}
+<div class="pa-root" data-currency="{{ currency }}" data-no-data="{% trans 'No data for this selection yet' %}"
+     data-event-day="{% trans 'Event' %}" data-days-before="{% trans 'days before' %}" data-total="{% trans 'Total' %}">
+
+  <div class="pa-header">
+    <div>
+      <h1><span class="fa fa-bar-chart"></span> {% trans "Analytics" %}</h1>
+      <div class="pa-meta">
+        {% if config.series %}
+          {% trans "Series" %} <strong>{{ config.series.name }}</strong> · {% trans "Edition" %} <strong>{{ config.edition_year }}</strong>
+        {% else %}
+          <a href="{% url 'plugins:pretix_event_analytics:config' organizer=request.organizer.slug event=request.event.slug %}">{% trans "Link this event to a series to compare editions" %}</a>
+        {% endif %}
+        {% if last_synced %} · {% trans "Updated" %} {{ last_synced|date:"SHORT_DATETIME_FORMAT" }}{% endif %}
+      </div>
+    </div>
+    <div class="pa-actions">
+      <div class="btn-group">
+        <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <span class="fa fa-download"></span> {% trans "Export" %} <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-right">
+          <li><a href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='pdf' %}{{ export_qs }}"><span class="fa fa-file-pdf-o"></span> {% trans "Report (PDF)" %}</a></li>
+          <li><a href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='csv' %}{{ export_qs }}"><span class="fa fa-file-text-o"></span> {% trans "Orders (CSV)" %}</a></li>
+          <li><a href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='tickets' %}{{ export_qs }}"><span class="fa fa-file-text-o"></span> {% trans "Tickets (CSV)" %}</a></li>
+          <li><a href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='loyalty' %}{{ export_qs }}"><span class="fa fa-file-text-o"></span> {% trans "Returning buyers by order code (CSV)" %}</a></li>
+        </ul>
+      </div>
+      {% if config.series %}
+      <a class="btn btn-default btn-sm" href="{% url 'plugins:pretix_event_analytics:series_detail' organizer=request.organizer.slug pk=config.series.pk %}"><span class="fa fa-columns"></span> {% trans "All editions" %}</a>
+      {% endif %}
+      <a class="btn btn-default btn-sm" href="{% url 'plugins:pretix_event_analytics:config' organizer=request.organizer.slug event=request.event.slug %}"><span class="fa fa-cog"></span> {% trans "Settings" %}</a>
+      {% if can_resync %}
+      <form method="post" action="{{ resync_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-default btn-sm" data-confirm="{% trans 'Re-process all orders for this event? This may take a minute.' %}">
+          <span class="fa fa-refresh"></span> {% trans "Resync" %}
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <nav class="pa-tabs" aria-label="{% trans 'Analytics sections' %}">
+    {% for t in tabs %}
+      <a href="{{ t.url }}" class="{% if t.active %}active{% endif %}"{% if t.active %} aria-current="page"{% endif %}><span class="fa fa-{{ t.icon }}"></span>{{ t.label }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if not has_data %}
+  <div class="pa-callout warn">
+    <strong>{% trans "No analytics data yet." %}</strong>
+    {% trans "New paid orders are picked up automatically. To import orders placed before the plugin was enabled, run a resync." %}
+    {% if can_resync %}
+    <form method="post" action="{{ resync_url }}" style="display:inline; margin-left:6px;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary btn-xs"><span class="fa fa-refresh"></span> {% trans "Run initial resync" %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% block filters %}
+  <form method="get" class="pa-filters" id="paFilters">
+    {% for k, v in section_params %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <div class="pa-filter-row">
+      <div class="form-group"><label for="{{ filter_form.date_from.id_for_label }}">{{ filter_form.date_from.label }}</label>{{ filter_form.date_from }}</div>
+      <div class="form-group"><label for="{{ filter_form.date_to.id_for_label }}">{{ filter_form.date_to.label }}</label>{{ filter_form.date_to }}</div>
+      <div class="form-group"><label for="{{ filter_form.country.id_for_label }}">{{ filter_form.country.label }}</label>{{ filter_form.country }}</div>
+      <div class="form-group"><label for="{{ filter_form.age_range.id_for_label }}">{{ filter_form.age_range.label }}</label>{{ filter_form.age_range }}</div>
+      <div class="form-group"><label for="{{ filter_form.buyer_type.id_for_label }}">{{ filter_form.buyer_type.label }}</label>{{ filter_form.buyer_type }}</div>
+      <div class="form-group"><label for="{{ filter_form.provider.id_for_label }}">{{ filter_form.provider.label }}</label>{{ filter_form.provider }}</div>
+      <div class="form-group pa-multi dropdown">
+        <label>{{ filter_form.ticket_type.label }}</label>
+        <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          {% with sel=filter_form.ticket_type.value %}{% if sel %}{% blocktrans count n=sel|length %}{{ n }} selected{% plural %}{{ n }} selected{% endblocktrans %}{% else %}{% trans "All products" %}{% endif %}{% endwith %}
+          <span class="caret"></span>
+        </button>
+        <div class="dropdown-menu">{{ filter_form.ticket_type }}</div>
+      </div>
+      <div class="form-group pa-multi dropdown">
+        <label>{{ filter_form.editions.label }}</label>
+        <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          {% with sel=filter_form.editions.value %}{% if sel %}{% blocktrans count n=sel|length %}{{ n }} event{% plural %}{{ n }} events{% endblocktrans %}{% else %}{% trans "This event" %}{% endif %}{% endwith %}
+          <span class="caret"></span>
+        </button>
+        <div class="dropdown-menu">{{ filter_form.editions }}<p class="help-block small">{{ filter_form.editions.help_text }}</p></div>
+      </div>
+    </div>
+    <div class="pa-filter-checks">
+      <label>{{ filter_form.include_refunded }} {{ filter_form.include_refunded.label }}</label>
+      {% if filter_form.has_caravan_data %}<label>{{ filter_form.has_caravan }} {{ filter_form.has_caravan.label }}</label>{% endif %}
+      <div class="pa-filter-buttons">
+        <a href="?{{ section_qs }}" class="btn btn-default btn-sm">{% trans "Clear" %}</a>
+        <button type="submit" class="btn btn-primary btn-sm"><span class="fa fa-filter"></span> {% trans "Apply" %}</button>
+      </div>
+    </div>
+    {% if filter_form.non_field_errors %}<div class="text-danger small" style="margin-top:6px">{{ filter_form.non_field_errors|join:" " }}</div>{% endif %}
+  </form>
+  {% if filter_chips %}
+  <div class="pa-chips">
+    <span class="text-muted">{% trans "Filtered by" %}</span>
+    {% for chip in filter_chips %}<span class="pa-chip">{{ chip }}</span>{% endfor %}
+    <a href="?{{ section_qs }}">{% trans "clear all" %}</a>
+  </div>
+  {% endif %}
+  {% endblock %}
+
+  {% block section %}{% endblock %}
+
+  <button id="paBackToTop" type="button" class="btn-back-to-top" aria-label="{% trans 'Back to top' %}"><span class="fa fa-chevron-up"></span></button>
+</div>
+
+<link rel="stylesheet" type="text/css" href="{% static 'pretix_event_analytics/dashboard.css' %}">
+<script type="application/json" id="pa-charts" nonce="{{ request.csp_nonce }}">{{ charts_json|safe }}</script>
+<script src="{% static 'pretix_event_analytics/chart.umd.min.js' %}" nonce="{{ request.csp_nonce }}"></script>
+<script src="{% static 'pretix_event_analytics/dashboard.js' %}" nonce="{{ request.csp_nonce }}" defer></script>
+{% endblock %}

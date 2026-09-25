@@ -1,0 +1,27 @@
+{% load i18n %}{% if chart %}
+<div class="pa-panel">
+  <div class="pa-panel-head">
+    <div>
+      <div class="pa-panel-title">{{ title }}</div>
+      {% if note %}<div class="pa-panel-note">{{ note }}</div>{% endif %}
+    </div>
+    <div class="pa-chart-tools">
+      {% if chart.cumulative and not group %}
+      <button type="button" class="btn btn-default" data-cumulative-toggle="{{ chart.id }}">{% trans "Cumulative" %}</button>
+      {% endif %}
+      <button type="button" class="btn btn-default" data-table-toggle="{{ chart.id }}" title="{% trans 'Show the data as a table' %}">
+        <span class="fa fa-table"></span> {% trans "Table" %}
+      </button>
+    </div>
+  </div>
+  <div class="pa-panel-body">
+    <div class="pa-legend" data-for="{{ chart.id }}"></div>
+    <div class="pa-chart {{ size }}" data-chart="{{ chart.id }}"{% if group %} data-cumulative-group="{{ group }}"{% endif %}>
+      <canvas role="img" aria-label="{{ title }}"></canvas>
+    </div>
+    <div class="pa-markers small text-muted" data-for="{{ chart.id }}" style="margin-top:6px"></div>
+    <div class="pa-table-view" data-for="{{ chart.id }}"></div>
+  </div>
+  {% if foot %}<div class="pa-panel-foot">{{ foot }}</div>{% endif %}
+</div>
+{% endif %}

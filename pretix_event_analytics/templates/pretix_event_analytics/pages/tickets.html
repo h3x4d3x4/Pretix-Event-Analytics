@@ -1,0 +1,95 @@
+{% extends "pretix_event_analytics/base.html" %}
+{% load i18n money analytics_tags %}
+{% block section %}
+{% if not data.admissions %}
+<div class="pa-panel"><div class="pa-empty">{% trans "No tickets match the current filters." %}</div></div>
+{% else %}
+
+<h3 class="pa-section-title">{% trans "Products" %}<small>{% blocktrans with n=data.admissions %}{{ n }} admission tickets{% endblocktrans %}</small></h3>
+<div class="pa-grid">
+  {% trans "Tickets by product" as pt %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.product_chart title=pt size="tall" %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Product performance" %}</div></div>
+    <div class="pa-panel-body flush pa-table-wrap" style="max-height:392px; overflow-y:auto"><table class="table pa-table">
+      <thead><tr><th>{% trans "Product" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg price" %}</th><th class="num" title="{% trans 'Share of identified ticket holders who attended an earlier edition' %}">{% trans "Returning" %}</th>{% if data.products.0.checkin_pct is not None %}<th class="num">{% trans "Checked in" %}</th>{% endif %}</tr></thead>
+      <tbody>{% for p in data.products %}<tr><td>{{ p.name }}</td><td class="num">{{ p.tickets }} <span class="text-muted">{{ p.share }}%</span></td>
+        <td class="num">{{ p.revenue|money:currency }}</td><td class="num">{{ p.avg|money:currency }}</td>
+        <td class="num">{% if p.returning_pct is not None %}{{ p.returning_pct }}%{% else %}–{% endif %}</td>
+        {% if p.checkin_pct is not None %}<td class="num">{{ p.checkin_pct }}%</td>{% endif %}</tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+
+{% if data.categories or data.variations %}
+<div class="pa-grid">
+  {% if data.categories %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Categories" %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Category" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Items incl. add-ons" %}</th><th class="num">{% trans "Revenue" %}</th></tr></thead>
+      <tbody>{% for c in data.categories %}<tr><td>{{ c.name }}</td><td class="num">{{ c.tickets }}</td><td class="num">{{ c.items }}</td><td class="num">{{ c.revenue|money:currency }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
+  {% if data.variations %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Variations" %}</div></div>
+    <div class="pa-panel-body flush pa-table-wrap" style="max-height:320px; overflow-y:auto"><table class="table pa-table">
+      <thead><tr><th>{% trans "Product" %}</th><th>{% trans "Variation" %}</th><th class="num">{% trans "Sold" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg price" %}</th></tr></thead>
+      <tbody>{% for v in data.variations %}<tr><td>{{ v.product }}</td><td>{{ v.name }}</td><td class="num">{{ v.count }}</td><td class="num">{{ v.revenue|money:currency }}</td><td class="num">{{ v.avg|money:currency }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if data.price_points %}
+<h3 class="pa-section-title">{% trans "Price tiers" %}<small>{% trans "every list price a product sold at, in order of first sale · voucher sales excluded" %}</small></h3>
+<div class="pa-panel">
+  <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
+    <thead><tr><th>{% trans "Product" %}</th><th class="num">{% trans "Price" %}</th><th class="num">{% trans "Sold" %}</th><th>{% trans "First sale" %}</th><th>{% trans "Last sale" %}</th></tr></thead>
+    <tbody>{% for g in data.price_points %}{% for p in g.points %}<tr>
+      <td>{% if forloop.first %}{{ g.product }}{% if g.addon %} <span class="label label-default">{% trans "add-on" %}</span>{% endif %}{% endif %}</td>
+      <td class="num">{{ p.price|money:currency }}</td><td class="num">{{ p.count }}</td>
+      <td>{{ p.first|date:"SHORT_DATE_FORMAT" }}</td><td>{{ p.last|date:"SHORT_DATE_FORMAT" }}</td></tr>{% endfor %}{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+
+{% if data.addons %}
+<h3 class="pa-section-title">{% trans "Add-ons" %}</h3>
+<div class="pa-grid">
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Add-on products" %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Add-on" %}</th><th class="num">{% trans "Sold" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num" title="{% trans 'Share of orders that include this add-on' %}">{% trans "In % of orders" %}</th></tr></thead>
+      <tbody>{% for a in data.addons %}<tr><td>{{ a.name }}</td><td class="num">{{ a.count }}</td><td class="num">{{ a.revenue|money:currency }}</td><td class="num">{{ a.attach_pct }}%</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% if data.addon_segments %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Who buys add-ons" %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Segment" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "With add-ons" %}</th></tr></thead>
+      <tbody>{% for s in data.addon_segments %}<tr><td>{{ s.label }}</td><td class="num">{{ s.total }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ s.pct }}%<span class="pa-minibar"><i style="width:{{ s.pct|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if data.vouchers %}
+<h3 class="pa-section-title">{% trans "Vouchers & discount codes" %}<small>{% blocktrans with p=data.voucher_share %}{{ p }}% of items used a voucher{% endblocktrans %}</small></h3>
+<div class="pa-panel">
+  <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
+    <thead><tr><th>{% trans "Voucher tag" %}</th><th class="num">{% trans "Codes used" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Items" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg price" %}</th></tr></thead>
+    <tbody>{% for v in data.vouchers %}<tr><td>{{ v.tag }}</td><td class="num">{{ v.codes }}</td><td class="num">{{ v.orders }}</td><td class="num">{{ v.tickets }}</td><td class="num">{{ v.revenue|money:currency }}</td><td class="num">{{ v.avg|money:currency }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="pa-panel-foot">{% blocktrans with p=data.no_voucher_avg|money:currency %}Tickets bought without a voucher averaged {{ p }}.{% endblocktrans %}</div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

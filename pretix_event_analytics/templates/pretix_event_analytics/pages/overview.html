@@ -1,0 +1,91 @@
+{% extends "pretix_event_analytics/base.html" %}
+{% load i18n money analytics_tags %}
+{% block section %}
+{% with t=data.tiles c=data.compare ft=data.first_timers f=data.forecast %}
+
+{% if data.stale_facts %}
+<div class="pa-callout warn">
+  {% blocktrans count n=data.stale_facts %}{{ n }} order was processed by an older version of the plugin.{% plural %}{{ n }} orders were processed by an older version of the plugin.{% endblocktrans %}
+  {% trans "Run a resync so ticket counts, check-ins and returning buyers use the improved logic." %}
+</div>
+{% endif %}
+
+{% if ft %}
+<p class="pa-headline">
+  {% blocktrans with pct=ft.pct count=ft.count people=ft.people %}<strong>{{ pct }}%</strong> of the {{ people }} identified people at this edition are here for the first time ({{ count }} people).{% endblocktrans %}
+  {% if ft.editions_before %}
+    <span class="text-muted small">{% blocktrans with year=ft.history_start %}Based on editions since {{ year }}.{% endblocktrans %}</span>
+  {% else %}
+    <span class="text-muted small">{% trans "This is the first edition with data, so everyone counts as new." %}</span>
+  {% endif %}
+  <a class="small" href="{% url 'plugins:pretix_event_analytics:loyalty' organizer=request.organizer.slug event=request.event.slug %}{% if filter_qs %}?{{ filter_qs }}{% endif %}">{% trans "Loyalty details" %} →</a>
+</p>
+{% endif %}
+
+<div class="pa-kpis">
+  <div class="pa-kpi pa-kpi-hero">
+    <div class="pa-kpi-label">{% trans "Revenue" %}</div>
+    <div class="pa-kpi-value">{{ t.revenue|money:currency }}</div>
+    {% if c and c.revenue_delta is not None %}
+    <div class="pa-kpi-sub"><span class="pa-delta {{ c.revenue_delta|delta_class }}"><span class="fa fa-caret-{% if c.revenue_delta >= 0 %}up{% else %}down{% endif %}"></span>{{ c.revenue_delta|abs_value|floatformat:1 }}%</span>
+      {% if c.same_point %}{% blocktrans with label=c.label days=c.point %}vs {{ label }} with {{ days }} days to go{% endblocktrans %}{% else %}{% blocktrans with label=c.label %}vs {{ label }}{% endblocktrans %}{% endif %}</div>
+    {% endif %}
+  </div>
+  <div class="pa-kpi pa-kpi-hero">
+    <div class="pa-kpi-label">{% trans "Tickets sold" %}</div>
+    <div class="pa-kpi-value">{{ t.tickets|floatformat:0 }}</div>
+    {% if c and c.tickets_delta is not None %}
+    <div class="pa-kpi-sub"><span class="pa-delta {{ c.tickets_delta|delta_class }}"><span class="fa fa-caret-{% if c.tickets_delta >= 0 %}up{% else %}down{% endif %}"></span>{{ c.tickets_delta|abs_value|floatformat:1 }}%</span>
+      {% if c.same_point %}{% blocktrans with label=c.label n=c.tickets|floatformat:0 %}{{ label }} had {{ n }} at this point{% endblocktrans %}{% else %}{% blocktrans with label=c.label n=c.tickets|floatformat:0 %}{{ label }} sold {{ n }}{% endblocktrans %}{% endif %}</div>
+    {% endif %}
+  </div>
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Orders" %}</div>
+    <div class="pa-kpi-value">{{ t.orders|floatformat:0 }}</div>
+    <div class="pa-kpi-sub">{% blocktrans with p=t.group_pct %}{{ p }}% with 2+ tickets{% endblocktrans %}</div>
+  </div>
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Average order" %}</div>
+    <div class="pa-kpi-value">{{ t.aov|money:currency }}</div>
+    <div class="pa-kpi-sub">{% blocktrans with p=t.avg_ticket|money:currency %}{{ p }} per ticket{% endblocktrans %}</div>
+  </div>
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Returning buyers" %}</div>
+    <div class="pa-kpi-value">{{ t.returning_buyers_pct }}<small>%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans count n=t.returning_buyers %}{{ n }} order{% plural %}{{ n }} orders{% endblocktrans %} · {% blocktrans with p=t.attendee_returning_pct %}{{ p }}% of attendees{% endblocktrans %}</div>
+  </div>
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Canceled or refunded" %}</div>
+    <div class="pa-kpi-value">{{ t.refund_pct }}<small>%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans count n=t.refund_count %}{{ n }} order{% plural %}{{ n }} orders{% endblocktrans %} · {% blocktrans with a=t.refunded_amount|money:currency %}{{ a }} refunded{% endblocktrans %}</div>
+  </div>
+  {% if t.checkin_pct is not None %}
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Checked in" %}</div>
+    <div class="pa-kpi-value">{{ t.checkin_pct }}<small>%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans with n=t.checked_in %}{{ n }} attendees{% endblocktrans %}</div>
+  </div>
+  {% endif %}
+  {% if f %}
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Forecast: tickets" %}</div>
+    <div class="pa-kpi-value">{{ f.tickets|floatformat:0 }}</div>
+    <div class="pa-kpi-sub">{% blocktrans with lo=f.tickets_low hi=f.tickets_high %}range {{ lo }}–{{ hi }}{% endblocktrans %}{% if f.ticket_target %} · {% blocktrans with p=f.tickets_forecast_target_pct %}{{ p }}% of target{% endblocktrans %}{% endif %}</div>
+  </div>
+  {% endif %}
+</div>
+
+{% if c and c.same_point and not c.tickets %}
+<p class="small text-muted">{% blocktrans with label=c.label days=c.point %}No comparison yet: {{ label }} had not started selling with {{ days }} days to go. Comparisons and the forecast appear once earlier editions had sales at the same point.{% endblocktrans %}</p>
+{% endif %}
+
+{% trans "Sales pace by edition" as pace_title %}
+{% trans "Cumulative tickets by days before the event. The current edition is drawn thicker." as pace_note %}
+{% include "pretix_event_analytics/_chart.html" with chart=data.pacing_tickets title=pace_title note=pace_note size="tall" %}
+
+<p class="small text-muted">
+  {% blocktrans with pct=data.coverage.identified_pct %}{{ pct }}% of tickets can be linked to a person (buyer e-mail, attendee e-mail, name + birth date or payment fingerprint).{% endblocktrans %}
+  {% if data.coverage.unidentified %}{% trans "Tickets without any of these are counted in totals but not in returning-people figures." %}{% endif %}
+</p>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "pretix_event_analytics/base.html" %}
+{% load i18n %}
+{% block filters %}{% endblock %}
+{% block section %}
+{% with s=data.stats %}
+<p class="pa-headline">{% trans "Attendee names that change to a clearly different person are a signal of tickets being passed on or resold. Typo fixes and added middle names are ignored." %}</p>
+<div class="pa-kpis">
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Orders with a name change" %}</div>
+    <div class="pa-kpi-value">{{ s.name_change_rate|floatformat:1 }}<small>%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans with n=s.orders_with_changes t=s.total_orders %}{{ n }} of {{ t }} orders{% endblocktrans %}</div></div>
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Name changes" %}</div>
+    <div class="pa-kpi-value">{{ s.total_name_changes }}</div></div>
+</div>
+<div class="pa-grid">
+  {% trans "Name changes per month" as mt %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.monthly_chart title=mt size="short" %}
+  {% trans "By edition" as et %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.edition_chart title=et size="short" %}
+</div>
+{% if not data.monthly_chart %}<div class="pa-panel"><div class="pa-empty">{% trans "No attendee name changes recorded for this event." %}</div></div>{% endif %}
+<p class="small text-muted">{% trans "Filters do not apply here: this view reads Pretix's change log for the whole event." %}</p>
+{% endwith %}
+{% endblock %}

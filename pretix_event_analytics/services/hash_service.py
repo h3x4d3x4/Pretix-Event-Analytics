@@ -7,7 +7,7 @@ separated from the message without knowing the key.
 
 Configuration
 -------------
-``PRETIX_ANALYTICS_SECRET_SALT`` must be set in Django settings. It should
+The salt must be configured (see ``_configured_salt`` for where). It should
 be a cryptographically random string of at least 16 characters (32+
 recommended). Once analytics ingestion has run, **never change this value**
 — rotating it invalidates every historical repeat hash and silently breaks
@@ -51,11 +51,43 @@ def _derive_debug_salt() -> str:
     ).hexdigest()
 
 
+def _configured_salt():
+    """
+    Look the salt up wherever a Pretix operator can actually put it:
+
+    1. Django setting ``PRETIX_ANALYTICS_SECRET_SALT`` (custom settings module)
+    2. ``pretix.cfg``::
+
+           [pretix_event_analytics]
+           secret_salt = ...
+
+       or its environment form ``PRETIX_PRETIX_EVENT_ANALYTICS_SECRET_SALT``
+    3. environment variable ``PRETIX_ANALYTICS_SECRET_SALT``
+
+    Pretix does not copy arbitrary cfg keys into Django settings, so (2) and
+    (3) are what most installations use.
+    """
+    import os
+
+    salt = getattr(settings, "PRETIX_ANALYTICS_SECRET_SALT", None)
+    if salt:
+        return salt
+    cfg = getattr(settings, "CONFIG_FILE", None)
+    if cfg is not None:
+        try:
+            salt = cfg.get("pretix_event_analytics", "secret_salt", fallback=None)
+        except Exception:
+            salt = None
+        if salt:
+            return salt
+    return os.environ.get("PRETIX_ANALYTICS_SECRET_SALT")
+
+
 def _get_salt() -> str:
     """Return the analytics HMAC salt, or raise if none is configured."""
     global _fallback_warning_emitted
 
-    salt = getattr(settings, "PRETIX_ANALYTICS_SECRET_SALT", None)
+    salt = _configured_salt()
     if isinstance(salt, str) and len(salt) >= _MIN_SALT_LEN:
         return salt
 
@@ -70,10 +102,11 @@ def _get_salt() -> str:
         return _derive_debug_salt()
 
     raise ImproperlyConfigured(
-        "PRETIX_ANALYTICS_SECRET_SALT is required in production and must "
-        f"be at least {_MIN_SALT_LEN} characters. Set it once in your "
-        "Pretix settings and never change it — rotating invalidates all "
-        "repeat-detection history."
+        "The analytics secret salt is required in production and must be at "
+        f"least {_MIN_SALT_LEN} characters. Add it to pretix.cfg as "
+        "[pretix_event_analytics] secret_salt = <32+ random characters> "
+        "(or set PRETIX_ANALYTICS_SECRET_SALT) and never change it — "
+        "rotating invalidates all repeat-detection history."
     )
 
 

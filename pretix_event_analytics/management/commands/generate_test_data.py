@@ -6,6 +6,11 @@ AnalyticsTicketFact rows for a specific Pretix event so you can preview the
 analytics dashboard without running real orders through the ingestion
 pipeline.
 
+For end-to-end testing with *real* Pretix orders (group orders, attendee
+e-mails, vouchers, check-ins, refunds) use ``scripts/dev_seed_orders.py``
+instead, then ``analytics_resync --all``. Note that a resync removes the
+fake rows written by this command, since no Pretix orders back them.
+
 SAFETY INVARIANT
 ----------------
 This command writes ONLY to the plugin's own tables (AnalyticsOrderFact,
@@ -48,6 +53,8 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
+
+from ...models import FACT_VERSION
 
 
 # ── Fake data pools ───────────────────────────────────────────────────────────
@@ -397,6 +404,13 @@ class Command(BaseCommand):
                 "first_seen_edition_year": None,
                 "checkin_completed": checkin_done,
                 "predicted_repeat_probability": score,
+                "days_before_event": (
+                    (event.date_from.date() - order_dt.date()).days if event.date_from else None
+                ),
+                "is_local_buyer": country == "RO",
+                "has_addons": has_caravan,
+                "addon_count": 1 if has_caravan else 0,
+                "fact_version": FACT_VERSION,
             }
             order_facts.append(order_fact)
 
@@ -424,21 +438,6 @@ class Command(BaseCommand):
             AnalyticsIdentity.objects.bulk_create(identity_rows, batch_size=500)
             self.stdout.write(f"  Inserted {len(identity_rows)} AnalyticsIdentity rows.")
 
-        # ── Update repeat status from DB ──────────────────────────────────────
-        # Now that rows are inserted, cross-edition repeat detection works.
-        from ...services.repeat_detector import evaluate_repeat_status
-        updated = 0
-        for fact in created_facts:
-            if not fact.repeat_hash:
-                continue
-            repeat_status = evaluate_repeat_status(
-                event, [{"type": "email", "hash": fact.repeat_hash}]
-            )
-            if repeat_status["is_repeat_buyer"]:
-                AnalyticsOrderFact.objects.filter(pk=fact.pk).update(**repeat_status)
-                updated += 1
-        self.stdout.write(f"  Marked {updated} orders as repeat buyers.")
-
         # ── Build ticket facts ────────────────────────────────────────────────
         rng2 = random.Random(f"tickets-{event.slug}-{edition_year}")
         for fact in created_facts:
@@ -462,6 +461,9 @@ class Command(BaseCommand):
                     is_age_confirmed=fact.is_age_confirmed,
                     is_caravan_pass=False,
                     camper_van_length_bucket="",
+                    checked_in=fact.checkin_completed,
+                    attendee_is_buyer=True,
+                    attendee_identified=bool(fact.repeat_hash),
                 )
             )
             # Caravan pass ticket
@@ -495,9 +497,9 @@ class Command(BaseCommand):
         # IDs and polluted production audit logs. Secondary-market test data
         # should come from real attendee-name-change workflows.
 
-        # ── Invalidate cohort cache ───────────────────────────────────────────
-        from ...services.cohort_service import invalidate_cohort_cache
-        invalidate_cohort_cache(series.slug, organizer.pk)
+        # ── Resolve returning people across the series ────────────────────────
+        from ...services.people import recompute_series
+        recompute_series(organizer.pk, series.slug)
 
         self.stdout.write(
             self.style.SUCCESS(

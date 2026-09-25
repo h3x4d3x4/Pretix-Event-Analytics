@@ -114,31 +114,38 @@ def on_checkin_created(sender, checkin, **kwargs):
 @receiver(nav_event, dispatch_uid="pretix_analytics_nav_event")
 def add_analytics_nav(sender, request=None, **kwargs):
     """
-    Add the Analytics entry to the event control panel main sidebar.
+    Add Analytics (with one child per dashboard page) to the event sidebar.
     Only shown to users with can_view_orders permission.
     """
-    if not request or not request.event:
+    from django.utils.translation import gettext_lazy as _
+
+    if not request or not getattr(request, "event", None):
         return []
-    if not request.user.has_event_permission(
-        request.organizer, request.event, "can_view_orders", request
-    ):
+    if not request.user.has_event_permission(request.organizer, request.event, "can_view_orders", request):
         return []
 
-    url = reverse(
-        "plugins:pretix_event_analytics:dashboard",
-        kwargs={
-            "organizer": request.organizer.slug,
-            "event": request.event.slug,
-        },
-    )
-    return [
-        {
-            "label": "Analytics",
-            "url": url,
-            "icon": "bar-chart",
-            "active": "pretix_event_analytics" in request.path,
-        }
+    url_name = getattr(getattr(request, "resolver_match", None), "url_name", "") or ""
+    in_plugin = "pretix_event_analytics" in (getattr(request.resolver_match, "namespace", "") or "")
+
+    def url(name):
+        return reverse(f"plugins:pretix_event_analytics:{name}",
+                       kwargs={"organizer": request.organizer.slug, "event": request.event.slug})
+
+    pages = [
+        ("dashboard", _("Overview")), ("sales", _("Sales")), ("audience", _("Audience")),
+        ("loyalty", _("Loyalty")), ("tickets", _("Tickets")), ("operations", _("Operations")),
+        ("resale", _("Resale")),
     ]
+    return [{
+        "label": _("Analytics"),
+        "url": url("dashboard"),
+        "icon": "bar-chart",
+        "active": in_plugin and url_name != "config",
+        "children": [
+            {"label": label, "url": url(name), "active": in_plugin and url_name == name}
+            for name, label in pages
+        ],
+    }]
 
 
 @receiver(nav_event_settings, dispatch_uid="pretix_analytics_nav_event_settings")
@@ -161,9 +168,11 @@ def add_analytics_settings_nav(sender, request=None, **kwargs):
             "event": request.event.slug,
         },
     )
+    from django.utils.translation import gettext_lazy as _
+
     return [
         {
-            "label": "Analytics",
+            "label": _("Analytics"),
             "url": url,
             "active": request.path.startswith(url),
         }
@@ -183,13 +192,15 @@ def add_organizer_nav(sender, request=None, **kwargs):
     ):
         return []
 
+    from django.utils.translation import gettext_lazy as _
+
     url = reverse(
         "plugins:pretix_event_analytics:series_list",
         kwargs={"organizer": request.organizer.slug},
     )
     return [
         {
-            "label": "Analytics Series",
+            "label": _("Analytics series"),
             "url": url,
             "icon": "bar-chart",
             "active": "analytics/series" in request.path,

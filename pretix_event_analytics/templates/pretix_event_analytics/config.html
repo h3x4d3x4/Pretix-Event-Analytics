@@ -148,9 +148,38 @@
           <div class="form-group">
             <div class="col-md-8 col-md-offset-3">
               <div class="checkbox">
-                <label>{{ form.is_active }} {% trans "Enable analytics for this event" %}</label>
+                <label>{{ form.is_active }} {% trans "Include this edition in cross-edition comparisons" %}</label>
               </div>
-              <p class="help-block">{% trans "Uncheck to pause automatic order processing without deleting existing data." %}</p>
+              <p class="help-block">{% trans "Uncheck for test events or editions that should not count when deciding who is a returning buyer. Its own dashboard keeps working." %}</p>
+            </div>
+          </div>
+
+          {# ── Targets ───────────────────────────────────────────────────── #}
+          <div class="form-group">
+            <label class="col-md-3 control-label">{% trans "Sales targets" %}
+              <span class="label label-default" style="font-size:10px; font-weight:normal; vertical-align:middle; margin-left:4px;">{% trans "Optional" %}</span>
+            </label>
+            <div class="col-md-8">
+              <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
+                <div><label class="small text-muted" for="{{ form.ticket_target.id_for_label }}">{% trans "Tickets" %}</label>{{ form.ticket_target }}</div>
+                <div><label class="small text-muted" for="{{ form.revenue_target.id_for_label }}">{% trans "Revenue" %} ({{ request.event.currency }})</label>{{ form.revenue_target }}</div>
+              </div>
+              <p class="help-block">{% trans "Shown next to the sales forecast, e.g. your capacity or budget break-even." %}</p>
+            </div>
+          </div>
+
+          {# ── Tracked questions ─────────────────────────────────────────── #}
+          <div class="form-group">
+            <label class="col-md-3 control-label">{{ form.tracked_questions.label }}
+              <span class="label label-default" style="font-size:10px; font-weight:normal; vertical-align:middle; margin-left:4px;">{% trans "Optional" %}</span>
+            </label>
+            <div class="col-md-8">
+              {% if form.tracked_questions.field.choices %}
+                <div class="analytics-question-list">{{ form.tracked_questions }}</div>
+              {% else %}
+                <p class="form-control-static text-muted">{% trans "This event has no yes/no or multiple-choice questions." %}</p>
+              {% endif %}
+              <p class="help-block">{{ form.tracked_questions.help_text }}</p>
             </div>
           </div>
 
@@ -177,11 +206,7 @@
         <p>{% trans "New orders will be processed automatically when they are paid." %}</p>
         <p>{% trans "To import existing orders, use the Resync button on the dashboard, or run:" %}</p>
         <pre>python -m pretix analytics_resync --event {{ request.event.slug }} --organizer {{ request.organizer.slug }}</pre>
-        <p>
-          {% trans "After your event ends, add" %} <code>--checkin</code>
-          {% trans "to incorporate check-in data into predictive scores:" %}
-        </p>
-        <pre>python -m pretix analytics_resync --event {{ request.event.slug }} --organizer {{ request.organizer.slug }} --checkin</pre>
+        <p>{% trans "Check-ins are picked up automatically, including on resync." %}</p>
         <hr>
         <p class="text-muted small">
           <span class="fa fa-lock"></span>

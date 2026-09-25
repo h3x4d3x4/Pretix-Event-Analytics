@@ -42,7 +42,11 @@ def bump(organizer_id: int) -> None:
 
 def cached(organizer_id: int, key: str, fn, ttl: int = CACHE_TTL):
     """Return fn() memoised under (organizer version, key)."""
-    full = f"pretix_analytics:c:{organizer_id}:{data_version(organizer_id)}:{key}"
+    from .. import PretixPluginMeta
+
+    # The plugin version is part of the key so an upgrade never serves
+    # results computed by the previous code.
+    full = f"pretix_analytics:c:{PretixPluginMeta.version}:{organizer_id}:{data_version(organizer_id)}:{key}"
     try:
         hit = cache.get(full)
         if hit is not None:

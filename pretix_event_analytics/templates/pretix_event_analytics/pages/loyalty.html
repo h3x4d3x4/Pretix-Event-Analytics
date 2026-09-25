@@ -1,0 +1,199 @@
+{% extends "pretix_event_analytics/base.html" %}
+{% load i18n analytics_tags %}
+{% block section %}
+
+{% if data.no_series %}
+<div class="pa-callout">
+  <strong>{% trans "Loyalty needs more than one edition." %}</strong>
+  {% trans "Link this event to a series (and the previous editions to the same series) to see first-timers, returning people and how editions overlap." %}
+  <a href="{% url 'plugins:pretix_event_analytics:config' organizer=request.organizer.slug event=request.event.slug %}">{% trans "Open settings" %}</a>
+</div>
+{% else %}
+{% with fo=data.focus %}
+
+<div class="pa-controls">
+  <div><span class="pa-label">{% trans "Count" %}</span>
+    <span class="pa-seg">
+      <a href="?{% qs_with unit='people' %}" class="{% if data.unit == 'people' %}active{% endif %}" title="{% trans 'Buyers and ticket holders, matched by e-mail, name + birth date or payment fingerprint' %}">{% trans "People (buyers + attendees)" %}</a>
+      <a href="?{% qs_with unit='buyers' %}" class="{% if data.unit == 'buyers' %}active{% endif %}">{% trans "Buyers only" %}</a>
+    </span>
+  </div>
+</div>
+
+{% if fo %}
+<p class="pa-headline">
+  {% blocktrans with pct=fo.first_timer_pct n=fo.first_timers total=fo.participants %}<strong>{{ pct }}%</strong> of this edition's {{ total }} identified people are first-timers ({{ n }}).{% endblocktrans %}
+  {% if fo.editions_so_far > 1 %}
+    {% blocktrans with pct=fo.returning_pct %}<strong>{{ pct }}%</strong> have been before.{% endblocktrans %}
+  {% endif %}
+</p>
+<div class="pa-callout">
+  {% blocktrans with year=data.history_start %}History starts in <strong>{{ year }}</strong>: someone whose last visit was before that counts as a first-timer.{% endblocktrans %}
+  {% if not data.has_legacy %}
+    {% trans "Have an old attendee or mailing list from earlier years?" %}
+    <a href="{% url 'plugins:pretix_event_analytics:series_detail' organizer=request.organizer.slug pk=config.series.pk %}#legacy">{% trans "Import it as a past edition" %}</a> —
+    {% trans "only hashes of the addresses are kept." %}
+  {% endif %}
+  {% if fo.unidentified %}
+  <br>{% blocktrans with n=fo.unidentified pct=fo.coverage_pct %}{{ n }} tickets carry no attendee e-mail or name + birth date and cannot be matched to a person ({{ pct }}% coverage). Asking for attendee e-mails at checkout improves this.{% endblocktrans %}
+  {% endif %}
+</div>
+
+<div class="pa-kpis">
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "First time" %}</div>
+    <div class="pa-kpi-value">{{ fo.first_timers }} <small>{{ fo.first_timer_pct }}%</small></div></div>
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Been before" %}</div>
+    <div class="pa-kpi-value">{{ fo.returning }} <small>{{ fo.returning_pct }}%</small></div></div>
+  {% if fo.prev_label %}
+  <div class="pa-kpi"><div class="pa-kpi-label">{% blocktrans with l=fo.prev_label %}Also at {{ l }}{% endblocktrans %}</div>
+    <div class="pa-kpi-value">{{ fo.from_last }} <small>{{ fo.from_last_pct }}%</small></div></div>
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Came back after a gap" %}</div>
+    <div class="pa-kpi-value">{{ fo.after_gap }}</div>
+    <div class="pa-kpi-sub">{% blocktrans with l=fo.prev_label %}been before, but not at {{ l }}{% endblocktrans %}</div></div>
+  <div class="pa-kpi"><div class="pa-kpi-label">{% blocktrans with l=fo.prev_label %}From {{ l }}, not (yet) back{% endblocktrans %}</div>
+    <div class="pa-kpi-value">{{ fo.lost }} <small>{{ fo.lost_pct }}%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans with n=fo.prev_size %}of {{ n }} people{% endblocktrans %}</div></div>
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "At every edition so far" %}</div>
+    <div class="pa-kpi-value">{{ fo.loyal_all }}</div>
+    <div class="pa-kpi-sub">{% blocktrans count n=fo.editions_so_far %}{{ n }} edition{% plural %}{{ n }} editions{% endblocktrans %}</div></div>
+  {% endif %}
+</div>
+
+<div class="pa-grid">
+  {% trans "How many times have they been before?" as pt %}
+  {% trans "People at this edition by number of earlier editions attended" as pn %}
+  {% include "pretix_event_analytics/_chart.html" with chart=fo.previous_chart title=pt note=pn size="short" %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Breakdown" %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th></th><th class="num">{% trans "People" %}</th><th class="num">{% trans "Share" %}</th></tr></thead>
+      <tbody>{% for r in fo.previous_table %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ r.share }}%<span class="pa-minibar"><i style="width:{{ r.share|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+{% elif data.focus_inactive %}
+<div class="pa-callout warn">{% trans "This edition is excluded from comparisons in its settings, so it has no loyalty figures of its own. The series views below still work." %}</div>
+{% endif %}
+
+{% if data.segments %}
+<h3 class="pa-section-title">{% trans "Who are the first-timers?" %}<small>{% trans "this edition · dashboard filters apply" %}</small></h3>
+<div class="pa-grid">
+{% for seg in data.segments %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{{ seg.title }}</div></div>
+    <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
+      <thead><tr><th>{{ seg.column }}</th><th class="num">{% if data.unit == 'people' %}{% trans "Tickets" %}{% else %}{% trans "Orders" %}{% endif %}</th><th class="num">{% trans "First-timers" %}</th></tr></thead>
+      <tbody>{% for r in seg.rows %}<tr><td>{{ r.label }}</td><td class="num">{{ r.total }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ r.new_pct }}%<span class="pa-minibar"><i style="width:{{ r.new_pct|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+{% endfor %}
+</div>
+{% endif %}
+
+<h3 class="pa-section-title" id="compare">{% trans "Compare editions" %}<small>{% trans "pick any editions — whole series, filters do not apply" %}</small></h3>
+<form method="get" class="pa-controls" data-autosubmit action="#compare">
+  {% for k, v in request.GET.lists %}{% if k != "compare" %}{% for x in v %}<input type="hidden" name="{{ k }}" value="{{ x }}">{% endfor %}{% endif %}{% endfor %}
+  <div class="pa-edition-picker">
+    {% for e in data.editions %}
+      <label class="{% if e.legacy %}legacy{% endif %}" title="{% blocktrans with n=e.size %}{{ n }} people{% endblocktrans %}{% if e.legacy %} · {% trans 'imported list' %}{% endif %}">
+        <input type="checkbox" name="compare" value="{{ e.key }}" {% if e.selected %}checked{% endif %}>{{ e.label }}{% if e.is_focus %} ★{% endif %}
+      </label>
+    {% endfor %}
+  </div>
+  <noscript><button type="submit" class="btn btn-default btn-sm">{% trans "Compare" %}</button></noscript>
+</form>
+
+<p class="pa-headline">
+  {% blocktrans with n=data.union eds=data.selected_labels|join:", " %}<strong>{{ n }}</strong> different people took part in {{ eds }}.{% endblocktrans %}
+  {% if data.attended_all is not None %}{% blocktrans with n=data.attended_all %}<strong>{{ n }}</strong> were at all of them.{% endblocktrans %}{% endif %}
+</p>
+
+<div class="pa-grid">
+  {% trans "How many of the selected editions did each person attend?" as ft %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.frequency_chart title=ft size="short" %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Attended once, twice, …" %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th></th><th class="num">{% trans "People" %}</th><th class="num">{% trans "Share" %}</th></tr></thead>
+      <tbody>{% for r in data.frequency_table %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ r.share }}%<span class="pa-minibar"><i style="width:{{ r.share|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+
+{% if data.overlap|length > 1 %}
+<div class="pa-panel">
+  <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Overlap between editions" %}</div>
+    <div class="pa-panel-note">{% trans "Read across: of the people at the row's edition, how many were also at the column's edition." %}</div></div></div>
+  <div class="pa-panel-body pa-table-wrap">
+    <table class="pa-heat">
+      <thead><tr><th></th>{% for l in data.selected_labels %}<th>{{ l }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in data.overlap %}
+        <tr><th class="row">{{ row.label }} <span class="text-muted">({{ row.size }})</span></th>
+        {% for c in row.cells %}
+          {% if c.self %}<td class="self">—</td>{% else %}<td class="l{{ c.level }}" title="{% blocktrans with n=c.count %}{{ n }} people{% endblocktrans %}">{{ c.pct|floatformat:0 }}%<br><small>{{ c.count }}</small></td>{% endif %}
+        {% endfor %}</tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if data.combos %}
+<div class="pa-panel">
+  <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Most common attendance patterns" %}</div>
+    <div class="pa-panel-note">{% trans "Exactly these editions and none of the other selected ones." %}</div></div></div>
+  <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
+    <thead><tr>{% for l in data.selected_labels %}<th style="text-align:center">{{ l }}</th>{% endfor %}<th class="num">{% trans "People" %}</th><th class="num">{% trans "Share" %}</th></tr></thead>
+    <tbody>{% for c in data.combos %}<tr title="{{ c.label }}">
+      {% for m in c.marks %}<td style="text-align:center"><span class="pa-dot{% if m %} on{% endif %}" aria-label="{% if m %}{% trans 'attended' %}{% else %}{% trans 'not attended' %}{% endif %}"></span></td>{% endfor %}
+      <td class="num">{{ c.count }}</td><td class="num">{{ c.share }}%</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if data.combos_hidden %}<div class="pa-panel-foot">{% blocktrans count n=data.combos_hidden %}{{ n }} rarer pattern not shown.{% plural %}{{ n }} rarer patterns not shown.{% endblocktrans %}</div>{% endif %}
+</div>
+{% endif %}
+
+<h3 class="pa-section-title">{% trans "Edition by edition" %}<small>{% trans "all editions of the series" %}</small></h3>
+{% trans "Who made up each edition" as fl %}
+{% include "pretix_event_analytics/_chart.html" with chart=data.flow.chart title=fl %}
+<div class="pa-panel">
+  <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
+    <thead><tr><th>{% trans "Edition" %}</th><th class="num">{% trans "People" %}</th><th class="num">{% trans "First time" %}</th><th class="num">{% trans "Back from previous" %}</th><th class="num">{% trans "Back after a gap" %}</th><th class="num">{% trans "Previous edition's people who returned" %}</th><th class="num">{% trans "Did not return" %}</th></tr></thead>
+    <tbody>{% for r in data.flow.rows %}<tr class="{% if r.label == fo.label %}current{% endif %}">
+      <td>{{ r.label }}{% if r.legacy %} <span class="label label-default">{% trans "imported" %}</span>{% endif %}{% if r.on_sale %} <span class="label label-info">{% trans "on sale" %}</span>{% endif %}</td>
+      <td class="num">{{ r.total }}</td><td class="num">{{ r.new }} <span class="text-muted">({{ r.new_pct }}%)</span></td>
+      <td class="num">{{ r.from_prev }}</td><td class="num">{{ r.after_gap }}</td>
+      <td class="num">{% if r.retention_pct is not None %}{{ r.retention_pct }}%{% if r.on_sale %} <span class="text-muted">{% trans "so far" %}</span>{% endif %}{% else %}–{% endif %}</td>
+      <td class="num">{% if r.lost is not None %}{% if r.on_sale %}<span class="text-muted">{% blocktrans with n=r.lost %}{{ n }} not yet{% endblocktrans %}</span>{% else %}{{ r.lost }}{% endif %}{% else %}–{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+{% if data.first_cohorts.rows %}
+<div class="pa-panel">
+  <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Do first-timers come back?" %}</div>
+    <div class="pa-panel-note">{% trans "People grouped by the edition they first came to, and the share of them at each later edition." %}</div></div></div>
+  <div class="pa-panel-body pa-table-wrap">
+    <table class="pa-heat">
+      <thead><tr><th>{% trans "First came" %}</th>{% for c in data.first_cohorts.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for r in data.first_cohorts.rows %}
+        <tr><th class="row">{{ r.label }} <span class="text-muted">({{ r.size }})</span></th>
+        {% for p in r.pad %}<td class="na"></td>{% endfor %}
+        {% for c in r.cells %}<td class="l{{ c.level }}" title="{% blocktrans with n=c.count %}{{ n }} people{% endblocktrans %}">{{ c.pct|floatformat:0 }}%</td>{% endfor %}</tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if data.scores %}
+<h3 class="pa-section-title">{% trans "Likely to return" %}<small>{% trans "predictive score, this selection" %}</small></h3>
+{% trans "Return score distribution" as st %}
+{% blocktrans with n=data.scores.high p=data.scores.high_pct asvar sn %}{{ n }} orders ({{ p }}%) score 60 or more. The score adds points for past visits (+40), check-in (+20), buying 30+ days ahead (+15), 3+ tickets (+10), being local (+10) and group orders (+5).{% endblocktrans %}
+{% include "pretix_event_analytics/_chart.html" with chart=data.scores.chart title=st foot=sn size="short" %}
+{% endif %}
+
+{% endwith %}
+{% endif %}
+{% endblock %}

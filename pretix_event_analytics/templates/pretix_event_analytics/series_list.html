@@ -39,7 +39,7 @@
           <tbody>
             {% for series in series_list %}
               <tr>
-                <td><strong>{{ series.name }}</strong></td>
+                <td><a href="{% url 'plugins:pretix_event_analytics:series_detail' organizer=request.organizer.slug pk=series.pk %}"><strong>{{ series.name }}</strong></a></td>
                 <td><code>{{ series.slug }}</code></td>
                 <td>
                   {% for cfg in series.event_configs.all %}
@@ -47,9 +47,16 @@
                   {% empty %}
                     <span class="text-muted">{% trans "No editions linked" %}</span>
                   {% endfor %}
+                  {% for le in series.legacy_editions.all %}
+                    <span class="label label-default" style="opacity:.7" title="{% trans 'Imported list' %}">{{ le.edition_year }} ({% trans "imported" %})</span>
+                  {% endfor %}
                 </td>
                 <td class="text-muted small">{{ series.created_at|date:"Y-m-d" }}</td>
                 <td class="text-right">
+                  <a href="{% url 'plugins:pretix_event_analytics:series_detail' organizer=request.organizer.slug pk=series.pk %}"
+                     class="btn btn-xs btn-primary">
+                    <span class="fa fa-columns"></span> {% trans "Compare editions" %}
+                  </a>
                   <a href="{% url 'plugins:pretix_event_analytics:series_edit' organizer=request.organizer.slug pk=series.pk %}"
                      class="btn btn-xs btn-default">
                     <span class="fa fa-edit"></span> {% trans "Edit" %}

@@ -1,0 +1,76 @@
+{% extends "pretix_event_analytics/base.html" %}
+{% load i18n money analytics_tags %}
+{% block section %}
+{% with ci=data.checkin rf=data.refunds %}
+
+<h3 class="pa-section-title">{% trans "Check-in" %}</h3>
+{% if ci.none %}
+  <div class="pa-panel"><div class="pa-empty">
+    {% if ci.upcoming %}{% trans "No check-ins yet — they appear here as soon as the doors open." %}{% else %}{% trans "No check-ins were recorded for these tickets." %}{% endif %}
+  </div></div>
+{% else %}
+<div class="pa-kpis">
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Checked in" %}</div><div class="pa-kpi-value">{{ ci.rate }}<small>%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans with c=ci.checked t=ci.tickets %}{{ c }} of {{ t }} tickets{% endblocktrans %}</div></div>
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "No-shows" %}</div><div class="pa-kpi-value">{{ ci.no_shows }}</div></div>
+  {% for s in ci.by_type %}
+  <div class="pa-kpi"><div class="pa-kpi-label">{{ s.name }}</div><div class="pa-kpi-value">{{ s.rate }}<small>%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans with c=s.checked t=s.tickets %}{{ c }} of {{ t }} checked in{% endblocktrans %}</div></div>
+  {% endfor %}
+</div>
+<div class="pa-grid">
+  {% trans "Arrivals" as at %}
+  {% trans "First entry scans per hour, event timezone" as an %}
+  {% include "pretix_event_analytics/_chart.html" with chart=ci.arrivals_chart title=at note=an %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Check-in by product" %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Product" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Checked in" %}</th></tr></thead>
+      <tbody>{% for p in ci.by_product %}<tr><td>{{ p.name }}</td><td class="num">{{ p.tickets }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ p.rate }}%<span class="pa-minibar"><i style="width:{{ p.rate|floatformat:0 }}%"></i></span></span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+
+<h3 class="pa-section-title">{% trans "Cancellations & refunds" %}</h3>
+<div class="pa-kpis">
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Canceled or fully refunded" %}</div><div class="pa-kpi-value">{{ rf.canceled }} <small>{{ rf.rate }}%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans with n=rf.orders %}of {{ n }} orders placed{% endblocktrans %}</div></div>
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Value of canceled orders" %}</div><div class="pa-kpi-value">{{ rf.lost_value|money:currency }}</div></div>
+  <div class="pa-kpi"><div class="pa-kpi-label">{% trans "Money refunded" %}</div><div class="pa-kpi-value">{{ rf.refunded|money:currency }}</div>
+    {% if rf.partial %}<div class="pa-kpi-sub">{% blocktrans count n=rf.partial %}incl. {{ n }} partial refund{% plural %}incl. {{ n }} partial refunds{% endblocktrans %}</div>{% endif %}</div>
+</div>
+{% if rf.canceled %}
+<div class="pa-grid">
+  {% trans "Cancellations over time" as ct %}
+  {% include "pretix_event_analytics/_chart.html" with chart=rf.weekly_chart title=ct size="short" %}
+  {% if rf.by_product %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Cancellation rate by product" %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Product" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Canceled" %}</th></tr></thead>
+      <tbody>{% for p in rf.by_product %}<tr><td>{{ p.name }}</td><td class="num">{{ p.tickets }}</td><td class="num">{{ p.canceled }} <span class="text-muted">{{ p.rate }}%</span></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<h3 class="pa-section-title">{% trans "Questions" %}<small>{% trans "yes/no and multiple-choice answers, split by first-time and returning attendees" %}</small></h3>
+{% if data.questions %}
+<div class="pa-grid">
+{% for q in data.questions %}
+  {% blocktrans with n=q.total asvar qn %}{{ n }} answers{% endblocktrans %}
+  {% include "pretix_event_analytics/_chart.html" with chart=q.chart title=q.label note=qn %}
+{% endfor %}
+</div>
+{% else %}
+<div class="pa-callout">
+  {% trans "Pick the questions you want to analyse (for example “How did you hear about us?”) in the analytics settings, then run a resync." %}
+  <a href="{% url 'plugins:pretix_event_analytics:config' organizer=request.organizer.slug event=request.event.slug %}">{% trans "Open settings" %}</a>
+</div>
+{% endif %}
+
+{% endwith %}
+{% endblock %}

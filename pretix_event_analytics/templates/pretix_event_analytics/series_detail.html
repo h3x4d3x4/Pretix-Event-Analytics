@@ -1,0 +1,115 @@
+{% extends "pretixcontrol/organizers/base.html" %}
+{% load i18n static money analytics_tags %}
+{% block title %}{{ series.name }} · {% trans "Analytics" %}{% endblock %}
+{% block content %}
+<div class="pa-root" data-currency="{{ currency }}" data-no-data="{% trans 'No data yet' %}" data-total="{% trans 'Total' %}">
+
+  <div class="pa-header">
+    <div>
+      <h1><span class="fa fa-columns"></span> {{ series.name }}</h1>
+      <div class="pa-meta">
+        {% blocktrans count n=data.rows|length %}{{ n }} edition{% plural %}{{ n }} editions{% endblocktrans %} ·
+        {% blocktrans with n=data.people_total %}{{ n }} different people across the series{% endblocktrans %}
+      </div>
+    </div>
+    <div class="pa-actions">
+      <span class="pa-seg">
+        <a href="?unit=people" class="{% if unit == 'people' %}active{% endif %}">{% trans "People" %}</a>
+        <a href="?unit=buyers" class="{% if unit == 'buyers' %}active{% endif %}">{% trans "Buyers only" %}</a>
+      </span>
+      <form method="post" action="{% url 'plugins:pretix_event_analytics:series_resync' organizer=request.organizer.slug pk=series.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-default btn-sm" data-confirm="{% trans 'Re-process every order of every edition in this series? This can take a few minutes.' %}"><span class="fa fa-refresh"></span> {% trans "Resync all editions" %}</button>
+      </form>
+      <a class="btn btn-default btn-sm" href="{% url 'plugins:pretix_event_analytics:series_list' organizer=request.organizer.slug %}">{% trans "All series" %}</a>
+    </div>
+  </div>
+
+  {% if not data.rows %}
+  <div class="pa-callout">{% trans "No editions are linked to this series yet. Open an event’s Analytics settings and choose this series." %}</div>
+  {% else %}
+
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Editions side by side" %}</div></div>
+    <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
+      <thead><tr>
+        <th>{% trans "Edition" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Revenue" %}</th>
+        <th class="num">{% trans "People" %}</th><th class="num">{% trans "First-timers" %}</th><th class="num" title="{% trans 'Share of the previous edition’s people who came to this one' %}">{% trans "Retention" %}</th>
+        <th class="num">{% trans "Canceled" %}</th><th class="num">{% trans "Checked in" %}</th>
+      </tr></thead>
+      <tbody>{% for r in data.rows %}<tr>
+        <td>{{ r.label }}{% if not r.event_id %} <span class="label label-default">{% trans "imported" %}</span>{% endif %}{% if r.on_sale %} <span class="label label-info">{% trans "on sale" %}</span>{% endif %}</td>
+        <td class="num">{% if r.tickets is not None %}{{ r.tickets }}{% else %}–{% endif %}</td>
+        <td class="num">{% if r.orders is not None %}{{ r.orders }}{% else %}–{% endif %}</td>
+        <td class="num">{% if r.revenue is not None %}{{ r.revenue|money:currency }}{% else %}–{% endif %}</td>
+        <td class="num">{{ r.people }}{% if r.unidentified %} <span class="text-muted" title="{% trans 'tickets without identity' %}">+{{ r.unidentified }}</span>{% endif %}</td>
+        <td class="num">{% if r.first_time_pct is not None %}{{ r.first_time_pct }}%{% else %}–{% endif %}</td>
+        <td class="num">{% if r.retention_pct is not None %}{{ r.retention_pct }}%{% if r.on_sale %} <span class="text-muted">{% trans "so far" %}</span>{% endif %}{% else %}–{% endif %}</td>
+        <td class="num">{% if r.refund_pct is not None %}{{ r.refund_pct }}%{% else %}–{% endif %}</td>
+        <td class="num">{% if r.checkin_pct is not None %}{{ r.checkin_pct }}%{% else %}–{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+
+  <div class="pa-grid">
+    {% trans "Tickets per edition" as gt %}
+    {% include "pretix_event_analytics/_chart.html" with chart=data.growth_chart title=gt size="short" %}
+    {% trans "Who made up each edition" as ft %}
+    {% include "pretix_event_analytics/_chart.html" with chart=data.flow.chart title=ft size="short" %}
+  </div>
+
+  {% if data.first_cohorts.rows %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Do first-timers come back?" %}</div>
+      <div class="pa-panel-note">{% trans "People grouped by the edition they first came to, and the share of them at each later edition." %}</div></div></div>
+    <div class="pa-panel-body pa-table-wrap">
+      <table class="pa-heat">
+        <thead><tr><th>{% trans "First came" %}</th>{% for c in data.first_cohorts.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for r in data.first_cohorts.rows %}
+          <tr><th class="row">{{ r.label }} <span class="text-muted">({{ r.size }})</span></th>
+          {% for p in r.pad %}<td class="na"></td>{% endfor %}
+          {% for c in r.cells %}<td class="l{{ c.level }}" title="{% blocktrans with n=c.count %}{{ n }} people{% endblocktrans %}">{{ c.pct|floatformat:0 }}%</td>{% endfor %}</tr>
+        {% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+  <p class="small text-muted">{% trans "For overlaps between any chosen editions and once/twice/three-times counts, open the Loyalty tab of an edition’s dashboard." %}</p>
+  {% endif %}
+
+  <h3 class="pa-section-title" id="legacy">{% trans "Past editions from before Pretix" %}</h3>
+  <div class="pa-grid">
+    <div class="pa-panel">
+      <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Import an attendee list" %}</div></div>
+      <div class="pa-panel-body">
+        <p class="small text-muted">
+          {% trans "Upload any file that contains the e-mail addresses of a past edition (for example a 2019 mailing list or an export from your old ticketing system). Addresses are hashed on the server with the same secret key as all analytics data; the file itself and the plain addresses are discarded immediately. People on the list then count as returning when they buy for a later edition." %}
+        </p>
+        <form method="post" enctype="multipart/form-data" action="{% url 'plugins:pretix_event_analytics:legacy_import' organizer=request.organizer.slug pk=series.pk %}">
+          {% csrf_token %}
+          <div class="form-group">{{ legacy_form.label.label_tag }} {{ legacy_form.label }}</div>
+          <div class="form-group">{{ legacy_form.edition_year.label_tag }} {{ legacy_form.edition_year }}</div>
+          <div class="form-group">{{ legacy_form.emails_file.label_tag }} {{ legacy_form.emails_file }}<p class="help-block small">{{ legacy_form.emails_file.help_text }}</p></div>
+          <div class="form-group">{{ legacy_form.emails_text.label_tag }} {{ legacy_form.emails_text }}</div>
+          <button type="submit" class="btn btn-primary"><span class="fa fa-upload"></span> {% trans "Import" %}</button>
+        </form>
+      </div>
+    </div>
+    <div class="pa-panel">
+      <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Imported editions" %}</div></div>
+      <div class="pa-panel-body flush"><table class="table pa-table">
+        <thead><tr><th>{% trans "Edition" %}</th><th class="num">{% trans "Addresses" %}</th><th>{% trans "Imported" %}</th><th></th></tr></thead>
+        <tbody>{% for le in legacy_editions %}<tr>
+          <td>{{ le.label }} ({{ le.edition_year }})</td><td class="num">{{ le.n }}</td><td>{{ le.created_at|date:"SHORT_DATE_FORMAT" }}</td>
+          <td class="text-right"><form method="post" action="{% url 'plugins:pretix_event_analytics:legacy_delete' organizer=request.organizer.slug pk=series.pk legacy_pk=le.pk %}" style="margin:0">{% csrf_token %}
+            <button type="submit" class="btn btn-xs btn-danger" data-confirm="{% trans 'Remove this imported edition?' %}"><span class="fa fa-trash"></span></button></form></td>
+        </tr>{% empty %}<tr><td colspan="4" class="text-muted">{% trans "None yet." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+<link rel="stylesheet" type="text/css" href="{% static 'pretix_event_analytics/dashboard.css' %}">
+<script type="application/json" id="pa-charts" nonce="{{ request.csp_nonce }}">{{ charts_json|safe }}</script>
+<script src="{% static 'pretix_event_analytics/chart.umd.min.js' %}" nonce="{{ request.csp_nonce }}"></script>
+<script src="{% static 'pretix_event_analytics/dashboard.js' %}" nonce="{{ request.csp_nonce }}" defer></script>
+{% endblock %}

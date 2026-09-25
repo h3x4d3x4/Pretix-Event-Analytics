@@ -1,0 +1,63 @@
+{% extends "pretix_event_analytics/base.html" %}
+{% load i18n money analytics_tags %}
+{% block section %}
+{% if not data.total_orders %}
+<div class="pa-panel"><div class="pa-empty">{% trans "No orders match the current filters." %}</div></div>
+{% else %}
+
+<h3 class="pa-section-title">{% trans "Where buyers come from" %}{% if data.local_pct is not None %}<small>{% blocktrans with p=data.local_pct %}{{ p }}% local{% endblocktrans %}</small>{% endif %}</h3>
+<div class="pa-grid">
+  {% trans "Orders by country" as ct %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.country_chart title=ct size="tall" %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Countries" %}</div></div>
+    <div class="pa-panel-body flush pa-table-wrap" style="max-height:392px; overflow-y:auto"><table class="table pa-table">
+      <thead><tr><th>{% trans "Country" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg order" %}</th><th class="num">{% trans "Returning" %}</th></tr></thead>
+      <tbody>{% for c in data.countries %}<tr>
+        <td>{{ c.flag }} {{ c.name }}</td><td class="num">{{ c.orders }} <span class="text-muted">{{ c.share }}%</span></td>
+        <td class="num">{{ c.tickets }}</td><td class="num">{{ c.revenue|money:currency }}</td><td class="num">{{ c.aov|money:currency }}</td><td class="num">{{ c.returning_pct }}%</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+
+<h3 class="pa-section-title">{% trans "Who they are" %}</h3>
+<div class="pa-grid">
+  {% if data.age_chart %}
+    {% trans "Age" as at %}
+    {% blocktrans with n=data.age_known b=data.age_basis asvar an %}Age on the event date, from {{ n }} {{ b }} with a birth date.{% endblocktrans %}
+    {% if data.age_confirmed %}{% blocktrans with n=data.age_confirmed asvar af %}{{ n }} buyers confirmed they are 18 or older.{% endblocktrans %}{% endif %}
+    {% include "pretix_event_analytics/_chart.html" with chart=data.age_chart title=at note=an foot=af %}
+  {% endif %}
+  {% trans "Group size" as gt %}
+  {% blocktrans with a=data.avg_group asvar gn %}{{ a }} tickets per order on average{% endblocktrans %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.group_chart title=gt note=gn %}
+  {% trans "Checkout language" as lt %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.language_chart title=lt size="short" %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Payment methods" %}</div></div>
+    <div class="pa-panel-body flush"><table class="table pa-table">
+      <thead><tr><th>{% trans "Method" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg order" %}</th></tr></thead>
+      <tbody>{% for p in data.payments %}<tr><td>{{ p.label }}</td>
+        <td class="num"><span class="pa-bar-cell">{{ p.orders }} <span class="text-muted">{{ p.share }}%</span><span class="pa-minibar"><i style="width:{{ p.share|floatformat:0 }}%"></i></span></span></td>
+        <td class="num">{{ p.revenue|money:currency }}</td><td class="num">{{ p.aov|money:currency }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+
+<h3 class="pa-section-title">{% trans "Buyer personas" %}<small>{{ data.persona_note }}</small></h3>
+<div class="pa-panel">
+  <div class="pa-panel-body flush pa-table-wrap"><table class="table pa-table">
+    <thead><tr><th>{% trans "Persona" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg order" %}</th><th class="num">{% trans "Returning" %}</th><th class="num">{% trans "Bought add-ons" %}</th></tr></thead>
+    <tbody>{% for p in data.personas %}<tr><td><strong>{{ p.label }}</strong></td><td class="num">{{ p.orders }}</td><td class="num">{{ p.tickets }}</td>
+      <td class="num">{{ p.revenue|money:currency }}</td><td class="num">{{ p.aov|money:currency }}</td><td class="num">{{ p.returning_pct }}%</td><td class="num">{{ p.addon_pct }}%</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+{% if data.caravan %}
+<h3 class="pa-section-title">{% trans "Caravans & camping" %}<small>{% blocktrans with n=data.caravan.count p=data.caravan.pct %}{{ n }} orders ({{ p }}%) with a caravan pass{% endblocktrans %}</small></h3>
+{% trans "Vehicle length" as vt %}
+{% include "pretix_event_analytics/_chart.html" with chart=data.caravan.chart title=vt size="short" %}
+{% endif %}
+
+{% endif %}
+{% endblock %}

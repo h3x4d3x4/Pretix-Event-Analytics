@@ -1,158 +1,132 @@
-{% load i18n %}{% load analytics_tags %}<!DOCTYPE html>
+{% load i18n money %}<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>{% blocktrans with name=event.name %}Analytics Report — {{ name }}{% endblocktrans %}</title>
+<title>{% blocktrans with name=event.name %}Analytics report — {{ name }}{% endblocktrans %}</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #333; }
-  .page { padding: 30px 36px; }
-  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-  h2 { font-size: 14px; font-weight: 600; margin: 22px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; color: #222; }
-  .subtitle { color: #888; font-size: 11px; margin-bottom: 24px; }
-  .kpi-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-  .kpi-box { flex: 0 0 calc(25% - 8px); border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; }
-  .kpi-label { font-size: 9px; text-transform: uppercase; color: #999; letter-spacing: .4px; }
-  .kpi-val { font-size: 18px; font-weight: 700; margin-top: 2px; }
-  .kpi-val small { font-size: 11px; font-weight: normal; color: #888; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  th { background: #f7f7f7; font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 2px solid #ddd; font-size: 10px; }
-  td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; font-size: 10px; }
-  tr:last-child td { border-bottom: none; }
-  .cohort-table th, .cohort-table td { text-align: center; }
-  .cohort-table th:first-child, .cohort-table td:first-child { text-align: left; }
-  .high { background: #27ae60; color: #fff; }
-  .mid { background: #3498db; color: #fff; }
-  .low { background: #ecf0f1; color: #555; }
-  .footer { margin-top: 40px; font-size: 9px; color: #aaa; border-top: 1px solid #eee; padding-top: 8px; }
-  @page { size: A4; margin: 20mm 15mm; }
+  @page { size: A4; margin: 16mm 14mm 18mm; @bottom-right { content: counter(page) " / " counter(pages); font-size: 8px; color: #888; } }
+  * { box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10px; color: #1d1d1b; margin: 0; }
+  h1 { font-size: 19px; margin: 0 0 3px; }
+  h2 { font-size: 13px; margin: 18px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #e3e2de; page-break-after: avoid; }
+  h3 { font-size: 11px; margin: 10px 0 4px; color: #52514e; }
+  .sub { color: #7a7974; margin-bottom: 14px; }
+  .chips span { background: #e7f0fb; color: #184f95; border-radius: 8px; padding: 1px 7px; margin-right: 4px; font-size: 9px; }
+  .kpis { display: flex; flex-wrap: wrap; gap: 6px; }
+  .kpi { width: 23.5%; border: 1px solid #e3e2de; border-radius: 3px; padding: 7px 9px; }
+  .kpi .l { font-size: 8.5px; color: #7a7974; }
+  .kpi .v { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .kpi .s { font-size: 8.5px; color: #7a7974; margin-top: 2px; }
+  .headline { font-size: 11.5px; margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  th { text-align: left; font-size: 8.5px; text-transform: uppercase; color: #7a7974; border-bottom: 1px solid #d5d4cf; padding: 4px 6px; }
+  td { padding: 3.5px 6px; border-bottom: 1px solid #f0efec; }
+  .num { text-align: right; }
+  .bar { display: inline-block; height: 6px; background: #2a78d6; border-radius: 2px; vertical-align: middle; margin-left: 4px; }
+  .cols { display: flex; gap: 14px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .muted { color: #7a7974; }
+  .current td { font-weight: 700; background: #f1f6fd; }
+  .foot { margin-top: 24px; font-size: 8px; color: #999; border-top: 1px solid #eee; padding-top: 6px; }
 </style>
 </head>
 <body>
-<div class="page">
-
-  <h1>{% blocktrans with name=event.name %}Analytics Report — {{ name }}{% endblocktrans %}</h1>
-  <p class="subtitle">
-    {% if config and config.series %}
-      {% trans "Series" %}: {{ config.series.name }} · {% trans "Edition" %}: {{ config.edition_year }} ·
-    {% endif %}
-    {% if event.date_from %}
-      {% trans "Event date" %}: {{ event.date_from|date:"Y-m-d" }} ·
-    {% endif %}
-    {% trans "Generated" %}: {{ generated_at|date:"Y-m-d H:i" }}
-  </p>
-
-  {# Overview KPIs #}
-  <h2>{% trans "Overview" %}</h2>
-  <div class="kpi-grid">
-    <div class="kpi-box">
-      <div class="kpi-label">{% trans "Total Revenue" %}</div>
-      <div class="kpi-val">{{ event.currency }} {{ total_revenue|floatformat:2 }}</div>
-    </div>
-    <div class="kpi-box">
-      <div class="kpi-label">{% trans "Orders" %}</div>
-      <div class="kpi-val">{{ total_orders }}</div>
-    </div>
-    <div class="kpi-box">
-      <div class="kpi-label">{% trans "Tickets Sold" %}</div>
-      <div class="kpi-val">{{ total_tickets }}</div>
-    </div>
-    <div class="kpi-box">
-      <div class="kpi-label">{% trans "Avg Order Value" %}</div>
-      <div class="kpi-val">{{ event.currency }} {{ avg_order_value|floatformat:2 }}</div>
-    </div>
-    <div class="kpi-box">
-      <div class="kpi-label">{% trans "Returning Buyers" %}</div>
-      <div class="kpi-val">{{ repeat_count }} <small>({{ repeat_pct }}%)</small></div>
-    </div>
-  </div>
-
-  {# Country breakdown #}
-  {% if country_breakdown %}
-    <h2>{% trans "Country Breakdown (Top 20)" %}</h2>
-    <table>
-      <thead>
-        <tr><th>{% trans "Country" %}</th><th style="text-align:right">{% trans "Orders" %}</th></tr>
-      </thead>
-      <tbody>
-        {% for row in country_breakdown %}
-          <tr>
-            <td>{{ row.country_code }}</td>
-            <td style="text-align:right">{{ row.count }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
-
-  {# Age breakdown #}
-  {% if age_breakdown %}
-    <h2>{% trans "Age Distribution" %}</h2>
-    <table>
-      <thead>
-        <tr><th>{% trans "Age Range" %}</th><th style="text-align:right">{% trans "Buyers" %}</th></tr>
-      </thead>
-      <tbody>
-        {% for row in age_breakdown %}
-          <tr>
-            <td>{{ row.age_range }}</td>
-            <td style="text-align:right">{{ row.count }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
-
-  {# Cohort retention matrix #}
-  {% if cohort_matrix %}
-    <h2>{% blocktrans with name=config.series.name %}Cohort Retention Matrix — {{ name }}{% endblocktrans %}</h2>
-    <p style="font-size:9px; color:#666; margin-bottom:6px;">
-      <span class="high" style="padding:1px 6px; border-radius:2px;">≥40%</span>
-      <span class="mid" style="padding:1px 6px; border-radius:2px; margin-left:4px;">20–39%</span>
-      <span class="low" style="padding:1px 6px; border-radius:2px; margin-left:4px;">&lt;20%</span>
-      <span style="margin-left:4px;">{% trans "— percentage of each cohort that returned in a later edition." %}</span>
-    </p>
-    <table class="cohort-table">
-      <thead>
-        <tr>
-          <th>{% trans "Cohort" %} ↓ / {% trans "Edition" %} →</th>
-          {% for year in all_cohort_years %}<th>{{ year }}</th>{% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for source_year in cohort_years %}
-          <tr>
-            <td><strong>{{ source_year }}</strong>
-              {% if cohort_sizes|get_item:source_year %}
-                <br><small style="color:#aaa">{% blocktrans count n=cohort_sizes|get_item:source_year %}{{ n }} buyer{% plural %}{{ n }} buyers{% endblocktrans %}</small>
-              {% endif %}
-            </td>
-            {% for target_year in all_cohort_years %}
-              {% if target_year <= source_year %}
-                <td style="color:#ccc;">—</td>
-              {% else %}
-                {% get_nested cohort_matrix source_year target_year as rate %}
-                {% if rate is not None %}
-                  {% with pct=rate|mul:100 %}
-                    <td class="{% if pct >= 40 %}high{% elif pct >= 20 %}mid{% else %}low{% endif %}">
-                      {{ pct|floatformat:1 }}%
-                    </td>
-                  {% endwith %}
-                {% else %}
-                  <td style="color:#ccc;">—</td>
-                {% endif %}
-              {% endif %}
-            {% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
-
-  <div class="footer">
-    {% trans "Report generated by pretix Event Analytics plugin" %} · {{ generated_at|date:"Y-m-d H:i:s" }}
-  </div>
-
+{% with t=overview.tiles c=overview.compare ft=overview.first_timers fo=loyalty.focus %}
+<h1>{% blocktrans with name=event.name %}Analytics report — {{ name }}{% endblocktrans %}</h1>
+<div class="sub">
+  {% if config.series %}{{ config.series.name }} · {% trans "Edition" %} {{ config.edition_year }} · {% endif %}
+  {% if event.date_from %}{% trans "Event date" %} {{ event.date_from|date:"Y-m-d" }} · {% endif %}
+  {% trans "Generated" %} {{ generated_at|date:"Y-m-d H:i" }}
 </div>
+{% if filter_chips %}<div class="chips" style="margin-bottom:10px">{% trans "Filtered by" %}: {% for c in filter_chips %}<span>{{ c }}</span>{% endfor %}</div>{% endif %}
+
+<h2>{% trans "Overview" %}</h2>
+<div class="kpis">
+  <div class="kpi"><div class="l">{% trans "Revenue" %}</div><div class="v">{{ t.revenue|money:currency }}</div>
+    {% if c and c.revenue_delta is not None %}<div class="s">{% if c.revenue_delta > 0 %}+{% endif %}{{ c.revenue_delta }}% {% blocktrans with l=c.label %}vs {{ l }}{% endblocktrans %}</div>{% endif %}</div>
+  <div class="kpi"><div class="l">{% trans "Tickets sold" %}</div><div class="v">{{ t.tickets }}</div>
+    {% if c and c.tickets_delta is not None %}<div class="s">{% if c.tickets_delta > 0 %}+{% endif %}{{ c.tickets_delta }}% {% blocktrans with l=c.label %}vs {{ l }}{% endblocktrans %}</div>{% endif %}</div>
+  <div class="kpi"><div class="l">{% trans "Orders" %}</div><div class="v">{{ t.orders }}</div><div class="s">{% trans "Avg" %} {{ t.aov|money:currency }}</div></div>
+  <div class="kpi"><div class="l">{% trans "Returning buyers" %}</div><div class="v">{{ t.returning_buyers_pct }}%</div></div>
+  <div class="kpi"><div class="l">{% trans "Canceled / refunded" %}</div><div class="v">{{ t.refund_pct }}%</div><div class="s">{{ t.refunded_amount|money:currency }}</div></div>
+  {% if t.checkin_pct is not None %}<div class="kpi"><div class="l">{% trans "Checked in" %}</div><div class="v">{{ t.checkin_pct }}%</div></div>{% endif %}
+  {% if overview.forecast %}<div class="kpi"><div class="l">{% trans "Forecast tickets" %}</div><div class="v">{{ overview.forecast.tickets }}</div><div class="s">{{ overview.forecast.tickets_low }}–{{ overview.forecast.tickets_high }}</div></div>{% endif %}
+</div>
+{% if ft %}<p class="headline">{% blocktrans with pct=ft.pct people=ft.people year=ft.history_start %}<strong>{{ pct }}%</strong> of the {{ people }} identified people are first-timers (history since {{ year }}).{% endblocktrans %}</p>{% endif %}
+
+{% if loyalty.focus %}
+<h2>{% trans "Loyalty" %}</h2>
+<div class="cols">
+  <div>
+    <h3>{% trans "Times attended before" %}</h3>
+    <table><thead><tr><th></th><th class="num">{% trans "People" %}</th><th class="num">{% trans "Share" %}</th></tr></thead>
+    <tbody>{% for r in fo.previous_table %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }}</td><td class="num">{{ r.share }}% <span class="bar" style="width:{% widthratio r.share 100 60 %}px"></span></td></tr>{% endfor %}</tbody></table>
+  </div>
+  <div>
+    <h3>{% trans "Across all editions" %}</h3>
+    <table><thead><tr><th></th><th class="num">{% trans "People" %}</th><th class="num">{% trans "Share" %}</th></tr></thead>
+    <tbody>{% for r in loyalty.frequency_table %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }}</td><td class="num">{{ r.share }}%</td></tr>{% endfor %}</tbody></table>
+  </div>
+</div>
+<h3>{% trans "Edition by edition" %}</h3>
+<table><thead><tr><th>{% trans "Edition" %}</th><th class="num">{% trans "People" %}</th><th class="num">{% trans "First time" %}</th><th class="num">{% trans "Back from previous" %}</th><th class="num">{% trans "After a gap" %}</th><th class="num">{% trans "Retention" %}</th></tr></thead>
+<tbody>{% for r in loyalty.flow.rows %}<tr class="{% if r.label == fo.label %}current{% endif %}"><td>{{ r.label }}</td><td class="num">{{ r.total }}</td><td class="num">{{ r.new }} ({{ r.new_pct }}%)</td><td class="num">{{ r.from_prev }}</td><td class="num">{{ r.after_gap }}</td><td class="num">{% if r.retention_pct is not None %}{{ r.retention_pct }}%{% else %}–{% endif %}</td></tr>{% endfor %}</tbody></table>
+{% endif %}
+
+{% if sales.pacing_table %}
+<h2>{% trans "Sales pace" %}</h2>
+<table><thead><tr><th>{% trans "Edition" %}</th>{% if sales.pacing_point %}<th class="num">{% blocktrans with d=sales.pacing_point %}Tickets at T–{{ d }}{% endblocktrans %}</th><th class="num">{% trans "Revenue then" %}</th>{% endif %}<th class="num">{% trans "Final tickets" %}</th><th class="num">{% trans "Final revenue" %}</th></tr></thead>
+<tbody>{% for r in sales.pacing_table %}<tr class="{% if r.is_current %}current{% endif %}"><td>{{ r.label }}</td>{% if sales.pacing_point %}<td class="num">{{ r.at_tickets|floatformat:0 }}</td><td class="num">{{ r.at_revenue|money:currency }}</td>{% endif %}<td class="num">{% if r.final_tickets is not None %}{{ r.final_tickets|floatformat:0 }}{% else %}{% trans "on sale" %}{% endif %}</td><td class="num">{% if r.final_revenue is not None %}{{ r.final_revenue|money:currency }}{% else %}–{% endif %}</td></tr>{% endfor %}</tbody></table>
+{% endif %}
+{% if sales.timing %}
+<h3>{% trans "How far ahead tickets were bought" %}</h3>
+<table><thead><tr><th></th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Share" %}</th><th class="num">{% trans "Revenue" %}</th></tr></thead>
+<tbody>{% for r in sales.timing.table %}<tr><td>{{ r.label }}</td><td class="num">{{ r.tickets }}</td><td class="num">{{ r.share }}% <span class="bar" style="width:{% widthratio r.share 100 60 %}px"></span></td><td class="num">{{ r.revenue|money:currency }}</td></tr>{% endfor %}</tbody></table>
+{% endif %}
+
+<h2>{% trans "Audience" %}</h2>
+<div class="cols">
+  <div>
+    <h3>{% trans "Top countries" %}</h3>
+    <table><thead><tr><th>{% trans "Country" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Returning" %}</th></tr></thead>
+    <tbody>{% for r in audience.countries|slice:":10" %}<tr><td>{{ r.name }}</td><td class="num">{{ r.orders }}</td><td class="num">{{ r.revenue|money:currency }}</td><td class="num">{{ r.returning_pct }}%</td></tr>{% endfor %}</tbody></table>
+  </div>
+  <div>
+    {% if audience.ages %}
+    <h3>{% trans "Age on the event date" %}</h3>
+    <table><tbody>{% for a in audience.ages %}<tr><td>{{ a.label }}</td><td class="num">{{ a.pct }}% <span class="bar" style="width:{% widthratio a.pct 100 80 %}px"></span></td></tr>{% endfor %}</tbody></table>
+    {% endif %}
+    <h3>{% trans "Personas" %}</h3>
+    <table><thead><tr><th></th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Returning" %}</th></tr></thead>
+    <tbody>{% for p in audience.personas %}<tr><td>{{ p.label }}</td><td class="num">{{ p.orders }}</td><td class="num">{{ p.returning_pct }}%</td></tr>{% endfor %}</tbody></table>
+  </div>
+</div>
+
+{% if tickets.products %}
+<h2>{% trans "Tickets" %}</h2>
+<table><thead><tr><th>{% trans "Product" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Avg price" %}</th><th class="num">{% trans "Returning" %}</th></tr></thead>
+<tbody>{% for p in tickets.products %}<tr><td>{{ p.name }}</td><td class="num">{{ p.tickets }}</td><td class="num">{{ p.revenue|money:currency }}</td><td class="num">{{ p.avg|money:currency }}</td><td class="num">{% if p.returning_pct is not None %}{{ p.returning_pct }}%{% else %}–{% endif %}</td></tr>{% endfor %}</tbody></table>
+{% if tickets.addons %}
+<h3>{% trans "Add-ons" %}</h3>
+<table><tbody>{% for a in tickets.addons %}<tr><td>{{ a.name }}</td><td class="num">{{ a.count }}</td><td class="num">{{ a.revenue|money:currency }}</td><td class="num">{% blocktrans with p=a.attach_pct %}in {{ p }}% of orders{% endblocktrans %}</td></tr>{% endfor %}</tbody></table>
+{% endif %}
+{% endif %}
+
+{% with ci=operations.checkin rf=operations.refunds %}
+<h2>{% trans "Operations" %}</h2>
+<div class="kpis">
+  {% if not ci.none %}<div class="kpi"><div class="l">{% trans "Checked in" %}</div><div class="v">{{ ci.rate }}%</div><div class="s">{% blocktrans with n=ci.no_shows %}{{ n }} no-shows{% endblocktrans %}</div></div>{% endif %}
+  <div class="kpi"><div class="l">{% trans "Canceled / refunded orders" %}</div><div class="v">{{ rf.canceled }}</div><div class="s">{{ rf.rate }}%</div></div>
+  <div class="kpi"><div class="l">{% trans "Money refunded" %}</div><div class="v">{{ rf.refunded|money:currency }}</div></div>
+</div>
+{% for q in operations.questions %}
+<h3>{{ q.label }}</h3>
+<table><tbody>{% for r in q.rows %}<tr><td>{{ r.answer }}</td><td class="num">{{ r.count }}</td><td class="num">{{ r.share }}% <span class="bar" style="width:{% widthratio r.share 100 80 %}px"></span></td></tr>{% endfor %}</tbody></table>
+{% endfor %}
+{% endwith %}
+
+<div class="foot">{% trans "Generated by Pretix Event Analytics. Returning-people figures use pseudonymous (HMAC-hashed) identities; no names or e-mail addresses are stored in the analytics tables." %}</div>
+{% endwith %}
 </body>
 </html>

@@ -1,0 +1,165 @@
+{% extends "pretix_event_analytics/base.html" %}
+{% load i18n money analytics_tags %}
+{% block section %}
+{% with o=data.options f=data.forecast %}
+
+<div class="pa-controls">
+  <div><span class="pa-label">{% trans "Group by" %}</span>
+    <span class="pa-seg">
+      <a href="?{% qs_with granularity='day' %}" class="{% if o.granularity == 'day' %}active{% endif %}">{% trans "Day" %}</a>
+      <a href="?{% qs_with granularity='week' %}" class="{% if o.granularity == 'week' %}active{% endif %}">{% trans "Week" %}</a>
+      <a href="?{% qs_with granularity='month' %}" class="{% if o.granularity == 'month' %}active{% endif %}">{% trans "Month" %}</a>
+    </span>
+  </div>
+  <div><span class="pa-label">{% trans "Split by" %}</span>
+    <span class="pa-seg">
+      <a href="?{% qs_with split='none' %}" class="{% if o.split == 'none' %}active{% endif %}">{% trans "Nothing" %}</a>
+      <a href="?{% qs_with split='product' %}" class="{% if o.split == 'product' %}active{% endif %}">{% trans "Product" %}</a>
+      <a href="?{% qs_with split='category' %}" class="{% if o.split == 'category' %}active{% endif %}">{% trans "Category" %}</a>
+      <a href="?{% qs_with split='buyer_type' %}" class="{% if o.split == 'buyer_type' %}active{% endif %}">{% trans "New / returning" %}</a>
+      <a href="?{% qs_with split='country' %}" class="{% if o.split == 'country' %}active{% endif %}">{% trans "Country" %}</a>
+    </span>
+  </div>
+  <div><span class="pa-label">{% trans "Date" %}</span>
+    <span class="pa-seg">
+      <a href="?{% qs_with basis='order' %}" class="{% if o.basis == 'order' %}active{% endif %}">{% trans "Order placed" %}</a>
+      <a href="?{% qs_with basis='payment' %}" class="{% if o.basis == 'payment' %}active{% endif %}" title="{% trans 'Matches Pretix’s own statistics, which use the date of the last payment.' %}">{% trans "Payment" %}</a>
+    </span>
+  </div>
+  <div><button type="button" class="btn btn-default btn-sm" data-cumulative-all="sales"><span class="fa fa-area-chart"></span> {% trans "Cumulative" %}</button></div>
+</div>
+
+{% if data.series_empty %}
+  <div class="pa-panel"><div class="pa-empty">{% trans "No sales match the current filters." %}</div></div>
+{% else %}
+  {% trans "Tickets sold" as t_title %}
+  {% trans "Admission tickets; add-ons are not counted as tickets. Numbered markers show when a product started selling at a new price." as t_note %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.tickets_chart title=t_title note=t_note group="sales" %}
+  {% trans "Revenue" as r_title %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.revenue_chart title=r_title note=data.revenue_note group="sales" %}
+{% endif %}
+
+{% if f %}
+<h3 class="pa-section-title">{% trans "Forecast" %}<small>{% blocktrans with d=f.days_left %}{{ d }} days to go{% endblocktrans %}</small></h3>
+<div class="pa-kpis">
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Projected tickets" %}</div>
+    <div class="pa-kpi-value">{{ f.tickets|floatformat:0 }}</div>
+    <div class="pa-kpi-sub">{% blocktrans with lo=f.tickets_low hi=f.tickets_high %}likely between {{ lo }} and {{ hi }}{% endblocktrans %}</div>
+  </div>
+  {% if f.revenue %}
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Projected revenue" %}</div>
+    <div class="pa-kpi-value">{{ f.revenue|money:currency }}</div>
+    <div class="pa-kpi-sub">{% blocktrans with lo=f.revenue_low|money:currency hi=f.revenue_high|money:currency %}{{ lo }} – {{ hi }}{% endblocktrans %}</div>
+  </div>
+  {% endif %}
+  {% if f.ticket_target %}
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Ticket target" %}</div>
+    <div class="pa-kpi-value">{{ f.ticket_target_pct }}<small>%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans with t=f.ticket_target p=f.tickets_forecast_target_pct %}of {{ t }} sold · forecast {{ p }}%{% endblocktrans %}</div>
+  </div>
+  {% endif %}
+  {% if f.revenue_target %}
+  <div class="pa-kpi">
+    <div class="pa-kpi-label">{% trans "Revenue target" %}</div>
+    <div class="pa-kpi-value">{{ f.revenue_target_pct }}<small>%</small></div>
+    <div class="pa-kpi-sub">{% blocktrans with t=f.revenue_target|money:currency %}of {{ t }}{% endblocktrans %}</div>
+  </div>
+  {% endif %}
+</div>
+<p class="small text-muted">{% blocktrans with years=f.basis|join:", " %}Projection: sales so far × how much each previous edition ({{ years }}) still grew from the same number of days out. The range spans the slowest and fastest of those editions.{% endblocktrans %}</p>
+{% endif %}
+
+{% if data.pacing_tickets %}
+<h3 class="pa-section-title">{% trans "Editions compared" %}<small>{% trans "same days-before-event timeline" %}</small></h3>
+<div class="pa-controls" data-switch-group="pace">
+  <span class="pa-seg">
+    <button type="button" class="active" data-switch="tickets">{% trans "Tickets" %}</button>
+    <button type="button" data-switch="revenue">{% trans "Revenue" %}</button>
+  </span>
+</div>
+<div data-switch-pane="pace" data-pane="tickets">
+  {% trans "Cumulative tickets" as pt %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.pacing_tickets title=pt size="tall" %}
+</div>
+<div data-switch-pane="pace" data-pane="revenue" style="display:none">
+  {% trans "Cumulative revenue" as pr %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.pacing_revenue title=pr size="tall" %}
+</div>
+
+{% if data.pacing_table %}
+<div class="pa-panel">
+  <div class="pa-panel-head"><div class="pa-panel-title">
+    {% if data.pacing_point %}{% blocktrans with d=data.pacing_point %}Where each edition stood with {{ d }} days to go{% endblocktrans %}{% else %}{% trans "Final totals by edition" %}{% endif %}
+  </div></div>
+  <div class="pa-panel-body flush pa-table-wrap">
+    <table class="table pa-table">
+      <thead><tr>
+        <th>{% trans "Edition" %}</th>
+        {% if data.pacing_point %}<th class="num">{% trans "Tickets then" %}</th><th class="num">{% trans "Revenue then" %}</th><th class="num">{% trans "Current vs then" %}</th>{% endif %}
+        <th class="num">{% trans "Final tickets" %}</th><th class="num">{% trans "Final revenue" %}</th>
+        {% if data.pacing_point %}<th class="num">{% trans "Share sold by then" %}</th>{% endif %}
+      </tr></thead>
+      <tbody>
+      {% for r in data.pacing_table %}
+        <tr class="{% if r.is_current %}current{% endif %}">
+          <td>{{ r.label }}</td>
+          {% if data.pacing_point %}
+          <td class="num">{{ r.at_tickets|floatformat:0 }}</td>
+          <td class="num">{{ r.at_revenue|money:currency }}</td>
+          <td class="num">{% if r.delta_tickets_pct is not None %}<span class="pa-delta {{ r.delta_tickets_pct|delta_class }}">{% if r.delta_tickets_pct > 0 %}+{% endif %}{{ r.delta_tickets_pct }}%</span>{% else %}–{% endif %}</td>
+          {% endif %}
+          <td class="num">{% if r.final_tickets is not None %}{{ r.final_tickets|floatformat:0 }}{% else %}<span class="text-muted">{% trans "on sale" %}</span>{% endif %}</td>
+          <td class="num">{% if r.final_revenue is not None %}{{ r.final_revenue|money:currency }}{% else %}–{% endif %}</td>
+          {% if data.pacing_point %}<td class="num">{% if r.share_at_point is not None %}{{ r.share_at_point }}%{% else %}–{% endif %}</td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="pa-panel-foot">{% trans "Dashboard filters apply to every edition, so you can compare e.g. only first-time buyers or only one country." %}</div>
+</div>
+{% endif %}
+{% endif %}
+
+<h3 class="pa-section-title">{% trans "When people buy" %}</h3>
+<div class="pa-grid">
+  {% trans "How far ahead tickets were bought" as tt %}
+  {% include "pretix_event_analytics/_chart.html" with chart=data.timing.chart title=tt size="short" %}
+  <div class="pa-panel">
+    <div class="pa-panel-head"><div class="pa-panel-title">{% trans "Orders by weekday and hour" %}</div>
+      <div class="pa-panel-note">{{ data.heatmap.timezone }}</div></div>
+    <div class="pa-panel-body pa-table-wrap">
+      <table class="pa-heat compact" aria-label="{% trans 'Orders by weekday and hour' %}">
+        <thead><tr><th></th>{% for h in "012345678901234567890123"|make_list %}{% if forloop.counter0|divisibleby:3 %}<th colspan="3">{{ forloop.counter0|stringformat:"02d" }}</th>{% endif %}{% endfor %}</tr></thead>
+        <tbody>
+        {% for row in data.heatmap.rows %}
+          <tr><th class="row">{{ row.day }}</th>
+          {% for c in row.cells %}<td class="l{{ c.level }}" title="{{ row.day }} {{ c.hour|stringformat:'02d' }}:00 — {{ c.n }}">{{ c.n }}</td>{% endfor %}</tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <div class="pa-heat-legend">{% trans "fewer" %} <i style="background:var(--pa-seq-0)"></i><i style="background:var(--pa-seq-1)"></i><i style="background:var(--pa-seq-2)"></i><i style="background:var(--pa-seq-3)"></i><i style="background:var(--pa-seq-4)"></i><i style="background:var(--pa-seq-5)"></i><i style="background:var(--pa-seq-6)"></i> {% trans "more" %} · {% blocktrans with n=data.heatmap.peak %}busiest hour: {{ n }} orders{% endblocktrans %}</div>
+    </div>
+  </div>
+</div>
+
+<h3 class="pa-section-title">{% trans "By period" %}</h3>
+<div class="pa-panel">
+  <div class="pa-panel-body flush pa-table-wrap" style="max-height:420px; overflow-y:auto">
+    <table class="table pa-table">
+      <thead><tr><th>{% trans "Period" %}</th><th class="num">{% trans "Orders" %}</th><th class="num">{% trans "Tickets" %}</th><th class="num">{% trans "Revenue" %}</th><th class="num">{% trans "Tickets to date" %}</th><th class="num">{% trans "Revenue to date" %}</th></tr></thead>
+      <tbody>
+      {% for r in data.series_table %}
+        <tr><td>{{ r.label }}</td><td class="num">{{ r.orders }}</td><td class="num">{{ r.tickets }}</td><td class="num">{{ r.revenue|money:currency }}</td><td class="num">{{ r.cum_tickets }}</td><td class="num">{{ r.cum_revenue|money:currency }}</td></tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-muted">{% trans "No sales in this selection." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

@@ -67,7 +67,7 @@ def _length_to_bucket(meters: float) -> str:
         return ">8m"
 
 
-def resolve_caravan_data(order) -> Tuple[bool, str]:
+def resolve_caravan_data(order, positions=None) -> Tuple[bool, str]:
     """
     Scan order positions for caravan pass signals.
 
@@ -77,7 +77,7 @@ def resolve_caravan_data(order) -> Tuple[bool, str]:
     has_caravan = False
     length_bucket = ""
 
-    for position in order.positions.all():
+    for position in (positions if positions is not None else order.positions.all()):
         for answer in position.answers.all():
             question_text = str(answer.question.question)
 

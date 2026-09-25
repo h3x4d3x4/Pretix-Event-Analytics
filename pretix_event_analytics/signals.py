@@ -7,6 +7,8 @@ a Celery task.  No DB work happens in the signal handler itself.
 Signals used:
   order_paid          — new paid order → full ingestion pipeline
   order_canceled      — canceled or refunded → update fact record
+  order_changed / order_modified / order_reactivated / order_split
+                      — re-ingest the affected order(s)
   checkin_created     — attendee checked in → update score
 
 Navigation:
@@ -19,7 +21,15 @@ import logging
 from django.dispatch import receiver
 from django.urls import reverse
 
-from pretix.base.signals import checkin_created, order_canceled, order_paid
+from pretix.base.signals import (
+    checkin_created,
+    order_canceled,
+    order_changed,
+    order_modified,
+    order_paid,
+    order_reactivated,
+    order_split,
+)
 from pretix.control.signals import nav_event, nav_event_settings, nav_organizer
 
 logger = logging.getLogger(__name__)
@@ -50,6 +60,38 @@ def on_order_canceled(sender, order, **kwargs):
         process_order_canceled.apply_async(args=[order.pk])
     except Exception:
         logger.exception("analytics: failed to queue order_canceled task for order %s", order.pk)
+
+
+def _queue_change(order_pk):
+    from .tasks import process_order_changed
+
+    try:
+        process_order_changed.apply_async(args=[order_pk], countdown=5)
+    except Exception:
+        logger.exception("analytics: failed to queue order change task for order %s", order_pk)
+
+
+@receiver(order_changed, dispatch_uid="pretix_analytics_order_changed")
+def on_order_changed(sender, order, **kwargs):
+    """Products/prices changed — re-ingest so ticket facts stay accurate."""
+    _queue_change(order.pk)
+
+
+@receiver(order_modified, dispatch_uid="pretix_analytics_order_modified")
+def on_order_modified(sender, order, **kwargs):
+    """Attendee data/answers edited — re-ingest identities and demographics."""
+    _queue_change(order.pk)
+
+
+@receiver(order_reactivated, dispatch_uid="pretix_analytics_order_reactivated")
+def on_order_reactivated(sender, order, **kwargs):
+    _queue_change(order.pk)
+
+
+@receiver(order_split, dispatch_uid="pretix_analytics_order_split")
+def on_order_split(sender, original, split_order, **kwargs):
+    _queue_change(original.pk)
+    _queue_change(split_order.pk)
 
 
 @receiver(checkin_created, dispatch_uid="pretix_analytics_checkin_created")

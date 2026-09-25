@@ -1,6 +1,9 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+# Bump when the ingestion pipeline starts writing new/changed fact fields.
+FACT_VERSION = 2
+
 
 class EventSeries(models.Model):
     """
@@ -75,6 +78,20 @@ class EventAnalyticsConfig(models.Model):
         verbose_name=_("Include in analytics"),
         help_text=_("Uncheck to exclude this edition from cohort calculations."),
     )
+    # Question ids whose (choice / yes-no) answers are aggregated on the
+    # dashboard. Opt-in only: answers can describe sensitive categories
+    # (health, diet, accessibility), so nothing is collected by default.
+    tracked_question_ids = models.JSONField(default=list, blank=True)
+    ticket_target = models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name=_("Ticket target"),
+        help_text=_("Optional goal shown on the sales forecast, e.g. venue capacity."),
+    )
+    revenue_target = models.DecimalField(
+        max_digits=13, decimal_places=2, null=True, blank=True,
+        verbose_name=_("Revenue target"),
+        help_text=_("Optional revenue goal shown on the sales forecast."),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -121,12 +138,21 @@ class AnalyticsOrderFact(models.Model):
     total_gross = models.DecimalField(max_digits=13, decimal_places=2, default=0)
     total_net = models.DecimalField(max_digits=13, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=13, decimal_places=2, default=0)
+    fees_total = models.DecimalField(max_digits=13, decimal_places=2, default=0)
+    refunded_amount = models.DecimalField(max_digits=13, decimal_places=2, default=0)
     currency = models.CharField(max_length=10, blank=True)
+    canceled_at = models.DateTimeField(null=True, blank=True)
 
     # ── Order structure ──────────────────────────────────────────────────────
     ticket_count = models.IntegerField(default=0)
     unique_attendee_count = models.IntegerField(default=0)
     is_group_order = models.BooleanField(default=False)
+    has_addons = models.BooleanField(default=False)
+    addon_count = models.IntegerField(default=0)
+    voucher_used = models.BooleanField(default=False)
+    # Whole days between the order and the event start, in the event's
+    # timezone. Negative for orders placed after the event started.
+    days_before_event = models.IntegerField(null=True, blank=True)
     payment_provider = models.CharField(max_length=100, blank=True, db_index=True)
     is_refunded = models.BooleanField(default=False)
 
@@ -157,12 +183,24 @@ class AnalyticsOrderFact(models.Model):
     repeat_from_any_previous = models.BooleanField(default=False)
     repeat_count = models.IntegerField(default=0)
     first_seen_edition_year = models.IntegerField(null=True, blank=True)
+    # Stable pseudonymous key of the buyer, shared by every order/ticket that
+    # the identity resolver links to the same person within a series.
+    # Blank when the buyer carries no usable identity signal.
+    person_key = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    # Number of series editions this person took part in (including this one).
+    editions_attended = models.IntegerField(default=1)
+    is_local_buyer = models.BooleanField(default=False)
 
     # ── Check-in ─────────────────────────────────────────────────────────────
     checkin_completed = models.BooleanField(default=False)
 
     # ── Prediction ───────────────────────────────────────────────────────────
     predicted_repeat_probability = models.IntegerField(default=0)
+
+    # Ingestion pipeline version that produced this row. Rows older than
+    # FACT_VERSION lack fields that newer dashboards rely on; the dashboard
+    # asks for a resync when it finds any.
+    fact_version = models.PositiveSmallIntegerField(default=1)
 
     # ── Timestamps ───────────────────────────────────────────────────────────
     created_at = models.DateTimeField(auto_now_add=True)
@@ -211,9 +249,13 @@ class AnalyticsTicketFact(models.Model):
         related_name="analytics_ticket_facts",
     )
 
+    # Pretix OrderPosition pk — one row per position.
+    position_id = models.IntegerField(null=True, blank=True)
+
     # Item info — store name as snapshot (item may change later)
     item_id = models.IntegerField(db_index=True)
     item_name = models.CharField(max_length=255)
+    item_category = models.CharField(max_length=255, blank=True, default="")
     variation_id = models.IntegerField(null=True, blank=True)
     variation_name = models.CharField(max_length=255, blank=True)
 
@@ -224,6 +266,22 @@ class AnalyticsTicketFact(models.Model):
 
     # Structure
     is_addon = models.BooleanField(default=False)
+    voucher_code = models.CharField(max_length=255, blank=True, default="")
+    voucher_tag = models.CharField(max_length=255, blank=True, default="")
+
+    # Check-in (successful entry scans only)
+    checked_in = models.BooleanField(default=False)
+    first_checkin_at = models.DateTimeField(null=True, blank=True)
+
+    # Attendee identity (admission positions only; add-ons stay blank)
+    attendee_person_key = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    attendee_identified = models.BooleanField(default=False)
+    # True when this ticket is held by the buyer themself.
+    attendee_is_buyer = models.BooleanField(default=False)
+    is_returning_attendee = models.BooleanField(default=False)
+    attendee_previous_editions = models.IntegerField(default=0)
+    attendee_first_seen_year = models.IntegerField(null=True, blank=True)
+    attendee_editions_attended = models.IntegerField(default=1)
 
     # Attendee demographics (per-ticket, no PII)
     age_range = models.CharField(max_length=10, blank=True)
@@ -238,8 +296,9 @@ class AnalyticsTicketFact(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["order_fact", "item_id", "variation_id"],
-                name="unique_ticket_per_order_item",
+                fields=["order_fact", "position_id"],
+                condition=models.Q(position_id__isnull=False),
+                name="unique_ticket_per_position",
             ),
         ]
         indexes = [
@@ -269,6 +328,15 @@ class AnalyticsIdentity(models.Model):
         on_delete=models.CASCADE,
         related_name="analytics_identities",
     )
+    # Set for attendee-level signals (attendee email, name+DOB); null for
+    # buyer-level signals (order email, payment fingerprints).
+    ticket_fact = models.ForeignKey(
+        AnalyticsTicketFact,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="identities",
+    )
 
     # ── Identity Type ────────────────────────────────────────────────────────
     # Types: 'email', 'stripe_card', 'paypal_payer', 'bank_iban', 'name_dob'
@@ -294,3 +362,75 @@ class AnalyticsIdentity(models.Model):
 
     def __str__(self):
         return f"{self.identity_type} — {self.order_fact.order_code}"
+
+
+class AnalyticsAnswerFact(models.Model):
+    """
+    Aggregatable answer to an opt-in choice or yes/no question.
+    One row per selected option. Free-text answers are never stored.
+    """
+    ticket_fact = models.ForeignKey(
+        AnalyticsTicketFact,
+        on_delete=models.CASCADE,
+        related_name="answers",
+    )
+    event = models.ForeignKey(
+        "pretixbase.Event",
+        on_delete=models.CASCADE,
+        related_name="analytics_answer_facts",
+    )
+    question_id = models.IntegerField()
+    question_label = models.CharField(max_length=255)
+    answer_value = models.CharField(max_length=255)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["event", "question_id"]),
+        ]
+        verbose_name = _("Analytics Answer Fact")
+        verbose_name_plural = _("Analytics Answer Facts")
+
+
+class LegacyEdition(models.Model):
+    """
+    A past edition that predates Pretix (or this plugin), reconstructed from
+    an uploaded attendee e-mail list. Only HMAC hashes are kept; the list
+    itself is discarded after import.
+    """
+    series = models.ForeignKey(
+        EventSeries,
+        on_delete=models.CASCADE,
+        related_name="legacy_editions",
+    )
+    label = models.CharField(max_length=100, verbose_name=_("Label"))
+    edition_year = models.IntegerField(verbose_name=_("Edition year"))
+    is_active = models.BooleanField(default=True, verbose_name=_("Include in analytics"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("edition_year", "pk")
+        verbose_name = _("Legacy edition")
+        verbose_name_plural = _("Legacy editions")
+
+    def __str__(self):
+        return f"{self.label} ({self.edition_year})"
+
+
+class LegacyIdentity(models.Model):
+    legacy_edition = models.ForeignKey(
+        LegacyEdition,
+        on_delete=models.CASCADE,
+        related_name="identities",
+    )
+    identity_type = models.CharField(max_length=32, default="email")
+    identity_hash = models.CharField(max_length=64, db_index=True)
+    # Filled in by the series identity resolver.
+    person_key = models.CharField(max_length=64, blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["legacy_edition", "identity_type", "identity_hash"],
+                name="unique_legacy_identity",
+            ),
+        ]

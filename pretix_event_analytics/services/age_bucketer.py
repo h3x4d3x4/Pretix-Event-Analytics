@@ -78,16 +78,23 @@ def _is_birth_question(question_text: str) -> bool:
     return any(kw in lower for kw in _BIRTH_KEYWORDS)
 
 
-def resolve_age_range(order) -> str:
+def age_on(birthdate: date, ref: date) -> int:
+    return ref.year - birthdate.year - ((ref.month, ref.day) < (birthdate.month, birthdate.day))
+
+
+def resolve_age_range(order, positions=None, ref_date: Optional[date] = None) -> str:
     """
     Scan all positions/answers for a birth date question and return the age bucket.
+
+    Age is measured on ``ref_date`` (callers pass the event date, so an
+    edition's age mix does not drift as years pass); defaults to today.
 
     :param order: Pretix Order instance (positions/answers must be prefetched).
     :returns: Age bucket string or '' if not found / not parseable.
     """
-    today = date.today()
+    today = ref_date or date.today()
 
-    for position in order.positions.all():
+    for position in (positions if positions is not None else order.positions.all()):
         for answer in position.answers.all():
             question_text = str(answer.question.question)
             if not _is_birth_question(question_text):
@@ -115,7 +122,7 @@ def resolve_age_range(order) -> str:
     return ""
 
 
-def resolve_age_confirmed(order) -> Optional[bool]:
+def resolve_age_confirmed(order, positions=None) -> Optional[bool]:
     """
     Check if the buyer explicitly confirmed they are 18+ years old.
 
@@ -123,7 +130,7 @@ def resolve_age_confirmed(order) -> Optional[bool]:
     if answered affirmatively, False if not, None if the question is
     absent or the answer is unrecognized.
     """
-    for position in order.positions.all():
+    for position in (positions if positions is not None else order.positions.all()):
         for answer in position.answers.all():
             if not is_age_confirm_question(str(answer.question.question)):
                 continue

@@ -711,7 +711,24 @@ class EventConfigView(EventPermissionRequiredMixin, FormView):
         return kwargs
 
     def form_valid(self, form):
-        form.save()
+        before = EventAnalyticsConfig.objects.select_related("series").get(pk=form.instance.pk)
+        old_series = before.series
+        data = form.cleaned_data
+        changed = (
+            old_series != data.get("series")
+            or before.edition_year != data.get("edition_year")
+            or before.is_active != data.get("is_active")
+            or before.home_country != data.get("home_country")
+        )
+        config = form.save()
+        if changed:
+            # Series membership, ordering or scoring inputs moved: re-resolve
+            # returning buyers for the old and the new series.
+            from .tasks import recompute_people
+            from .services.people import recompute_series
+            recompute_people.apply_async(args=[config.event_id])
+            if old_series and old_series != config.series:
+                recompute_series(old_series.organizer_id, old_series.slug)
         messages.success(self.request, _("Analytics configuration saved."))
         return redirect(
             reverse(

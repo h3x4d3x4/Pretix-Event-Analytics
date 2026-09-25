@@ -14,7 +14,7 @@ def _is_country_question(question_text: str) -> bool:
     lower = question_text.lower()
     return any(kw in lower for kw in _COUNTRY_KEYWORDS)
 
-def resolve_country(order) -> str:
+def resolve_country(order, positions=None, payment=None) -> str:
     """
     Return an ISO 3166-1 alpha-2 country code for the order.
 
@@ -28,7 +28,7 @@ def resolve_country(order) -> str:
     :returns: Two-letter uppercase country code, or 'UNKNOWN'.
     """
     # 1. Payment Provider Metadata (High Confidence)
-    confirmed_payment = order.payments.filter(state="confirmed").order_by("payment_date").last()
+    confirmed_payment = payment if payment is not None else last_confirmed_payment(order)
     if confirmed_payment and confirmed_payment.info_data:
         info = confirmed_payment.info_data
         provider = confirmed_payment.provider
@@ -65,7 +65,7 @@ def resolve_country(order) -> str:
         logger.debug("analytics: failed to read invoice_address for order %s", order.code, exc_info=True)
 
     # 3. Custom question containing country-related keywords
-    for position in order.positions.all():
+    for position in (positions if positions is not None else order.positions.all()):
         for answer in position.answers.all():
             question_text = str(answer.question.question)
             if not _is_country_question(question_text):
@@ -86,6 +86,14 @@ def resolve_country(order) -> str:
             continue
 
     return "UNKNOWN"
+
+
+def last_confirmed_payment(order):
+    """Latest confirmed payment, using prefetched ``payments`` when present."""
+    confirmed = [p for p in order.payments.all() if p.state == "confirmed"]
+    if not confirmed:
+        return None
+    return max(confirmed, key=lambda p: (p.payment_date is not None, p.payment_date or p.created, p.pk))
 
 
 def resolve_city_and_postal(order) -> tuple:

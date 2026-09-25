@@ -519,14 +519,13 @@
           </thead>
           <tbody>
             {% for source_year in cohort_years %}
+            {% with size=cohort_sizes|get_item:source_year %}
             <tr>
               <td>
                 <strong>{{ source_year }}</strong>
-                {% with size=cohort_sizes|get_item:source_year %}
                 {% if size %}
                 <br><small class="text-muted">{{ size }} buyers</small>
                 {% endif %}
-                {% endwith %}
               </td>
               {% for target_year in all_cohort_years %}
               {% if target_year <= source_year %} <td class="cohort-cell cohort-past">—</td>
@@ -546,6 +545,7 @@
                 {% endif %}
                 {% endfor %}
             </tr>
+            {% endwith %}
             {% endfor %}
           </tbody>
         </table>

@@ -23,6 +23,9 @@ Scoring weights:
 """
 
 
+EARLY_DAYS = 30
+
+
 def calculate_repeat_probability(order_data: dict) -> int:
     """
     Calculate repeat purchase probability score.
@@ -58,3 +61,24 @@ def calculate_repeat_probability(order_data: dict) -> int:
         score += 5
 
     return min(score, 100)
+
+
+def score_from_fact(fact) -> int:
+    """
+    Score a stored fact (model instance or dict with the same keys).
+    Every input is persisted on the fact, so the score can be recomputed at
+    any time — e.g. after check-in or after series-wide repeat resolution —
+    without losing factors such as early purchase.
+    """
+    get = fact.get if isinstance(fact, dict) else (lambda k, d=None: getattr(fact, k, d))
+    days = get("days_before_event")
+    return calculate_repeat_probability(
+        {
+            "repeat_count": get("repeat_count", 0) or 0,
+            "ticket_count": get("ticket_count", 1) or 1,
+            "is_group_order": bool(get("is_group_order", False)),
+            "is_local_buyer": bool(get("is_local_buyer", False)),
+            "bought_early": days is not None and days >= EARLY_DAYS,
+            "checkin_completed": bool(get("checkin_completed", False)),
+        }
+    )

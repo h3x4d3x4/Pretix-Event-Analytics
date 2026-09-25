@@ -16,7 +16,7 @@ Usage:
     python -m pretix analytics_resync --all
 
 Options:
-    --checkin    Also update checkin_completed flags and recompute scores.
+    --checkin    Deprecated no-op: check-ins are always included now.
                  Use this after an event has finished.
     --dry-run    Print what would be processed without making changes.
 """
@@ -59,7 +59,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--checkin",
             action="store_true",
-            help="Update checkin status and recompute predictive scores. Run after event ends.",
+            help="Deprecated (check-ins are always included). Kept for script compatibility.",
         )
         parser.add_argument(
             "--dry-run",
@@ -141,6 +141,7 @@ class Command(BaseCommand):
                     event,
                     include_checkin=include_checkin,
                     log_fn=lambda m: self.stdout.write(f"  {m}"),
+                    resolve_people=False,
                 )
                 self.stdout.write(
                     self.style.SUCCESS(
@@ -153,5 +154,23 @@ class Command(BaseCommand):
             except Exception as exc:
                 self.stdout.write(self.style.ERROR(f"  ✗ Failed: {exc}"))
                 logger.exception("analytics_resync failed for event %s", event.slug)
+
+        # Resolve returning people once per series (and per standalone
+        # event) after every edition is in place — the result is then
+        # independent of the order in which editions were processed.
+        from ...services.people import recompute_event, recompute_series
+
+        seen_series = set()
+        for event in events:
+            cfg = EventAnalyticsConfig.objects.select_related("series").filter(event=event).first()
+            if cfg and cfg.series:
+                key = (cfg.series.organizer_id, cfg.series.slug)
+                if key in seen_series:
+                    continue
+                seen_series.add(key)
+                self.stdout.write(f"Resolving returning people for series {cfg.series.slug} ...")
+                recompute_series(*key)
+            elif cfg:
+                recompute_event(event)
 
         self.stdout.write(self.style.SUCCESS(f"\nResync complete for {total} event(s)."))

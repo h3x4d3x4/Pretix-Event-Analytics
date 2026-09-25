@@ -61,16 +61,14 @@ class AnalyticsDataShredder(BaseDataShredder):
         # Cascade deletes AnalyticsTicketFact and AnalyticsIdentity
         deleted_count, _ = qs.delete()
 
-        # Invalidate cohort cache for the series
-        try:
-            config = EventAnalyticsConfig.objects.select_related("series").get(
-                event=self.event
-            )
-            if config.series:
-                from .services.cohort_service import invalidate_cohort_cache
-                invalidate_cohort_cache(config.series.slug, self.event.organizer_id)
-        except EventAnalyticsConfig.DoesNotExist:
-            pass
+        # Other editions may have counted these buyers as returning — re-resolve.
+        config = EventAnalyticsConfig.objects.select_related("series").filter(event=self.event).first()
+        if config and config.series:
+            from .services.people import recompute_series
+            recompute_series(self.event.organizer_id, config.series.slug)
+        else:
+            from .services.versioning import bump
+            bump(self.event.organizer_id)
 
         if progress_callback:
             progress_callback(100)

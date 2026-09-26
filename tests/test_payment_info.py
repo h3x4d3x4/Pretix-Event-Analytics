@@ -33,7 +33,8 @@ def test_payment_intent_sets_country_but_never_links_buyers(make_edition, series
     o = e26.order("new-mail@example.org", provider="stripe", payment_info=PAYMENT_INTENT, country="")
     resync_series(series)
     fact = AnalyticsOrderFact.objects.get(event=e26.event, order_code=o.code)
-    assert fact.country_code == "ES"
+    assert fact.country_code == ""                         # card issuer: probable only
+    assert (fact.country_inferred, fact.country_inferred_source) == ("ES", "card_issuer")
     assert fact.is_repeat_buyer is False  # same card, different e-mail: not proof of one person
 
 

@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 # Bump when the ingestion pipeline starts writing new/changed fact fields.
-FACT_VERSION = 3
+FACT_VERSION = 4
 
 
 class EventSeries(models.Model):
@@ -179,17 +179,25 @@ class AnalyticsOrderFact(models.Model):
     # ── Geography ────────────────────────────────────────────────────────────
     country_code = models.CharField(max_length=2, blank=True, db_index=True)
     # Where country_code came from: question, invoice, paypal_address, paypal_account,
-    # card_billing, id_document, iban, email_domain, card_issuer (see country_resolver).
+    # card_billing, id_document (see country_resolver). Bank countries are never exact.
     country_source = models.CharField(max_length=20, blank=True, default="")
     # Answer to a "travelling from" question, when the event asks one.
     travel_country_code = models.CharField(max_length=2, blank=True, default="")
     # Derived when no exact source exists — never mixed into country_code:
     #   other_order   the same customer's country on their other orders (inferred)
+    #   nationality   the buyer's nationality (nationality question / citizen ID) (probable)
+    #   card_issuer   country of the bank that issued the card (probable)
+    #   iban          country of the bank-transfer IBAN (probable)
     #   email_domain  the order e-mail's country domain, e.g. ".pt" (probable)
     country_inferred = models.CharField(max_length=2, blank=True, default="")
     country_inferred_source = models.CharField(max_length=20, blank=True, default="")
     # Country of the order e-mail's domain (".pt" → PT), kept for the resolver.
     email_country = models.CharField(max_length=2, blank=True, default="")
+    # Country of the paying bank (card issuer / IBAN) and which of the two — kept for the resolver.
+    bank_country = models.CharField(max_length=2, blank=True, default="")
+    bank_country_source = models.CharField(max_length=20, blank=True, default="")
+    # The buyer's nationality (their own ticket, or all tickets when they agree) — not residence.
+    nationality = models.CharField(max_length=2, blank=True, default="")
     city = models.CharField(max_length=100, blank=True)
     postal_code = models.CharField(max_length=20, blank=True)
 
@@ -323,6 +331,10 @@ class AnalyticsTicketFact(models.Model):
     attendee_match = models.CharField(max_length=10, blank=True, default="")
     # Issuing country derived from the ID-document number (opt-in; the number itself is never stored).
     document_country = models.CharField(max_length=2, blank=True, default="")
+    # Nationality of the ticket holder: "question" (nationality question) or "id_document"
+    # (only document types that prove citizenship — see id_country.PROVES).
+    nationality = models.CharField(max_length=2, blank=True, default="", db_index=True)
+    nationality_source = models.CharField(max_length=20, blank=True, default="")
 
     # Attendee demographics (per-ticket, no PII)
     age_range = models.CharField(max_length=10, blank=True)

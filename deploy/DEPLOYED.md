@@ -7,6 +7,27 @@ wheel, allows only analytics migrations (3rd arg = expected analytics migration 
 shared folder. **TicketSwap belongs to Sena — never modify its wheel or Dockerfile line.**
 Coordinate with whoever is working on the theme before building or restarting.
 
+## 2026-09-26 09:58 UTC — analytics 2.2.0 (on SUTI theme 1.0.4) — built, verified and deployed by dev-05
+
+**Nationality kept apart from residence; bank countries and nationality are only probable residence.**
+Commit bb0f661 (branch `country-probable`, merged to main, tag `v2.2.0`), wheel sha256 `2e2475f2…`.
+Migration 0010 (fields only, reversible), FACT_VERSION 4 → resync done in the deploy.
+
+- Prod-copy verification (`pretix-theme/deploy/verify_analytics_release.sh`): 0010 up/down/up, fingerprint identical,
+  0/204 inferred countries contradicting the customer, 0 derived values in `country_code`, resale 79 = 79,
+  all analytics pages 200 + themed, widgets fine.
+- Live: switch 09:58:41, resync done 10:01:18. pretix 2026.7.0 / theme 1.0.4 / analytics 2.2.0 / TicketSwap 1.0.4,
+  `migrate --check` clean, fingerprint identical, pages 200, no errors.
+- **2026 residence** (orders, 1,103): exact 385 (invoice 175, PayPal 107, card billing 77, residence ID 26) ·
+  probable: nationality 318, card issuer 182, e-mail 13 · inferred: other orders 81 · unknown 124.
+  (Before: 940 "exact" — 382 were citizen IDs and 199 card issuers, now labelled probable.)
+- **2026 nationality** (tickets): 681 of 1,560 known, all from citizen ID documents — PT 597, ES 84.
+- Image `:2026.7.0-analytics2.2.0-theme1.0.4`; dump `~/suti-upgrade/backup/pretix-pre-analytics220-20260926-095829.dump`.
+- **Rollback** (in this order): stop pretix → `docker run --rm --network suti-pretix_default -v …/pretixconf:/etc/pretix:ro
+  -v …/pretixdata:/data --entrypoint python3 suti-pretix-pretix:2026.7.0-analytics2.2.0-theme1.0.4 -m pretix migrate
+  pretix_event_analytics 0009_accuracy_2_1` → tag `:2026.7.0-analytics2.1.1-theme1.0.4` as latest → `up -d --no-build pretix`.
+  Last resort: restore the dump.
+
 ## 2026-09-25 19:31 UTC — analytics 2.1.1 (on SUTI theme 1.0.4) — deployed and verified by dev-84
 
 Resale showed 0 TicketSwap resales: prod runs TicketSwap **1.0.4**, which records swaps in its own `TicketSwapSwap`

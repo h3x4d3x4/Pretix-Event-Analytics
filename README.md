@@ -42,25 +42,32 @@ were synced.
 
 ### Where people come from
 
-Each order's country of residence comes from the first available source: a "Country of residence" question →
-invoice address → PayPal address / account → card billing address → ID-document country (opt-in) → IBAN → the
-card's issuing bank. The source is stored with the country and shown on the Audience page. A "travelling from"
-question is reported separately.
+Residence (per order) and nationality (per ticket holder) are kept apart.
 
-When none of these exist, two *derived* countries are kept in separate fields — never mixed into the exact
-country that filters and other pages use — and can be switched on on the Audience page:
-**inferred** (the same customer's country on their other orders, only when they all agree) and **probable** (the
-e-mail's country domain, e.g. `.pt`; generic domains like `.com` or `.io` say nothing). Names and phone formats
-are never used.
+**Residence, exact** — the first available of: a "Country of residence" question → invoice address → PayPal
+address / account → card billing address → an ID document that proves residence (Spanish NIE, UK driving
+licence, Belgian national number). The source is stored with the country and shown on the Audience page; only
+exact countries are used by filters and other pages. A "travelling from" question is reported separately.
 
-The most accurate data comes from asking: add **"Country of residence"** and **"Which country are you travelling
-from?"** (question type *Country*) at checkout. Ask for residence, not "origin" or nationality, and mention the
-purpose in your privacy notice.
+**Residence, derived** — kept in separate fields and switched on on the Audience page:
+**inferred** (the same customer's exact country on their other orders, only when they all agree), then
+**probable**: the buyer's nationality → the card's issuing bank → the IBAN country → the e-mail's country
+domain (`.pt`; generic domains say nothing). Banks and nationality describe the account or the passport, not
+where someone lives — on SUTI 2026 the card issuer matched the ID document only 79% of the time.
 
-**ID-document country (opt-in):** if checkout asks for an ID number, the issuing country can be derived from
-national formats with a valid check digit (Spanish DNI/NIE, Portuguese Cartão de Cidadão and civil number,
-Belgian, Italian, UK licence). Ambiguous formats yield nothing. The number is read in memory and never stored.
-Reusing ID numbers for statistics is a new purpose under the GDPR — update your privacy notice first.
+**Nationality** — per ticket holder: a nationality question (country names and common demonyms such as
+"Portuguese"), else an ID document that proves citizenship (Spanish DNI, Portuguese Cartão de Cidadão / civil
+number, Italian codice fiscale when born in Italy). Shown in its own panel on the Audience page and in the CSV
+exports.
+
+The most accurate data comes from asking: add **"Country of residence"**, **"Nationality"** and **"Which country
+are you travelling from?"** (question type *Country*) at checkout, and mention the purpose in your privacy notice.
+
+**ID documents (opt-in):** if checkout asks for an ID number, the issuing country is derived only from national
+formats with a valid check digit; each format declares whether it proves nationality or residence
+(`id_country.PROVES`). Ambiguous formats and placeholders ("00000000") yield nothing. The number is read in
+memory and never stored. Reusing ID numbers for statistics is a new purpose under the GDPR — update your privacy
+notice first.
 
 ## Requirements
 

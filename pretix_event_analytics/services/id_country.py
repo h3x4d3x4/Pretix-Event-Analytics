@@ -7,9 +7,12 @@ assigned when the number matches a national format *and* passes that
 format's check digit, or when the format is unique to one country. Ambiguous
 formats (most passports) yield nothing rather than a guess.
 
-Note: an ID document shows the issuing country (usually nationality), not
-residence. It is therefore used as a fallback after the sources that
-describe residence.
+What a document proves depends on its type (``PROVES``): citizens' IDs (Spanish
+DNI, Portuguese Cartão de Cidadão / civil number, French passport, Israeli ID,
+Italian codice fiscale of someone born in Italy) prove *nationality*; IDs that
+countries issue to everyone living there (Spanish NIE — foreigners only —, UK
+driving licence, Belgian national number / eID) prove *residence*. Nationality
+documents feed ``nationality``; residence documents feed the exact residence.
 """
 import re
 from typing import Callable, List, Optional, Tuple
@@ -131,14 +134,41 @@ DISABLED: set = {"il_teudat_zehut", "fr_passport", "pt_civil_9"}
 ENABLED_UNVERIFIED: set = {"pt_civil_8"}
 
 
+# What each document type proves about its holder.
+PROVES = {
+    "es_dni": "nationality", "pt_cc_document": "nationality", "pt_civil_8": "nationality",
+    "pt_civil_9": "nationality", "fr_passport": "nationality", "il_teudat_zehut": "nationality",
+    "it_codice_fiscale": "nationality",   # only when born in Italy, see document_info
+    "es_nie": "residence",                # issued to foreigners living in Spain
+    "gb_driving_licence": "residence",
+    "be_national_number": "residence", "be_eid_card": "residence",  # Belgians and foreign residents alike
+}
+
+
+def document_info(raw: str) -> Tuple[str, str]:
+    """(country, "nationality" | "residence") from an ID-document number; ("", "") when not confident."""
+    v = _clean(raw)
+    if len(v) < 6 or len(set(v)) == 1:    # "00000000" and similar placeholders
+        return "", ""
+    hits = {(country, rule) for rule, country, check in RULES
+            if rule not in DISABLED and (rule not in UNVERIFIED or rule in ENABLED_UNVERIFIED) and check(v)}
+    countries = {c for c, _r in hits}
+    if len(countries) != 1:
+        return "", ""
+    country = countries.pop()
+    proves = {PROVES.get(r, "") for _c, r in hits}
+    if len(proves) != 1:
+        return "", ""
+    proves = proves.pop()
+    if any(r == "it_codice_fiscale" for _c, r in hits) and v[11] == "Z":
+        return "", ""                      # born abroad: says nothing about nationality
+    return country, proves
+
+
 def document_country(raw: str) -> Optional[str]:
     """Country code from an ID-document number, or None when not confident."""
-    v = _clean(raw)
-    if len(v) < 6:
-        return None
-    hits = {country for rule, country, check in RULES
-            if rule not in DISABLED and (rule not in UNVERIFIED or rule in ENABLED_UNVERIFIED) and check(v)}
-    return hits.pop() if len(hits) == 1 else None
+    country, _proves = document_info(raw)
+    return country or None
 
 
 def matching_rule(raw: str) -> Optional[str]:

@@ -11,7 +11,7 @@
     <span class="pa-seg">
       <a href="?{% qs_with countries='exact' %}" class="{% if data.country_mode == 'exact' %}active{% endif %}" title="{% trans 'Only countries the buyer or their payment stated' %}">{% trans "Exact" %}</a>
       <a href="?{% qs_with countries='inferred' %}" class="{% if data.country_mode == 'inferred' %}active{% endif %}" title="{% trans 'Plus the country of the same customer on their other orders' %}">{% trans "+ inferred" %}</a>
-      <a href="?{% qs_with countries='probable' %}" class="{% if data.country_mode == 'probable' %}active{% endif %}" title="{% trans 'Plus the country of the e-mail domain (.pt, .es …)' %}">{% trans "+ probable" %}</a>
+      <a href="?{% qs_with countries='probable' %}" class="{% if data.country_mode == 'probable' %}active{% endif %}" title="{% trans 'Plus the buyer’s nationality, the paying bank’s country (card issuer, IBAN) and the e-mail domain (.pt, .es …)' %}">{% trans "+ probable" %}</a>
     </span>
   </div>
 </div>
@@ -32,7 +32,7 @@
 <div class="pa-grid">
   <div class="pa-panel">
     <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "How the country is known" %}</div>
-      <div class="pa-panel-note">{% trans "First available source per order. Italic sources describe the bank or document, not necessarily where the buyer lives. Inferred and probable countries are shown only when switched on above." %}</div></div></div>
+      <div class="pa-panel-note">{% trans "First available source per order. Exact = what the buyer stated (or a residence document). Italic sources describe a bank or document, not necessarily where the buyer lives. Inferred and probable countries are shown only when switched on above." %}</div></div></div>
     <div class="pa-panel-body flush"><table class="table pa-table">
       <thead><tr><th>{% trans "Source" %}</th><th class="num">{% trans "Orders" %}</th></tr></thead>
       <tbody>{% for r in data.country_sources %}<tr><td>{% if r.indirect %}<em>{{ r.label }}</em>{% else %}{{ r.label }}{% endif %}{% if r.tier == "inferred" %} <span class="pa-tag">{% trans "inferred" %}</span>{% elif r.tier == "probable" %} <span class="pa-tag">{% trans "probable" %}</span>{% endif %}</td>
@@ -50,13 +50,13 @@
     </table></div>
   </div>
   {% endif %}
-  {% if data.documents %}
+  {% if data.nationalities %}
   <div class="pa-panel">
-    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "ID-document country" %}</div>
-      <div class="pa-panel-note">{% blocktrans with p=data.document_coverage %}Issuing country of recognisable ID numbers ({{ p }}% of tickets) — usually nationality, not residence.{% endblocktrans %}</div></div></div>
+    <div class="pa-panel-head"><div><div class="pa-panel-title">{% trans "Nationality" %}</div>
+      <div class="pa-panel-note">{% blocktrans with p=data.nationality_coverage n=data.nationality_known %}Per ticket holder, where known ({{ n }} tickets, {{ p }}%): a nationality question, or an ID document that proves citizenship. Kept apart from where people live.{% endblocktrans %}{% for r in data.nationality_sources %}{% if forloop.first %} {% endif %}{{ r.label }}: {{ r.n }}{% if not forloop.last %} · {% endif %}{% endfor %}</div></div></div>
     <div class="pa-panel-body flush"><table class="table pa-table">
-      <thead><tr><th>{% trans "Country" %}</th><th class="num">{% trans "Tickets" %}</th></tr></thead>
-      <tbody>{% for c in data.documents %}<tr><td>{{ c.flag }} {{ c.name }}</td>
+      <thead><tr><th>{% trans "Nationality" %}</th><th class="num">{% trans "Tickets" %}</th></tr></thead>
+      <tbody>{% for c in data.nationalities %}<tr><td>{{ c.flag }} {{ c.name }}</td>
         <td class="num"><span class="pa-bar-cell">{{ c.n }} <span class="text-muted">{{ c.share }}%</span><span class="pa-minibar"><i data-bar="{{ c.share|floatformat:0 }}"></i></span></span></td></tr>{% endfor %}</tbody>
     </table></div>
   </div>

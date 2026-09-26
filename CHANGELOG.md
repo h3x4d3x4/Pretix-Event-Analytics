@@ -3,6 +3,40 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] — 2026-09-26
+
+**Run a resync of every edition after upgrading** (data version 4). One database
+migration (0010, fields added only, reversible).
+
+### Added
+- **Nationality, kept apart from residence.** Per ticket holder, from a
+  nationality question (country names *and* demonyms such as "Portuguese") or
+  from an ID document that proves citizenship. New "Nationality" panel on the
+  Audience page (replaces "ID-document country"), and `nationality` columns in
+  the order and ticket CSV exports.
+- ID-document rules now declare what they prove (`id_country.PROVES`): citizens'
+  IDs (Spanish DNI, Portuguese Cartão de Cidadão / civil number, Italian codice
+  fiscale of someone born in Italy) prove **nationality**; the Spanish NIE (issued
+  to foreigners), UK driving licence and Belgian national number / eID prove
+  **residence**.
+
+### Changed
+- **Exact residence = what the buyer stated** (residence question, invoice,
+  PayPal, card billing address) or a residence document. The paying bank's
+  country (card issuer, IBAN) and the buyer's nationality are now **probable**
+  residence only. Measured on SUTI 2026, the card issuer agreed with the ID
+  document 79% and the invoice address 86% of the time, and foreign-issued
+  cards (Israel, UK, …) mostly belonged to people with Portuguese documents.
+- Derived-country order: same customer's other orders (inferred) → buyer's
+  nationality → card issuer → IBAN → e-mail domain (all probable).
+- "Same customer's other orders" only uses exact countries as evidence, so a
+  bank's country never spreads to other orders.
+- "Local buyer" now needs an exact residence country.
+
+### Fixed
+- Placeholder ID numbers made of one repeated digit ("00000000") no longer
+  resolve to a country.
+
 ## [2.1.1] — 2026-09-25
 
 ### Fixed

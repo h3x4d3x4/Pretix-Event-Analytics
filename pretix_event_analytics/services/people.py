@@ -480,8 +480,8 @@ def _recompute(organizer_id: int, series_slug: str, event_ids: Optional[List[int
         "country_inferred", "country_inferred_source",
     ]
     qs = AnalyticsOrderFact.objects.filter(event_id__in=list(rank_by_event)).only(
-        "id", "event_id", "country_code", "email_country", "ticket_count", "is_group_order", "days_before_event",
-        "checkin_completed", *order_fields,
+        "id", "event_id", "country_code", "email_country", "bank_country", "bank_country_source", "nationality",
+        "ticket_count", "is_group_order", "days_before_event", "checkin_completed", *order_fields,
     )
     pending = []
     for fact in qs.iterator(chunk_size=BATCH):
@@ -598,13 +598,10 @@ def _infer_countries(res: "Resolution", event_ids: List[int]) -> Dict[int, str]:
 
 
 def _inferred_fields(fact, other_order: str) -> dict:
-    if fact.country_code:
-        return {"country_inferred": "", "country_inferred_source": ""}
-    if other_order:
-        return {"country_inferred": other_order, "country_inferred_source": "other_order"}
-    if fact.email_country:
-        return {"country_inferred": fact.email_country, "country_inferred_source": "email_domain"}
-    return {"country_inferred": "", "country_inferred_source": ""}
+    from .country_resolver import derived_country
+
+    return derived_country(fact.country_code, other_order, fact.nationality, fact.bank_country,
+                           fact.bank_country_source, fact.email_country)
 
 
 def _write_legacy_keys(res: "Resolution") -> None:

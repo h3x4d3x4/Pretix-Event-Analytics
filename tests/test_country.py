@@ -44,10 +44,20 @@ def test_card_billing_beats_card_issuer(make_edition):
     assert (f.country_code, f.country_source) == ("FR", "card_billing")
 
 
-def test_card_issuer_is_last_resort_and_labelled(make_edition):
+def test_card_issuer_is_only_probable(make_edition):
     kit = make_edition(2026)
     f = _fact(kit.order("a@example.org", country="", provider="stripe", payment_info=CARD_ES))
-    assert (f.country_code, f.country_source) == ("ES", "card_issuer")
+    assert (f.country_code, f.country_source) == ("", "")                    # a bank is not a residence
+    assert (f.bank_country, f.bank_country_source) == ("ES", "card_issuer")
+    assert (f.country_inferred, f.country_inferred_source) == ("ES", "card_issuer")
+
+
+def test_iban_is_only_probable(make_edition):
+    kit = make_edition(2026)
+    f = _fact(kit.order("a@example.org", country="", provider="banktransfer",
+                        payment_info={"iban": "DE89370400440532013000"}))
+    assert f.country_code == ""
+    assert (f.country_inferred, f.country_inferred_source) == ("DE", "iban")
 
 
 def test_no_source_means_unknown(make_edition):
@@ -72,29 +82,72 @@ def test_country_of_birth_question_is_not_residence(make_edition):
     assert f.country_code == ""
 
 
-def test_id_document_country_only_when_opted_in(make_edition):
-    kit = make_edition(2026)
+def _id_question(kit):
     q = _question(kit, "ID Number")
-    o = kit.order("a@example.org", [{"item": kit.ga, "answers": {q: "12345678-Z"}}], country="")
-    f = _fact(o)
-    assert f.country_code == ""
-    assert AnalyticsTicketFact.objects.get(order_fact=f).document_country == ""
-
     cfg = kit.event.analytics_config
     cfg.id_question_id = q.pk
     cfg.save()
+    return q
+
+
+def test_id_document_only_when_opted_in(make_edition):
+    kit = make_edition(2026)
+    q = _question(kit, "ID Number")
+    o = kit.order("a@example.org", [{"item": kit.ga, "answers": {q: "X1234567L"}}], country="")
     f = _fact(o)
+    assert f.country_code == ""
+    assert AnalyticsTicketFact.objects.get(order_fact=f).document_country == ""
+    cfg = kit.event.analytics_config
+    cfg.id_question_id = q.pk
+    cfg.save()
+    assert _fact(o).country_code == "ES"
+
+
+def test_residence_document_is_exact_residence_not_nationality(make_edition):
+    kit = make_edition(2026)
+    q = _id_question(kit)
+    f = _fact(kit.order("a@example.org", [{"item": kit.ga, "answers": {q: "X1234567L"}}], country=""))  # NIE
     assert (f.country_code, f.country_source) == ("ES", "id_document")
-    assert AnalyticsTicketFact.objects.get(order_fact=f).document_country == "ES"
+    t = AnalyticsTicketFact.objects.get(order_fact=f)
+    assert (t.document_country, t.nationality) == ("ES", "")                  # NIE holders are foreigners
+
+
+def test_citizen_document_is_nationality_and_only_probable_residence(make_edition):
+    kit = make_edition(2026)
+    q = _id_question(kit)
+    f = _fact(kit.order("a@example.org", [{"item": kit.ga, "answers": {q: "12345678-Z"}}], country=""))  # DNI
+    assert (f.country_code, f.country_source) == ("", "")
+    assert f.nationality == "ES"
+    assert (f.country_inferred, f.country_inferred_source) == ("ES", "nationality")
+    t = AnalyticsTicketFact.objects.get(order_fact=f)
+    assert (t.nationality, t.nationality_source) == ("ES", "id_document")
+
+
+def test_nationality_question_is_not_residence(make_edition):
+    kit = make_edition(2026)
+    nat = _question(kit, "Nationality")
+    f = _fact(kit.order("a@example.org", [{"item": kit.ga, "answers": {nat: "Portuguese"}}], country="DE"))
+    assert (f.country_code, f.country_source) == ("DE", "invoice")            # residence stays the invoice
+    t = AnalyticsTicketFact.objects.get(order_fact=f)
+    assert (t.nationality, t.nationality_source) == ("PT", "question")
+
+
+def test_nationality_is_per_ticket_holder(make_edition):
+    kit = make_edition(2026)
+    q = _id_question(kit)
+    o = kit.order("a@example.org", [
+        {"item": kit.ga, "attendee_email": "a@example.org", "answers": {q: "12345678Z"}},  # buyer: ES DNI
+        {"item": kit.ga, "attendee_email": "b@example.org", "answers": {q: "87654321"}},   # friend: PT civil no.
+    ], country="")
+    f = _fact(o)
+    assert f.nationality == "ES"                                              # the buyer's own ticket
+    assert sorted(AnalyticsTicketFact.objects.filter(order_fact=f).values_list("nationality", flat=True)) == ["ES", "PT"]
 
 
 def test_id_document_ranks_below_stated_sources(make_edition):
     kit = make_edition(2026)
-    q = _question(kit, "ID Number")
-    cfg = kit.event.analytics_config
-    cfg.id_question_id = q.pk
-    cfg.save()
-    f = _fact(kit.order("a@example.org", [{"item": kit.ga, "answers": {q: "12345678Z"}}], country="PT"))
+    q = _id_question(kit)
+    f = _fact(kit.order("a@example.org", [{"item": kit.ga, "answers": {q: "X1234567L"}}], country="PT"))
     assert (f.country_code, f.country_source) == ("PT", "invoice")
 
 
@@ -109,7 +162,7 @@ def test_group_with_mixed_documents_says_nothing(make_edition):
         {"item": kit.ga, "answers": {q: "123456789012"}},     # not a known format
         {"item": kit.ga, "answers": {q: "X1234567L"}},        # ES NIE
     ], country="")
-    assert _fact(o).country_code == "ES"                      # the known ones agree
+    assert _fact(o).country_code == "ES"                      # the only residence document (NIE) decides
     o2 = kit.order("b@example.org", [
         {"item": kit.ga, "answers": {q: "12345678Z"}},
         {"item": kit.ga, "answers": {q: "87654321"}},         # PT civil number
@@ -122,9 +175,38 @@ def test_group_with_mixed_documents_says_nothing(make_edition):
     ("X1234567L", "ES"),                          # NIE
     ("87654321", "PT"),                           # PT civil number (8 digits)
     ("AB123456", None), ("", None), ("12", None),
+    ("00000000", None), ("11111111", None),        # placeholders
 ])
 def test_document_country_rules(raw, code):
     assert document_country(raw) == code
+
+
+@pytest.mark.parametrize("raw,info", [
+    ("12345678Z", ("ES", "nationality")), ("X1234567L", ("ES", "residence")),
+    ("87654321", ("PT", "nationality")),
+    ("RSSMRA85T10A562S", ("IT", "nationality")), ("RSSMRA85T10Z404X", ("", "")),   # born in Italy / abroad
+])
+def test_document_info_says_what_it_proves(raw, info):
+    from pretix_event_analytics.services.id_country import document_info
+    assert document_info(raw) == info
+
+
+def test_other_orders_beat_nationality_beat_bank_beat_email(make_edition, series):
+    from pretix_event_analytics.services.resync_service import resync_series
+
+    e24, e26 = make_edition(2024), make_edition(2026)
+    q = _id_question(e26)
+    e24.order("fan@sapo.pt", country="NL")
+    both = e26.order("fan@sapo.pt", [{"item": e26.ga, "answers": {q: "12345678Z"}}], country="",
+                     provider="stripe", payment_info=CARD_ES)
+    nat = e26.order("x@sapo.pt", [{"item": e26.ga, "answers": {q: "12345678Z"}}], country="",
+                    provider="stripe", payment_info={**CARD_ES})
+    bank = e26.order("y@sapo.pt", country="", provider="banktransfer", payment_info={"iban": "DE89370400440532013000"})
+    resync_series(series)
+    got = {o.code: AnalyticsOrderFact.objects.get(order_code=o.code) for o in (both, nat, bank)}
+    assert (got[both.code].country_inferred, got[both.code].country_inferred_source) == ("NL", "other_order")
+    assert (got[nat.code].country_inferred, got[nat.code].country_inferred_source) == ("ES", "nationality")
+    assert (got[bank.code].country_inferred, got[bank.code].country_inferred_source) == ("DE", "iban")
 
 
 # ── Derived countries: inferred (other orders) and probable (e-mail domain) ──
@@ -195,3 +277,19 @@ def test_audience_country_switch(admin_client, make_edition, series):
     assert sources == {"invoice": 1, "other_order": 1, "email_domain": 1}
     assert countries("inferred")[0] == {"NL": 1, "ES": 1, "": 1}
     assert countries("probable")[0] == {"NL": 1, "ES": 1, "PT": 1}
+
+
+def test_audience_shows_nationality_apart_from_residence(admin_client, make_edition):
+    from django.urls import reverse
+
+    kit = make_edition(2026)
+    q = _id_question(kit)
+    kit.order("a@example.org", [{"item": kit.ga, "answers": {q: "12345678Z"}}], country="PT")   # ES citizen in PT
+    resync_event(kit.event)
+    url = reverse("plugins:pretix_event_analytics:audience",
+                  kwargs={"organizer": kit.event.organizer.slug, "event": kit.event.slug})
+    resp = admin_client.get(url)
+    data = resp.context["data"]
+    assert {c["code"]: c["orders"] for c in data["countries"]} == {"PT": 1}        # residence
+    assert [(n["code"], n["n"]) for n in data["nationalities"]] == [("ES", 1)]      # nationality
+    assert b"Nationality" in resp.content

@@ -62,6 +62,7 @@ ORDER_HEADER = [
     "has_caravan_pass", "camper_van_length_bucket", "is_repeat_buyer", "repeat_from_last_edition", "repeat_count",
     "first_seen_edition_year", "editions_attended", "checkin_completed", "predicted_repeat_probability",
     "country_source", "country_inferred", "country_inferred_source", "travel_country_code",
+    "buyer_nationality", "bank_country", "bank_country_source",
 ]
 
 
@@ -78,7 +79,7 @@ def order_rows(qs, tz=None):
             f.camper_van_length_bucket, _yn(f.is_repeat_buyer), _yn(f.repeat_from_last_edition), f.repeat_count,
             f.first_seen_edition_year or "", f.editions_attended, _yn(f.checkin_completed),
             f.predicted_repeat_probability, f.country_source, f.country_inferred, f.country_inferred_source,
-            f.travel_country_code,
+            f.travel_country_code, f.nationality, f.bank_country, f.bank_country_source,
         ]
 
 
@@ -87,6 +88,7 @@ TICKET_HEADER = [
     "tax_rate", "voucher_code", "voucher_tag", "age_range", "checked_in", "first_checkin_at",
     "attendee_identified", "attendee_is_buyer", "is_returning_attendee", "attendee_previous_editions",
     "attendee_first_seen_year", "match", "returning_incl_probable", "document_country",
+    "nationality", "nationality_source",
 ]
 
 
@@ -99,7 +101,7 @@ def ticket_rows(qs, tz=None):
             t.voucher_tag, t.age_range, _yn(t.checked_in), _dt(t.first_checkin_at, tz), _yn(t.attendee_identified),
             _yn(t.attendee_is_buyer), _yn(t.is_returning_attendee), t.attendee_previous_editions,
             t.attendee_first_seen_year or "", t.attendee_match or "unknown", _yn(t.is_returning_attendee_incl),
-            t.document_country,
+            t.document_country, t.nationality, t.nationality_source,
         ]
 
 

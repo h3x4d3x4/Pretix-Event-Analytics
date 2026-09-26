@@ -40,15 +40,19 @@ SOURCE_LABELS = {
     "paypal_account": _lazy("PayPal account"),
     "card_billing": _lazy("Card billing address"),
     "id_document": _lazy("ID document"),
-    "iban": _lazy("Bank account (IBAN)"),
-    "card_issuer": _lazy("Card's issuing bank"),
     "other_order": _lazy("Same customer's other orders"),
+    "nationality": _lazy("Buyer's nationality"),
+    "card_issuer": _lazy("Card's issuing bank"),
+    "iban": _lazy("Bank account (IBAN)"),
     "email_domain": _lazy("E-mail country domain"),
     "": _lazy("Unknown"),
 }
 COUNTRY_MODES = ("exact", "inferred", "probable")
 # Sources that describe the bank or document rather than where the buyer lives.
 INDIRECT_SOURCES = ("id_document", "iban", "card_issuer")
+INFERRED_SOURCES = ("other_order",)
+PROBABLE_SOURCES = ("nationality", "card_issuer", "iban", "email_domain")
+NATIONALITY_SOURCE_LABELS = {"question": _lazy("Nationality question"), "id_document": _lazy("Citizen ID document")}
 
 
 def _country_sources(orders, total):
@@ -64,9 +68,9 @@ def _country_sources(orders, total):
 
 
 def _tier(source: str) -> str:
-    if source == "other_order":
+    if source in INFERRED_SOURCES:
         return "inferred"
-    if source == "email_domain":
+    if source in PROBABLE_SOURCES:
         return "probable"
     return "unknown" if not source else "exact"
 
@@ -89,7 +93,8 @@ def _build(scope: ReportScope) -> Dict:
     mode = scope.params.get("countries", "exact")
     mode = mode if mode in COUNTRY_MODES else "exact"
     out["country_mode"] = mode
-    extra = {"exact": [], "inferred": ["other_order"], "probable": ["other_order", "email_domain"]}[mode]
+    extra = {"exact": [], "inferred": list(INFERRED_SOURCES),
+             "probable": list(INFERRED_SOURCES + PROBABLE_SOURCES)}[mode]
     whens = [When(~Q(country_code=""), then=F("country_code"))]
     if extra:
         whens.append(When(country_inferred_source__in=extra, then=F("country_inferred")))
@@ -116,9 +121,17 @@ def _build(scope: ReportScope) -> Dict:
     out["country_sources"] = _country_sources(orders, total)
     out["travel"] = _country_table(orders.exclude(travel_country_code=""), "travel_country_code")
     out["travel_coverage"] = pct(sum(r["n"] for r in out["travel"]), total)
-    docs = scope.admissions.exclude(document_country="")
-    out["documents"] = _country_table(docs, "document_country")
-    out["document_coverage"] = pct(sum(r["n"] for r in out["documents"]), scope.admissions.count())
+    # ── Nationality (per ticket holder; separate from residence) ─────────────
+    admissions = scope.admissions
+    n_adm = admissions.count()
+    with_nat = admissions.exclude(nationality="")
+    out["nationalities"] = _country_table(with_nat, "nationality", n=15)
+    out["nationality_known"] = with_nat.count()
+    out["nationality_coverage"] = pct(out["nationality_known"], n_adm)
+    out["nationality_sources"] = [
+        {"label": str(NATIONALITY_SOURCE_LABELS.get(r["nationality_source"], r["nationality_source"])),
+         "n": r["n"], "share": pct(r["n"], n_adm)}
+        for r in with_nat.values("nationality_source").annotate(n=Count("id")).order_by("-n")]
     local = sum(r["local"] for r in rows)
     out["local_pct"] = pct(local, total) if scope.config and scope.config.home_country else None
 

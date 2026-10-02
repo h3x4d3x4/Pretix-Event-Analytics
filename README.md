@@ -1,10 +1,18 @@
 # Pretix Event Analytics
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Pretix](https://img.shields.io/badge/Pretix-2025.x%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.1.1-green.svg)
+[![Pretix](https://img.shields.io/badge/Pretix-2026.2%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.2.1-green.svg)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://python.org)
 
 Analytics suite for [Pretix](https://pretix.eu): sales over time and against previous editions, first-timers and returning people across every edition of a recurring event, audience, tickets, check-in and refunds — without storing personal data.
+
+![Overview: this edition against the previous one, and the sales pace of every edition](https://raw.githubusercontent.com/h3x4d3x4/Pretix-Event-Analytics/main/docs/screenshots/overview.png)
+
+| Sales | Loyalty | Audience |
+|---|---|---|
+| ![Sales](https://raw.githubusercontent.com/h3x4d3x4/Pretix-Event-Analytics/main/docs/screenshots/sales.png) | ![Loyalty](https://raw.githubusercontent.com/h3x4d3x4/Pretix-Event-Analytics/main/docs/screenshots/loyalty.png) | ![Audience](https://raw.githubusercontent.com/h3x4d3x4/Pretix-Event-Analytics/main/docs/screenshots/audience.png) |
+
+<sub>Screenshots show generated demo data.</sub>
 
 ## Features
 
@@ -147,9 +155,28 @@ Check-ins are always included; the old `--checkin` flag is accepted but no longe
 
 ### 4. Optional
 
-- **Past editions:** on the series page, import attendee e-mail lists of editions that predate Pretix.
+- **Past editions:** on the series page, import attendee lists of editions that predate Pretix (a CSV with name + birth date, or a list of e-mail addresses).
 - **Questions:** in the event's Analytics settings, choose yes/no or multiple-choice questions to analyse, then resync.
 - **Targets & pace alert:** under *Goals & alerts*, set a ticket and/or revenue target to see progress next to the forecast, and optionally have e-mails sent when sales fall a chosen percentage behind the previous edition.
+
+## Theming
+
+The dashboards follow Pretix's own admin look out of the box. Every colour comes from a CSS variable
+(`--pa-surface`, `--pa-text`, `--pa-accent`, the chart series `--pa-s1` … `--pa-s7`, the heatmap ramp
+`--pa-seq-0` … `--pa-seq-6`, …; the full list with defaults is at the top of
+[`dashboard.css`](pretix_event_analytics/static/pretix_event_analytics/dashboard.css)). A theme plugin can
+restyle the analytics pages by overriding them on `:root`, e.g. from Pretix's `html_head` control signal:
+
+```css
+:root {
+  --pa-surface: #1c1917;
+  --pa-text: #f5f5f4;
+  --pa-accent: #a36e39;
+}
+```
+
+Variable names are treated as public API: they are not renamed or removed within a major version. Keep the
+chart series colour-blind safe and in a fixed order when you change them.
 
 ## Architecture
 
@@ -257,14 +284,14 @@ EventSeries (organizer)
   │         │    └─ AnalyticsAnswerFact (opt-in question answers)
   │         └─ AnalyticsIdentity (buyer-level hashes)
   └─ LegacyEdition (imported past edition)
-       └─ LegacyIdentity (hashed e-mails)
+       └─ LegacyIdentity (hashed people / e-mails)
 ```
 
 ## Development
 
 ```bash
 .venv/bin/pip install pytest pytest-django
-.venv/bin/python -m pytest            # real Pretix objects, ~80 tests
+.venv/bin/python -m pytest            # real Pretix objects, ~180 tests
 
 # Local demo data: real orders for six editions (local SQLite dev DB only)
 PRETIX_CONFIG_FILE=pretix.cfg .venv/bin/python scripts/dev_seed_orders.py --organizer <org> --i-understand-this-writes-orders

@@ -25,10 +25,10 @@ class EventSeriesForm(forms.ModelForm):
         fields = ["name", "slug"]
         widgets = {
             "name": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": _("e.g. Suti Festival")}
+                attrs={"class": "form-control", "placeholder": _("e.g. My Festival")}
             ),
             "slug": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": _("e.g. suti-festival")}
+                attrs={"class": "form-control", "placeholder": _("e.g. my-festival")}
             ),
         }
         help_texts = {
@@ -356,7 +356,7 @@ class DashboardFilterForm(forms.Form):
 class LegacyImportForm(forms.Form):
     """Upload a past attendee list; only HMAC hashes are kept."""
     label = forms.CharField(max_length=100, label=_("Edition name"),
-                            widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Suti 2019"}))
+                            widget=forms.TextInput(attrs={"class": "form-control", "placeholder": _("e.g. Festival 2019")}))
     edition_year = forms.IntegerField(min_value=1990, max_value=2100, label=_("Edition year"),
                                       widget=forms.NumberInput(attrs={"class": "form-control pa-input-sm"}))
     emails_file = forms.FileField(

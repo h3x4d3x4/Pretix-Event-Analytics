@@ -8,7 +8,7 @@ FACT_VERSION = 4
 class EventSeries(models.Model):
     """
     Groups multiple Pretix events into a named recurring series
-    (e.g. "Suti Festival" → 2022, 2023, 2024, 2026 editions).
+    (e.g. "My Festival" → 2022, 2023, 2024 editions).
     Owned at organizer level so the same organizer can manage multiple series.
     """
     organizer = models.ForeignKey(
@@ -20,7 +20,7 @@ class EventSeries(models.Model):
     slug = models.SlugField(
         max_length=200,
         verbose_name=_("Slug"),
-        help_text=_("Short unique identifier, e.g. suti-festival"),
+        help_text=_("Short unique identifier, e.g. my-festival"),
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

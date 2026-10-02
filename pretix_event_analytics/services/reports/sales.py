@@ -306,8 +306,11 @@ def _days_left(scope: ReportScope, event):
 def _pacing_notes(scope: ReportScope, events: list, window: int) -> List[Dict]:
     from ...models import SalesAnnotation
 
+    # Only this edition's and the previous edition's moments: with every edition's
+    # the chart turns into a fence of lines (the Sales page shows each edition's own).
+    shown = {scope.event.pk} | ({scope.previous_edition.pk} if scope.previous_edition else set())
     labels = {ev.pk: str(cfg.edition_year) for ev, cfg in events}
-    starts = {ev.pk: scope.local_date(ev.date_from) for ev, _c in events if ev.date_from}
+    starts = {ev.pk: scope.local_date(ev.date_from) for ev, _c in events if ev.date_from and ev.pk in shown}
     notes = []
     for a in SalesAnnotation.objects.filter(event_id__in=list(starts)).order_by("date"):
         days_before = (starts[a.event_id] - a.date).days

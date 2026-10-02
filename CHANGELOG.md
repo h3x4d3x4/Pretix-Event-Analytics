@@ -3,6 +3,19 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.2.1] — 2026-10-02
+
+No migration, no resync needed.
+
+### Changed
+- The sales-pace chart (Overview, Sales) marks only this edition's and the previous edition's moments;
+  with every edition's it became a fence of lines. Each edition's own moments stay on its Sales page.
+- Examples and placeholders are generic ("My Festival") instead of one organiser's event.
+- Requires `pretix>=2026.2` in the package metadata (it already refused older versions at runtime).
+- README: screenshots, a *Theming* section documenting the `--pa-*` CSS variables as public API,
+  current badges and import description.
+- Deployment notes for a specific installation moved out of this repository.
+
 ## [2.2.0] — 2026-09-26
 
 **Run a resync of every edition after upgrading** (data version 4). One database

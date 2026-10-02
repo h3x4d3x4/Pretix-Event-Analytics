@@ -7,10 +7,10 @@ configuration, or after updating the SECRET_SALT.
 
 Usage:
     # Single event
-    python -m pretix analytics_resync --event suti-festival-2024 --organizer suti
+    python -m pretix analytics_resync --event my-festival-2024 --organizer myorg
 
     # Full series (all editions)
-    python -m pretix analytics_resync --series suti-festival --organizer suti
+    python -m pretix analytics_resync --series my-festival --organizer myorg
 
     # All configured events (use with care on large installations)
     python -m pretix analytics_resync --all

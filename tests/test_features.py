@@ -73,6 +73,16 @@ def test_annotations_add_delete_and_markers(admin_client, make_edition, series):
     assert any(m.get("kind") == "note" and "Line-up" in m["text"] for m in markers)
     pace = ctx["data"]["pacing_tickets"].get("markers", [])
     assert any(m["x"] == -40 for m in pace)
+    # Moments of older editions stay off the pace chart; the previous edition's are shown.
+    older, prev = make_edition(2024), make_edition(2025)
+    for k in (older, prev):
+        k.order("b@example.org", days_before=30)
+        SalesAnnotation.objects.create(event=k.event, date=(k.event.date_from - datetime.timedelta(days=30)).date(),
+                                       label=f"Moment {k.event.date_from.year}")
+    resync_series(series)
+    pace = admin_client.get(_url("sales", kit)).context["data"]["pacing_tickets"].get("markers", [])
+    texts = " ".join(m["text"] for m in pace)
+    assert "2025: Moment" in texts and "2024: Moment" not in texts
     admin_client.post(_url("annotations", kit), {"delete": ann.pk})
     assert not SalesAnnotation.objects.filter(event=kit.event).exists()
     assert o  # silence unused

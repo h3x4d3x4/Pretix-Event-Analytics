@@ -273,13 +273,20 @@ def export_resale_csv(request, event):
     return _csv_response(rows(), _safe_filename(f"{event.slug}_resale", "csv"))
 
 
+def pdf_available() -> bool:
+    """The PDF report needs WeasyPrint, an optional extra (pip install "pretix-event-analytics[pdf]")."""
+    import importlib.util
+
+    return importlib.util.find_spec("weasyprint") is not None
+
+
 def export_pdf(request, event) -> HttpResponse:
-    """Printable report of every dashboard section (WeasyPrint, as used by Pretix)."""
-    try:
-        import weasyprint
-    except ImportError:
-        return HttpResponse("PDF export requires WeasyPrint. Install it with: pip install weasyprint",
-                            status=500, content_type="text/plain")
+    """Printable report of every dashboard section (WeasyPrint, an optional extra)."""
+    if not pdf_available():
+        return HttpResponse(_('The PDF report needs WeasyPrint. Install the plugin with '
+                              'pip install "pretix-event-analytics[pdf]".'),
+                            status=501, content_type="text/plain; charset=utf-8")
+    import weasyprint
 
     from .services.reports import audience, loyalty, operations, overview, sales, tickets
 
@@ -342,11 +349,11 @@ class AnalyticsTicketExporter(_AnalyticsListExporter):
         return f"{self.events.first().organizer.slug}_analytics_tickets"
 
 
-@receiver(register_data_exporters, dispatch_uid="pretix_analytics_exporter_orders")
+@receiver(register_data_exporters, dispatch_uid="pretix_event_analytics_exporter_orders")
 def register_order_exporter(sender, **kwargs):
     return AnalyticsOrderExporter
 
 
-@receiver(register_data_exporters, dispatch_uid="pretix_analytics_exporter_tickets")
+@receiver(register_data_exporters, dispatch_uid="pretix_event_analytics_exporter_tickets")
 def register_ticket_exporter(sender, **kwargs):
     return AnalyticsTicketExporter

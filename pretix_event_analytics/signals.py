@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 # ── Order lifecycle ───────────────────────────────────────────────────────────
 
-@receiver(order_paid, dispatch_uid="pretix_analytics_order_paid")
+@receiver(order_paid, dispatch_uid="pretix_event_analytics_order_paid")
 def on_order_paid(sender, order, **kwargs):
     """Queue analytics ingestion when an order is paid."""
     from .tasks import process_order_paid
@@ -47,7 +47,7 @@ def on_order_paid(sender, order, **kwargs):
         logger.exception("analytics: failed to queue order_paid task for order %s", order.pk)
 
 
-@receiver(order_canceled, dispatch_uid="pretix_analytics_order_canceled")
+@receiver(order_canceled, dispatch_uid="pretix_event_analytics_order_canceled")
 def on_order_canceled(sender, order, **kwargs):
     """Update analytics fact when an order is canceled or refunded."""
     from .tasks import process_order_canceled
@@ -67,30 +67,30 @@ def _queue_change(order_pk):
         logger.exception("analytics: failed to queue order change task for order %s", order_pk)
 
 
-@receiver(order_changed, dispatch_uid="pretix_analytics_order_changed")
+@receiver(order_changed, dispatch_uid="pretix_event_analytics_order_changed")
 def on_order_changed(sender, order, **kwargs):
     """Products/prices changed — re-ingest so ticket facts stay accurate."""
     _queue_change(order.pk)
 
 
-@receiver(order_modified, dispatch_uid="pretix_analytics_order_modified")
+@receiver(order_modified, dispatch_uid="pretix_event_analytics_order_modified")
 def on_order_modified(sender, order, **kwargs):
     """Attendee data/answers edited — re-ingest identities and demographics."""
     _queue_change(order.pk)
 
 
-@receiver(order_reactivated, dispatch_uid="pretix_analytics_order_reactivated")
+@receiver(order_reactivated, dispatch_uid="pretix_event_analytics_order_reactivated")
 def on_order_reactivated(sender, order, **kwargs):
     _queue_change(order.pk)
 
 
-@receiver(order_split, dispatch_uid="pretix_analytics_order_split")
+@receiver(order_split, dispatch_uid="pretix_event_analytics_order_split")
 def on_order_split(sender, original, split_order, **kwargs):
     _queue_change(original.pk)
     _queue_change(split_order.pk)
 
 
-@receiver(checkin_created, dispatch_uid="pretix_analytics_checkin_created")
+@receiver(checkin_created, dispatch_uid="pretix_event_analytics_checkin_created")
 def on_checkin_created(sender, checkin, **kwargs):
     """
     Recompute predictive score when an attendee checks in.
@@ -105,7 +105,7 @@ def on_checkin_created(sender, checkin, **kwargs):
         logger.exception("analytics: failed to queue checkin update")
 
 
-@receiver(periodic_task, dispatch_uid="pretix_analytics_periodic")
+@receiver(periodic_task, dispatch_uid="pretix_event_analytics_periodic")
 def on_periodic_task(sender, **kwargs):
     """
     Safety net run by Pretix's cron: resolve returning people for any series
@@ -128,7 +128,7 @@ def on_periodic_task(sender, **kwargs):
 
 # ── Pretix event dashboard ─────────────────────────────────────────────────
 
-@receiver(event_dashboard_widgets, dispatch_uid="pretix_analytics_dashboard_widgets")
+@receiver(event_dashboard_widgets, dispatch_uid="pretix_event_analytics_dashboard_widgets")
 def analytics_dashboard_widgets(sender, subevent=None, lazy=False, **kwargs):
     """
     Headline figures on Pretix's own event dashboard. Pretix only asks for
@@ -174,7 +174,7 @@ def analytics_dashboard_widgets(sender, subevent=None, lazy=False, **kwargs):
 
 # ── Navigation ────────────────────────────────────────────────────────────────
 
-@receiver(nav_event, dispatch_uid="pretix_analytics_nav_event")
+@receiver(nav_event, dispatch_uid="pretix_event_analytics_nav_event")
 def add_analytics_nav(sender, request=None, **kwargs):
     """
     Add Analytics (with one child per dashboard page) to the event sidebar.
@@ -211,7 +211,7 @@ def add_analytics_nav(sender, request=None, **kwargs):
     }]
 
 
-@receiver(nav_event_settings, dispatch_uid="pretix_analytics_nav_event_settings")
+@receiver(nav_event_settings, dispatch_uid="pretix_event_analytics_nav_event_settings")
 def add_analytics_settings_nav(sender, request=None, **kwargs):
     """
     Add the Analytics Configuration link to the event Settings sidebar tab.
@@ -242,7 +242,7 @@ def add_analytics_settings_nav(sender, request=None, **kwargs):
     ]
 
 
-@receiver(nav_organizer, dispatch_uid="pretix_analytics_nav_organizer")
+@receiver(nav_organizer, dispatch_uid="pretix_event_analytics_nav_organizer")
 def add_organizer_nav(sender, request=None, **kwargs):
     """
     Add Analytics → Series Management to the organiser sidebar.
@@ -273,7 +273,7 @@ def add_organizer_nav(sender, request=None, **kwargs):
 
 # ── Event copy ────────────────────────────────────────────────────────────────
 
-@receiver(event_copy_data, dispatch_uid="pretix_analytics_event_copy")
+@receiver(event_copy_data, dispatch_uid="pretix_event_analytics_event_copy")
 def copy_analytics_config(sender, other, question_map=None, **kwargs):
     """A copied event (usually next year's edition) joins the same series with the same
     settings. Edition year comes from the new event's date; sales targets, alert state and

@@ -24,7 +24,9 @@
           <span class="fa fa-download"></span> {% trans "Export" %} <span class="caret"></span>
         </button>
         <ul class="dropdown-menu dropdown-menu-right">
+          {% if pdf_available %}
           <li><a href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='pdf' %}{{ export_qs }}"><span class="fa fa-file-pdf-o"></span> {% trans "Report (PDF)" %}</a></li>
+          {% endif %}
           <li><a href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='csv' %}{{ export_qs }}"><span class="fa fa-file-text-o"></span> {% trans "Orders (CSV)" %}</a></li>
           <li><a href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='tickets' %}{{ export_qs }}"><span class="fa fa-file-text-o"></span> {% trans "Tickets (CSV)" %}</a></li>
           <li><a href="{% url 'plugins:pretix_event_analytics:export' organizer=request.organizer.slug event=request.event.slug kind='loyalty' %}{{ export_qs }}"><span class="fa fa-file-text-o"></span> {% trans "Returning buyers by order code (CSV)" %}</a></li>

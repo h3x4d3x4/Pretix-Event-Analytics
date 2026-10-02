@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pretix-event-analytics 2.3.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-02 10:28+0000\n"
+"POT-Creation-Date: 2026-10-02 10:53+0000\n"
 "PO-Revision-Date: 2026-10-02 11:00+0000\n"
 "Last-Translator: Hexadexa <andrei@hexadexa.dev>\n"
 "Language-Team: Hexadexa <andrei@hexadexa.dev>\n"
@@ -44,22 +44,30 @@ msgstr "primeira vez"
 msgid "unknown"
 msgstr "desconhecido"
 
-#: exporters.py:302 signals.py:203 signals.py:238
+#: exporters.py:286
+msgid ""
+"The PDF report needs WeasyPrint. Install the plugin with pip install "
+"\"pretix-event-analytics[pdf]\"."
+msgstr ""
+"O relatório em PDF precisa do WeasyPrint. Instale o plugin com pip install "
+"\"pretix-event-analytics[pdf]\"."
+
+#: exporters.py:309 signals.py:203 signals.py:238
 #: templates/pretix_event_analytics/base.html:4
 #: templates/pretix_event_analytics/base.html:11
 #: templates/pretix_event_analytics/series_detail.html:3
 msgid "Analytics"
 msgstr "Análises"
 
-#: exporters.py:309
+#: exporters.py:316
 msgid "Include canceled and refunded orders"
 msgstr "Incluir pedidos cancelados e reembolsados"
 
-#: exporters.py:321
+#: exporters.py:328
 msgid "Analytics: order facts"
 msgstr "Análises: dados de pedidos"
 
-#: exporters.py:322
+#: exporters.py:329
 msgid ""
 "One row per order with pseudonymous analytics fields (returning status, "
 "purchase timing, geography, age band). No names or e-mails."
@@ -68,11 +76,11 @@ msgstr ""
 "recorrência, momento da compra, geografia, faixa etária). Sem nomes nem "
 "e-mails."
 
-#: exporters.py:334
+#: exporters.py:341
 msgid "Analytics: ticket facts"
 msgstr "Análises: dados de bilhetes"
 
-#: exporters.py:335
+#: exporters.py:342
 msgid ""
 "One row per ticket and add-on with check-in, voucher and returning-attendee "
 "fields."
@@ -496,7 +504,7 @@ msgstr "Outro"
 #: services/reports/audience.py:119 services/reports/audience.py:120
 #: services/reports/audience.py:175 services/reports/audience.py:183
 #: services/reports/audience.py:193 services/reports/audience.py:194
-#: services/reports/loyalty.py:320 services/reports/operations.py:97
+#: services/reports/loyalty.py:320 services/reports/operations.py:98
 #: templates/pretix_event_analytics/pages/audience.html:24
 #: templates/pretix_event_analytics/pages/audience.html:37
 #: templates/pretix_event_analytics/pages/audience.html:47
@@ -697,36 +705,36 @@ msgstr "Bilhetes que mudaram de mãos"
 msgid "Share of tickets"
 msgstr "Percentagem de bilhetes"
 
-#: services/reports/operations.py:50
+#: services/reports/operations.py:51
 msgid "Returning attendees"
 msgstr "Participantes recorrentes"
 
-#: services/reports/operations.py:51 signals.py:170
+#: services/reports/operations.py:52 signals.py:170
 msgid "First-time attendees"
 msgstr "Participantes pela primeira vez"
 
-#: services/reports/operations.py:65
+#: services/reports/operations.py:66
 msgid "First entries"
 msgstr "Primeiras entradas"
 
-#: services/reports/operations.py:66
+#: services/reports/operations.py:67
 msgid "Attendees"
 msgstr "Participantes"
 
-#: services/reports/operations.py:96
+#: services/reports/operations.py:97
 msgid "Canceled orders"
 msgstr "Pedidos cancelados"
 
-#: services/reports/operations.py:97
+#: services/reports/operations.py:98
 msgid "Week of cancellation"
 msgstr "Semana do cancelamento"
 
-#: services/reports/operations.py:129 services/reports/sales.py:139
+#: services/reports/operations.py:130 services/reports/sales.py:139
 #: services/reports/sales.py:153
 msgid "First-time"
 msgstr "Estreantes"
 
-#: services/reports/operations.py:130 services/reports/sales.py:139
+#: services/reports/operations.py:131 services/reports/sales.py:139
 #: services/reports/sales.py:153
 #: templates/pretix_event_analytics/pages/audience.html:24
 #: templates/pretix_event_analytics/pages/audience.html:71
@@ -1000,50 +1008,50 @@ msgstr "Atualizado"
 msgid "Export"
 msgstr "Exportar"
 
-#: templates/pretix_event_analytics/base.html:27
+#: templates/pretix_event_analytics/base.html:28
 msgid "Report (PDF)"
 msgstr "Relatório (PDF)"
 
-#: templates/pretix_event_analytics/base.html:28
+#: templates/pretix_event_analytics/base.html:30
 msgid "Orders (CSV)"
 msgstr "Pedidos (CSV)"
 
-#: templates/pretix_event_analytics/base.html:29
+#: templates/pretix_event_analytics/base.html:31
 msgid "Tickets (CSV)"
 msgstr "Bilhetes (CSV)"
 
-#: templates/pretix_event_analytics/base.html:30
+#: templates/pretix_event_analytics/base.html:32
 msgid "Returning buyers by order code (CSV)"
 msgstr "Compradores recorrentes por código de pedido (CSV)"
 
-#: templates/pretix_event_analytics/base.html:34
+#: templates/pretix_event_analytics/base.html:36
 msgid "All editions"
 msgstr "Todas as edições"
 
-#: templates/pretix_event_analytics/base.html:36
+#: templates/pretix_event_analytics/base.html:38
 msgid "Settings"
 msgstr "Configurações"
 
-#: templates/pretix_event_analytics/base.html:41
+#: templates/pretix_event_analytics/base.html:43
 #: templates/pretix_event_analytics/config.html:27
 msgid "Re-process all orders for this event? This may take a minute."
 msgstr ""
 "Reprocessar todos os pedidos deste evento? Isto pode demorar um minuto."
 
-#: templates/pretix_event_analytics/base.html:42
+#: templates/pretix_event_analytics/base.html:44
 #: templates/pretix_event_analytics/config.html:28
 msgid "Resync"
 msgstr "Ressincronizar"
 
-#: templates/pretix_event_analytics/base.html:49
+#: templates/pretix_event_analytics/base.html:51
 msgid "Analytics sections"
 msgstr "Secções das análises"
 
-#: templates/pretix_event_analytics/base.html:57
+#: templates/pretix_event_analytics/base.html:59
 msgid "No analytics data yet."
 msgstr "Ainda não há dados de análise."
 
-#: templates/pretix_event_analytics/base.html:58
+#: templates/pretix_event_analytics/base.html:60
 msgid ""
 "New paid orders are picked up automatically. To import orders placed before "
 "the plugin was enabled, run a resync."
@@ -1051,58 +1059,58 @@ msgstr ""
 "Os novos pedidos pagos são incluídos automaticamente. Para importar pedidos "
 "feitos antes de o plugin ser ativado, execute uma ressincronização."
 
-#: templates/pretix_event_analytics/base.html:62
+#: templates/pretix_event_analytics/base.html:64
 msgid "Run initial resync"
 msgstr "Executar a ressincronização inicial"
 
-#: templates/pretix_event_analytics/base.html:78
+#: templates/pretix_event_analytics/base.html:80
 #, python-format
 msgid "%(n)s selected"
 msgid_plural "%(n)s selected"
 msgstr[0] "%(n)s selecionado"
 msgstr[1] "%(n)s selecionados"
 
-#: templates/pretix_event_analytics/base.html:78
+#: templates/pretix_event_analytics/base.html:80
 msgid "All products"
 msgstr "Todos os produtos"
 
-#: templates/pretix_event_analytics/base.html:86
+#: templates/pretix_event_analytics/base.html:88
 #, python-format
 msgid "%(n)s event"
 msgid_plural "%(n)s events"
 msgstr[0] "%(n)s evento"
 msgstr[1] "%(n)s eventos"
 
-#: templates/pretix_event_analytics/base.html:86
+#: templates/pretix_event_analytics/base.html:88
 msgid "This event"
 msgstr "Este evento"
 
-#: templates/pretix_event_analytics/base.html:92
+#: templates/pretix_event_analytics/base.html:94
 msgid "Clear"
 msgstr "Limpar"
 
-#: templates/pretix_event_analytics/base.html:93
+#: templates/pretix_event_analytics/base.html:95
 msgid "Apply"
 msgstr "Aplicar"
 
-#: templates/pretix_event_analytics/base.html:97
+#: templates/pretix_event_analytics/base.html:99
 msgid "Quick range:"
 msgstr "Intervalo rápido:"
 
-#: templates/pretix_event_analytics/base.html:101
+#: templates/pretix_event_analytics/base.html:103
 msgid "More filters"
 msgstr "Mais filtros"
 
-#: templates/pretix_event_analytics/base.html:116
+#: templates/pretix_event_analytics/base.html:118
 #: templates/pretix_event_analytics/pdf_report.html:42
 msgid "Filtered by"
 msgstr "Filtrado por"
 
-#: templates/pretix_event_analytics/base.html:118
+#: templates/pretix_event_analytics/base.html:120
 msgid "clear all"
 msgstr "limpar tudo"
 
-#: templates/pretix_event_analytics/base.html:125
+#: templates/pretix_event_analytics/base.html:127
 msgid "Back to top"
 msgstr "Voltar ao topo"
 
@@ -2978,11 +2986,6 @@ msgstr "Eliminar série"
 
 #: templates/pretix_event_analytics/series_confirm_delete.html:17
 #, python-format
-#| msgid ""
-#| "\n"
-#| "              This series is linked to %(count)s event(s). Deleting it will unlink those events\n"
-#| "              and disable cross-edition analytics. The analytics data itself will not be deleted.\n"
-#| "            "
 msgid ""
 "This series is linked to %(count)s event. Deleting it will unlink it and "
 "disable cross-edition analytics. The analytics data itself will not be "
@@ -3188,102 +3191,101 @@ msgid ""
 "Please configure analytics for this event before viewing the dashboard."
 msgstr "Configure as análises deste evento antes de abrir o painel."
 
-#: views.py:153
+#: views.py:155
 msgid "Last 7 days"
 msgstr "Últimos 7 dias"
 
-#: views.py:154
+#: views.py:156
 msgid "Last 30 days"
 msgstr "Últimos 30 dias"
 
-#: views.py:155
+#: views.py:157
 msgid "Last 90 days"
 msgstr "Últimos 90 dias"
 
-#: views.py:166
+#: views.py:168
 msgid "All time"
 msgstr "Desde sempre"
 
-#: views.py:228
+#: views.py:230
 msgid "Enter a date and a short description."
 msgstr "Introduza uma data e uma breve descrição."
 
-#: views.py:319
+#: views.py:321
 msgid "Analytics configuration saved."
 msgstr "Configurações das análises guardadas."
 
-#: views.py:322
+#: views.py:324
 msgid "Run a resync to apply the new question selection to existing orders."
 msgstr ""
 "Execute uma ressincronização para aplicar a nova seleção de perguntas aos "
 "pedidos existentes."
 
-#: views.py:341
+#: views.py:343
 #, python-format
 msgid "target %(n)s tickets"
 msgstr "objetivo: %(n)s bilhetes"
 
-#: views.py:343
+#: views.py:345
 #, python-format
 msgid "target %(n)s %(cur)s"
 msgstr "objetivo: %(n)s %(cur)s"
 
-#: views.py:345
+#: views.py:347
 #, python-format
 msgid "alert at %(n)s%% behind"
 msgstr "alerta a %(n)s%% abaixo"
 
-#: views.py:346
+#: views.py:348
 msgid "Not set"
 msgstr "Não definido"
 
-#: views.py:351
+#: views.py:353
 #, python-format
 msgid "%(n)s question analysed"
 msgid_plural "%(n)s questions analysed"
 msgstr[0] "%(n)s pergunta analisada"
 msgstr[1] "%(n)s perguntas analisadas"
 
-#: views.py:352
+#: views.py:354
 msgid "None selected"
 msgstr "Nenhuma selecionada"
 
-#: views.py:355
-#| msgid "ID-document country on"
+#: views.py:357
 msgid "ID-document country: on"
 msgstr "País do documento de identificação: ativado"
 
-#: views.py:356
+#: views.py:358
 msgid "Automatic"
 msgstr "Automático"
 
-#: views.py:408
+#: views.py:410
 #, python-format
 msgid "Series \"%s\" created."
 msgstr "Série \"%s\" criada."
 
-#: views.py:413
+#: views.py:415
 msgid "Create series"
 msgstr "Criar série"
 
-#: views.py:438
+#: views.py:440
 msgid "Series updated."
 msgstr "Série atualizada."
 
-#: views.py:443
+#: views.py:445
 msgid "Edit series"
 msgstr "Editar série"
 
-#: views.py:460
+#: views.py:462
 #, python-format
 msgid "Series \"%s\" deleted."
 msgstr "Série \"%s\" eliminada."
 
-#: views.py:491
+#: views.py:493
 msgid "You need order access to every edition of this series."
 msgstr "Precisa de acesso aos pedidos de todas as edições desta série."
 
-#: views.py:545
+#: views.py:547
 #, python-format
 msgid ""
 "Imported %(n)s people (name + birth date) into “%(label)s”. The list itself "
@@ -3292,7 +3294,7 @@ msgstr ""
 "Foram importadas %(n)s pessoas (nome + data de nascimento) para “%(label)s”."
 " A lista em si não foi guardada."
 
-#: views.py:547
+#: views.py:549
 #, python-format
 msgid ""
 "Imported %(n)s unique addresses into “%(label)s”. The list itself was not "
@@ -3301,34 +3303,34 @@ msgstr ""
 "Foram importados %(n)s endereços únicos para “%(label)s”. A lista em si não "
 "foi guardada."
 
-#: views.py:562
+#: views.py:564
 msgid "Legacy edition removed."
 msgstr "Edição anterior removida."
 
-#: views.py:576
+#: views.py:578
 msgid ""
 "A resync for this series was started recently. Please wait a few minutes."
 msgstr ""
 "Foi iniciada recentemente uma ressincronização desta série. Aguarde alguns "
 "minutos."
 
-#: views.py:581
+#: views.py:583
 msgid "Series resync queued. Figures update when it finishes."
 msgstr ""
 "Ressincronização da série em fila de espera. Os valores serão atualizados "
 "quando terminar."
 
-#: views.py:629
+#: views.py:631
 msgid "Please wait a moment before triggering another resync."
 msgstr "Aguarde um momento antes de iniciar outra ressincronização."
 
-#: views.py:635
+#: views.py:637
 msgid "A resync is already running for this event. Please wait a few minutes."
 msgstr ""
 "Já está a decorrer uma ressincronização para este evento. Aguarde alguns "
 "minutos."
 
-#: views.py:640
+#: views.py:642
 msgid "Analytics resync queued. The dashboard will update shortly."
 msgstr ""
 "Ressincronização das análises em fila de espera. O painel será atualizado em"

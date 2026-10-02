@@ -137,9 +137,21 @@ def test_csv_exports(admin_client, populated, kind):
 
 def test_pdf_export(admin_client, populated):
     pytest.importorskip("weasyprint")
+    page = admin_client.get(_url("dashboard", populated)).content.decode()
+    assert "kind=pdf" in page or "/export/pdf/" in page
     r = admin_client.get(_url("export", populated, kind="pdf"))
     assert r.status_code == 200
     assert r.content[:4] == b"%PDF"
+
+
+def test_pdf_export_hidden_without_weasyprint(admin_client, populated, monkeypatch):
+    # pretix does not ship WeasyPrint: no menu entry, and a clear answer instead of a crash.
+    from pretix_event_analytics import exporters
+    monkeypatch.setattr(exporters, "pdf_available", lambda: False)
+    page = admin_client.get(_url("dashboard", populated)).content.decode()
+    assert "/export/pdf/" not in page
+    r = admin_client.get(_url("export", populated, kind="pdf"))
+    assert r.status_code == 501 and b"pretix-event-analytics[pdf]" in r.content
 
 
 def test_pretix_exporter_registered(populated):

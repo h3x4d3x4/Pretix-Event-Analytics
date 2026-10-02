@@ -8,6 +8,7 @@ from typing import Dict
 
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncHour, TruncWeek
+from django.utils.formats import date_format
 from django.utils.translation import gettext as _
 
 from ...models import AnalyticsAnswerFact
@@ -61,7 +62,7 @@ def _checkin(scope: ReportScope) -> Dict:
         while cur <= last:
             hours.append(cur)
             cur += datetime.timedelta(hours=1)
-        out["arrivals_chart"] = spec("bar", [scope.local(h).strftime("%a %H:00") for h in hours],
+        out["arrivals_chart"] = spec("bar", [date_format(scope.local(h), "D H:00") for h in hours],
                                      [serie(_("First entries"), [counts.get(h, 0) for h in hours])],
                                      y_title=_("Attendees"))
     return out

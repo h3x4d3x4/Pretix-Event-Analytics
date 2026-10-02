@@ -1,7 +1,7 @@
 # Pretix Event Analytics
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Pretix](https://img.shields.io/badge/Pretix-2026.2%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.3.1-green.svg)
+[![Pretix](https://img.shields.io/badge/Pretix-2026.2%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.3.2-green.svg)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://python.org)
 
 Analytics suite for [Pretix](https://pretix.eu): sales over time and against previous editions, first-timers and returning people across every edition of a recurring event, audience, tickets, check-in and refunds — without storing personal data.
@@ -28,7 +28,7 @@ Analytics suite for [Pretix](https://pretix.eu): sales over time and against pre
 - **Resale** — one "changed hands" figure combining TicketSwap resales (read from the TicketSwap plugin, when installed) and manual name changes, counted once per ticket; breakdown by channel, product and current holder; per month and per edition; order codes as CSV.
 - **Series overview** (organizer level) — every edition side by side, edition flow and first-timer cohorts, plus **import of past attendee lists** — a CSV with name + birth date (people) or any file with e-mail addresses (customers) — so visitors from before Pretix count as returning. Only hashes are kept.
 - **Languages** — English, German and Portuguese (Portugal); each user sees their pretix language.
-- **Exports** — orders, tickets and "returning buyers by order code" as CSV (respecting filters), a full PDF report, and two exporters in Pretix's own *Export* menu (CSV/Excel).
+- **Exports** — orders, tickets and "returning buyers by order code" as CSV (respecting filters), a full PDF report (optional, see *Installation*), and two exporters in Pretix's own *Export* menu (CSV/Excel).
 
 ### How returning people are detected
 
@@ -82,9 +82,9 @@ notice first.
 
 | Component | Version |
 |-----------|---------|
-| Pretix    | 2026.2 or later (tested on 2026.2.0, 2026.3.1 and 2026.7.0) |
+| Pretix    | 2026.2 or later (tested on 2026.2.0, 2026.3.1, 2026.7.0 and 2026.8.0) |
 | Python    | 3.10, 3.11, or 3.12 |
-| Django    | 4.2 LTS (ships with Pretix) |
+| Django    | 4.2 or 5.2, whichever your Pretix ships |
 | Redis     | Recommended (for caching and Celery task queue) |
 
 ## Installation
@@ -108,6 +108,10 @@ python -m pretix migrate
 pip install pretix-event-analytics
 python -m pretix migrate
 ```
+
+The PDF report needs WeasyPrint, which pretix does not ship. To get it, install
+`pip install "pretix-event-analytics[pdf]"` instead (WeasyPrint also needs the Pango
+system libraries). Without it, the PDF entry simply doesn't appear in the Export menu.
 
 ### Enable the plugin
 
@@ -294,11 +298,20 @@ EventSeries (organizer)
 
 ```bash
 .venv/bin/pip install pytest pytest-django
-.venv/bin/python -m pytest            # real Pretix objects, ~180 tests
+.venv/bin/python -m pytest            # real Pretix objects, ~190 tests
+flake8 && isort --check-only .        # style (config in setup.cfg)
+
+# Translations: after changing strings, extract, translate locale/<lang>/LC_MESSAGES/django.po,
+# then compile (building the package also compiles them when GNU gettext is installed)
+cd pretix_event_analytics && PRETIX_CONFIG_FILE=../pretix.cfg ../.venv/bin/python -m django makemessages -l de -l pt_PT --no-obsolete --settings=pretix.settings
+msgfmt --check -o locale/de/LC_MESSAGES/django.mo locale/de/LC_MESSAGES/django.po   # same for pt_PT
 
 # Local demo data: real orders for six editions (local SQLite dev DB only)
 PRETIX_CONFIG_FILE=pretix.cfg .venv/bin/python scripts/dev_seed_orders.py --organizer <org> --i-understand-this-writes-orders
 PRETIX_CONFIG_FILE=pretix.cfg .venv/bin/python -m pretix analytics_resync --organizer <org> --all
+
+# Or fake analytics rows only, without orders (dev only; removed by a resync)
+PRETIX_CONFIG_FILE=pretix.cfg .venv/bin/python scripts/generate_test_data.py --organizer <org> --event <event>
 ```
 
 ## Verifying a build

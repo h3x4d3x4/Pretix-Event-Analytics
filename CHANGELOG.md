@@ -3,6 +3,24 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.3.2] — 2026-10-02
+
+No migration, no resync needed. Brings the plugin in line with pretix's plugin quality checklist.
+
+### Fixed
+- **PDF report** on installs without WeasyPrint (pretix does not ship it): the Export menu offered
+  it and the download failed. The entry now appears only when WeasyPrint is installed; the extra
+  `pip install "pretix-event-analytics[pdf]"` adds it.
+- Check-in arrival chart: weekday names follow the user's language (were always English).
+
+### Changed
+- Tested with pretix 2026.8.0 / Django 5.2 (full test suite; all migrations on a fresh database,
+  reversible, no model drift) as well as pretix 2026.2.0 / Django 4.2.
+- Building the package compiles the translations from their `.po` sources (GNU gettext `msgfmt`,
+  with placeholder checks); the committed `.mo` files remain as a fallback.
+- Signal receiver IDs carry the full plugin name (`pretix_event_analytics_…`).
+- The translation test compares content instead of file times (failed on fresh git checkouts).
+
 ## [2.3.1] — 2026-10-02
 
 No migration, no resync needed.

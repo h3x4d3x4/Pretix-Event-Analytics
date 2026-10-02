@@ -115,7 +115,9 @@ class AnalyticsPageView(EventPermissionRequiredMixin, TemplateView):
         can_resync = request.user.has_event_permission(request.organizer, request.event,
                                                        CHANGE_EVENT_SETTINGS, request)
         facts = AnalyticsOrderFact.objects.filter(event=request.event)
+        from .exporters import pdf_available
         ctx.update({
+            "pdf_available": pdf_available(),
             "scope": scope,
             "config": scope.config,
             "filter_form": scope.form,

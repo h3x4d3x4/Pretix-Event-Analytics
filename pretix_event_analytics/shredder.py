@@ -73,6 +73,6 @@ class AnalyticsDataShredder(BaseDataShredder):
             progress_callback(100)
 
 
-@receiver(register_data_shredders, dispatch_uid="pretix_analytics_shredder")
+@receiver(register_data_shredders, dispatch_uid="pretix_event_analytics_shredder")
 def register_shredder(sender, **kwargs):
     return AnalyticsDataShredder

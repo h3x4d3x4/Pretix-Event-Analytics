@@ -3,6 +3,10 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+- Python 3.13 listed as supported (the pretix 2026.8 image uses it; test suite green there).
+
 ## [2.3.2] — 2026-10-02
 
 No migration, no resync needed. Brings the plugin in line with pretix's plugin quality checklist.

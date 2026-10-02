@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Pretix](https://img.shields.io/badge/Pretix-2026.2%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.3.2-green.svg)
-[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10%20–%203.13-blue.svg)](https://python.org)
 
 Analytics suite for [Pretix](https://pretix.eu): sales over time and against previous editions, first-timers and returning people across every edition of a recurring event, audience, tickets, check-in and refunds — without storing personal data.
 
@@ -83,7 +83,7 @@ notice first.
 | Component | Version |
 |-----------|---------|
 | Pretix    | 2026.2 or later (tested on 2026.2.0, 2026.3.1, 2026.7.0 and 2026.8.0) |
-| Python    | 3.10, 3.11, or 3.12 |
+| Python    | 3.10 – 3.13 (3.13 is what the pretix 2026.8 image ships) |
 | Django    | 4.2 or 5.2, whichever your Pretix ships |
 | Redis     | Recommended (for caching and Celery task queue) |
 

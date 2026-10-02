@@ -2,7 +2,6 @@
 import datetime
 
 import pytest
-
 from conftest import make_team
 from django.test import RequestFactory
 from django.utils import timezone

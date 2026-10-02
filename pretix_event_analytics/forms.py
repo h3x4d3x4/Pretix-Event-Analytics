@@ -7,8 +7,8 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from pretix.base.forms.widgets import DatePickerWidget
 
-from .models import EventAnalyticsConfig, EventSeries
 from ._compat import VIEW_ORDERS
+from .models import EventAnalyticsConfig, EventSeries
 
 
 def _country_choices():
@@ -208,7 +208,6 @@ PROVIDER_LABELS = {
 
 def provider_label(identifier: str) -> str:
     return str(PROVIDER_LABELS.get(identifier, identifier.replace("_", " ").title()))
-
 
 
 class DashboardFilterForm(forms.Form):

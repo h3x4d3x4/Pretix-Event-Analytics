@@ -76,15 +76,16 @@ def order_time(rng, open_date, event_dt, now):
         days = window - rng.randint(8, 45)
     else:
         days = window - rng.randint(0, 7)
+    hour_weights = [1, 1, 1, 1, 1, 1, 2, 3, 4, 6, 7, 8, 9, 8, 8, 8, 8, 9, 10, 11, 12, 10, 6, 3]
     t = dt.datetime.combine(open_date + dt.timedelta(days=max(0, min(days, window))),
-                            dt.time(rng.choices(range(24), weights=[1, 1, 1, 1, 1, 1, 2, 3, 4, 6, 7, 8, 9, 8, 8, 8, 8,
-                                                                     9, 10, 11, 12, 10, 6, 3])[0], rng.randint(0, 59)),
+                            dt.time(rng.choices(range(24), weights=hour_weights)[0], rng.randint(0, 59)),
                             tzinfo=dt.timezone.utc)
     return t if t < now else None
 
 
 def ensure_event(org, series, year, date_from, open_date):
     from pretix.base.models import Event, Question
+
     from pretix_event_analytics.models import EventAnalyticsConfig
 
     slug = f"suti-festival-{year}"
@@ -137,9 +138,7 @@ def ensure_event(org, series, year, date_from, open_date):
 
 
 def seed_edition(event, people, attended_before, n_people, rng, now, open_date):
-    from pretix.base.models import (
-        Checkin, InvoiceAddress, Order, OrderPayment, OrderRefund, Voucher,
-    )
+    from pretix.base.models import Checkin, InvoiceAddress, Order, OrderPayment, OrderRefund, Voucher
 
     items = {str(i.name): i for i in event.items.all()}
     fp, vip, day, van, parking = (items["Festival Pass"], items["VIP Pass"], items["Day Pass"],
@@ -255,6 +254,7 @@ def seed_edition(event, people, attended_before, n_people, rng, now, open_date):
 def add_extras(event, rng, now):
     """Idempotent demo extras: a capacity quota, timeline notes, abandoned orders."""
     from pretix.base.models import Order, OrderPayment
+
     from pretix_event_analytics.models import SalesAnnotation
 
     items = {str(i.name): i for i in event.items.all()}
@@ -300,6 +300,7 @@ def main():
         sys.exit("Refusing: pass --i-understand-this-writes-orders and use a local SQLite dev database.")
 
     from pretix.base.models import Order, Organizer
+
     from pretix_event_analytics.models import EventSeries
 
     rng = random.Random(args.seed)

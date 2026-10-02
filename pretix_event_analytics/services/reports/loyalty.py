@@ -135,7 +135,7 @@ def _focus(att: Attendance, focus: str) -> Dict:
         "unidentified": unidentified,
         "coverage_pct": pct(identified, identified + unidentified) if unidentified else 100.0,
         "previous_chart": spec("bar", labels, [serie(_("People"), values)], y_title=_("People")),
-        "previous_table": [{"label": l, "count": v, "share": pct(v, identified)} for l, v in zip(labels, values)],
+        "previous_table": [{"label": lab, "count": v, "share": pct(v, identified)} for lab, v in zip(labels, values)],
     }
 
 
@@ -177,7 +177,7 @@ def _frequency(att: Attendance, selected: List[str], by_key, editions) -> Dict:
         "attended_all": all_of_them,
         "frequency_chart": spec("bar", labels, [serie(_("People"), values)], y_title=_("People"),
                                 x_title=_("Editions attended (of those selected)")),
-        "frequency_table": [{"label": l, "count": v, "share": pct(v, len(union))} for l, v in zip(labels, values)],
+        "frequency_table": [{"label": lab, "count": v, "share": pct(v, len(union))} for lab, v in zip(labels, values)],
         "overlap": matrix,
         "combos": combo_rows,
         "combos_hidden": max(0, len(set(memberships.values())) - MAX_COMBOS),

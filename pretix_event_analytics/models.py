@@ -395,7 +395,7 @@ class AnalyticsIdentity(models.Model):
     # Buyer level: 'email', 'stripe_card', 'paypal_payer', 'bank_iban'.
     # Ticket level: 'email', 'nm_dob', 'fl_dob', 'nm', 'fl' (services.identity_keys).
     identity_type = models.CharField(max_length=32, db_index=True)
-    
+
     # HMAC-SHA256 representation of the value — NO PII STORED
     identity_hash = models.CharField(max_length=64, db_index=True)
 

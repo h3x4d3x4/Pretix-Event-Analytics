@@ -56,7 +56,6 @@ from django.utils import timezone
 
 from ...models import FACT_VERSION
 
-
 # ── Fake data pools ───────────────────────────────────────────────────────────
 
 COUNTRIES = [
@@ -76,7 +75,7 @@ TICKET_TYPES = [
     {"name": "General Admission", "price": Decimal("89.00"), "weight": 60},
     {"name": "VIP Weekend Pass",   "price": Decimal("180.00"), "weight": 15},
     {"name": "Day Pass — Friday",  "price": Decimal("45.00"),  "weight": 10},
-    {"name": "Day Pass — Saturday","price": Decimal("45.00"),  "weight": 10},
+    {"name": "Day Pass — Saturday", "price": Decimal("45.00"),  "weight": 10},
     {"name": "Workshop Pass",      "price": Decimal("35.00"),  "weight": 5},
 ]
 
@@ -98,6 +97,7 @@ CITIES_BY_COUNTRY = {
     "NL": ["Amsterdam", "Rotterdam", "Den Haag", "", ""],
     "IT": ["Roma", "Milano", "Napoli", "", ""],
 }
+
 
 def _weighted_choice(pool, rng):
     """Pick a value from [(value, weight), ...] using weights."""
@@ -184,17 +184,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self._assert_safe_to_run(options)
-        from pretix.base.models import Event, Organizer
-
-        from ...models import (
-            AnalyticsOrderFact,
-            AnalyticsTicketFact,
-            EventAnalyticsConfig,
-            EventSeries,
-        )
-
         # ── Resolve organizer + event ─────────────────────────────────────────
         from django_scopes import scopes_disabled
+        from pretix.base.models import Event, Organizer
+
+        from ...models import AnalyticsOrderFact, AnalyticsTicketFact, EventAnalyticsConfig, EventSeries
 
         try:
             organizer = Organizer.objects.get(slug=options["organizer"])

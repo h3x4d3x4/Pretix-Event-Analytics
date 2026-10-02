@@ -122,12 +122,11 @@ def test_placeholder_identity_on_many_tickets_stays_unknown(make_edition, series
     assert {t.attendee_match for t in tickets} == {""}
 
 
-
 # ── Legacy lists with name + birth date ───────────────────────────────────────
 
 def test_legacy_csv_with_names_marks_ticket_holders_returning(make_edition, series):
-    from pretix_event_analytics.services.legacy import _count, import_legacy_list
     from pretix_event_analytics.models import LegacyEdition
+    from pretix_event_analytics.services.legacy import _count, import_legacy_list
 
     e26 = make_edition(2026)
     back = e26.order("x@example.org", [{"item": e26.ga, "attendee_name": "Inês Carvalho", "birth": "1994-10-03"}])

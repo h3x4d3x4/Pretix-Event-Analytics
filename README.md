@@ -211,9 +211,11 @@ These are standard Pretix team permissions.
 ## Safety Guarantee: Read-Only Against the Ticketing Database
 
 This plugin is an analytics overlay. It reads Pretix orders, positions,
-answers, payments, refunds and check-ins — it **never writes** to any
-Pretix core table. All persistence happens in the plugin's own analytics
-tables (`AnalyticsOrderFact`, `AnalyticsTicketFact`, `AnalyticsIdentity`,
+answers, payments, refunds and check-ins — it **never writes** ticketing
+data. Its only write outside its own tables is Pretix's activity log, where
+admin actions (settings changes, resyncs, series changes, list imports) are
+recorded without personal data. All other persistence happens in the
+plugin's own analytics tables (`AnalyticsOrderFact`, `AnalyticsTicketFact`, `AnalyticsIdentity`,
 `AnalyticsAnswerFact`, `EventSeries`, `EventAnalyticsConfig`,
 `LegacyEdition`, `LegacyIdentity`).
 
@@ -224,7 +226,7 @@ The invariant is enforced two ways:
    `.update()`, `.bulk_create()`, `.bulk_update()`, or `.raw()` call
    targeting a Pretix core model and exits non-zero if it finds one. Run
    it any time; it requires no database and no Django setup.
-2. **Signal-path discipline** — signal handlers do zero DB work inline;
+2. **Signal-path discipline** — order and check-in signal handlers do zero DB work inline;
    they dispatch a Celery task. All task code is read-only against
    `pretix.base.models.*`. Failures in analytics never block, delay, or
    roll back a ticket checkout or payment.
@@ -320,6 +322,10 @@ See [ROADMAP.md](ROADMAP.md).
 
 Releases follow [Semantic Versioning](https://semver.org). See
 [CHANGELOG.md](CHANGELOG.md) for the history of user-visible changes.
+
+## Security
+
+Please report vulnerabilities privately to andrei@hexadexa.dev — see [SECURITY.md](SECURITY.md).
 
 ## License
 

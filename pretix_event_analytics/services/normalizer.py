@@ -28,24 +28,12 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
 from .age_bucketer import (
-    _age_to_bucket,
-    _is_birth_question,
-    _parse_birthdate,
-    age_on,
-    is_age_confirm_question,
-    parse_yes_no,
-    resolve_age_confirmed,
-    resolve_age_range,
+    _age_to_bucket, _is_birth_question, _parse_birthdate, age_on, is_age_confirm_question, parse_yes_no,
+    resolve_age_confirmed, resolve_age_range,
 )
 from .country_resolver import (
-    derived_country,
-    last_confirmed_payment,
-    resolve_city_and_postal,
-    email_domain_country,
-    resolve_bank_country,
-    resolve_country_source,
-    resolve_nationality,
-    resolve_travel_country,
+    derived_country, email_domain_country, last_confirmed_payment, resolve_bank_country, resolve_city_and_postal,
+    resolve_country_source, resolve_nationality, resolve_travel_country,
 )
 from .hash_service import generate_repeat_hash
 from .identity_keys import CERTAIN_TYPES, person_keys

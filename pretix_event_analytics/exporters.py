@@ -22,7 +22,6 @@ from django.dispatch import receiver
 from django.http import HttpResponse, StreamingHttpResponse
 from django.template.loader import render_to_string
 from django.utils.translation import gettext as _, gettext_lazy
-
 from pretix.base.exporter import ListExporter
 from pretix.base.signals import register_data_exporters
 

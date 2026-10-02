@@ -6,8 +6,7 @@ from typing import Dict
 
 import pycountry
 from django.db.models import Avg, Case, CharField, Count, F, Min, Q, Sum, Value, When
-from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy as _lazy
+from django.utils.translation import gettext as _, gettext_lazy as _lazy
 
 from ...forms import AGE_BUCKETS, provider_label
 from .charts import fold_other, serie, spec
@@ -158,7 +157,7 @@ def _build(scope: ReportScope) -> Dict:
     if ages:
         labels = [a for a in AGE_BUCKETS if a in ages]
         known = sum(ages.values())
-        out["age_chart"] = spec("bar", [l.replace("-", "–") for l in labels],
+        out["age_chart"] = spec("bar", [label.replace("-", "–") for label in labels],
                                 [serie(_("Share"), [round(ages[a] / known * 100, 1) for a in labels])],
                                 fmt="percent", y_title=_("Share of %(basis)s with a known age") % {"basis": basis})
         out["ages"] = [{"label": a.replace("-", "–"), "count": ages[a], "pct": round(ages[a] / known * 100, 1)}

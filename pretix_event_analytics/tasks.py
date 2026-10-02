@@ -116,8 +116,8 @@ def process_checkin_created(self, order_pk: int, attempt: int = 0):
 
     from .models import AnalyticsOrderFact, AnalyticsTicketFact
     from .services.ingest import load_checkins
-    from .services.predictor import score_from_fact
     from .services.people import schedule_recompute
+    from .services.predictor import score_from_fact
     from .services.resync_service import is_resync_in_progress
 
     with scopes_disabled():

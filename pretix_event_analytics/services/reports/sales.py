@@ -12,9 +12,7 @@ from statistics import mean
 from typing import Dict, List
 
 from django.db.models import Count, Sum
-from django.db.models.functions import (
-    Coalesce, ExtractHour, ExtractIsoWeekDay, TruncDay, TruncMonth, TruncWeek,
-)
+from django.db.models.functions import Coalesce, ExtractHour, ExtractIsoWeekDay, TruncDay, TruncMonth, TruncWeek
 from django.utils.translation import gettext as _
 
 from .charts import OTHER_SLOT, assign_slots, serie, spec

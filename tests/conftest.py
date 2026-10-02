@@ -141,6 +141,7 @@ class EventKit:
 def make_edition(organizer, series):
     """make_edition(2024) → EventKit for a configured edition of the series."""
     from pretix.base.models import Event
+
     from pretix_event_analytics.models import EventAnalyticsConfig
 
     def _make(year, *, in_series=True, date=None):

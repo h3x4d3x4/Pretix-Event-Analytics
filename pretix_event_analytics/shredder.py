@@ -17,7 +17,6 @@ from typing import List, Tuple
 
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
-
 from pretix.base.shredder import BaseDataShredder
 from pretix.base.signals import register_data_shredders
 

@@ -20,18 +20,12 @@ import logging
 
 from django.dispatch import receiver
 from django.urls import reverse
-
 from pretix.base.signals import (
-    periodic_task,
-    checkin_created,
-    order_canceled,
-    order_changed,
-    order_modified,
-    order_paid,
-    order_reactivated,
-    order_split,
+    checkin_created, event_copy_data, order_canceled, order_changed, order_modified, order_paid, order_reactivated,
+    order_split, periodic_task,
 )
 from pretix.control.signals import event_dashboard_widgets, nav_event, nav_event_settings, nav_organizer
+
 from ._compat import CHANGE_EVENT_SETTINGS, CHANGE_ORGANIZER_SETTINGS, VIEW_ORDERS
 
 logger = logging.getLogger(__name__)
@@ -275,3 +269,68 @@ def add_organizer_nav(sender, request=None, **kwargs):
             "active": "analytics/series" in request.path,
         }
     ]
+
+
+# ── Event copy ────────────────────────────────────────────────────────────────
+
+@receiver(event_copy_data, dispatch_uid="pretix_analytics_event_copy")
+def copy_analytics_config(sender, other, question_map=None, **kwargs):
+    """A copied event (usually next year's edition) joins the same series with the same
+    settings. Edition year comes from the new event's date; sales targets, alert state and
+    moments belong to one edition and are not copied."""
+    from .models import EventAnalyticsConfig
+
+    src = EventAnalyticsConfig.objects.filter(event=other).first()
+    if src is None:
+        return
+    question_map = question_map or {}
+
+    def mapped(qid):
+        q = question_map.get(qid)
+        return q.pk if q is not None else None
+
+    EventAnalyticsConfig.objects.update_or_create(event=sender, defaults={
+        "series": src.series,
+        "edition_year": sender.date_from.year if sender.date_from else src.edition_year + 1,
+        "home_country": src.home_country,
+        "is_active": src.is_active,
+        "tracked_question_ids": [m for m in (mapped(q) for q in src.tracked_question_ids or []) if m],
+        "id_question_id": mapped(src.id_question_id) if src.id_question_id else None,
+        "pace_alert_threshold": src.pace_alert_threshold,
+        "pace_alert_recipients": src.pace_alert_recipients,
+    })
+
+
+# ── Activity log ──────────────────────────────────────────────────────────────
+# Admin actions appear in pretix's event / organizer log. Entries carry settings and
+# counts only — never personal data. (The log is pretix's own table; ticketing data is
+# still never written.)
+
+from django.utils.translation import gettext_lazy  # noqa: E402
+from pretix.base.logentrytype_registry import LogEntryType, log_entry_types  # noqa: E402
+from pretix.base.logentrytypes import EventLogEntryType  # noqa: E402
+
+
+@log_entry_types.new_from_dict({
+    "pretix_event_analytics.config.changed": gettext_lazy("Analytics settings were changed."),
+    "pretix_event_analytics.resync": gettext_lazy("An analytics resync was started."),
+    "pretix_event_analytics.moment.added": gettext_lazy("A sales moment was added to the analytics timeline: {label}"),
+    "pretix_event_analytics.moment.deleted": gettext_lazy("A sales moment was removed from the analytics timeline: {label}"),
+})
+class AnalyticsEventLogEntryType(EventLogEntryType):
+    pass
+
+
+@log_entry_types.new_from_dict({
+    "pretix_event_analytics.series.added": gettext_lazy("Analytics series “{name}” was created."),
+    "pretix_event_analytics.series.changed": gettext_lazy("Analytics series “{name}” was changed."),
+    "pretix_event_analytics.series.deleted": gettext_lazy("Analytics series “{name}” was deleted."),
+    "pretix_event_analytics.series.resync": gettext_lazy("A resync of analytics series “{name}” was started."),
+    "pretix_event_analytics.legacy.imported": gettext_lazy(
+        "Past attendee list “{label}” ({year}) was imported into analytics series “{series}”: {count} entries, "
+        "stored as hashes only."),
+    "pretix_event_analytics.legacy.deleted": gettext_lazy(
+        "Past attendee list “{label}” was removed from analytics series “{series}”."),
+})
+class AnalyticsOrganizerLogEntryType(LogEntryType):
+    pass

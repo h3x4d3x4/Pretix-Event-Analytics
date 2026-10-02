@@ -13,10 +13,10 @@ from zoneinfo import ZoneInfo
 
 from django.db.models import Q, QuerySet
 
+from ..._compat import VIEW_ORDERS
 from ...forms import DashboardFilterForm
 from ...models import AnalyticsOrderFact, AnalyticsTicketFact, EventAnalyticsConfig
 from ..versioning import cached
-from ..._compat import VIEW_ORDERS
 
 
 def pct(part, whole, digits=1) -> float:

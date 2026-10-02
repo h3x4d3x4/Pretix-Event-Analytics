@@ -352,7 +352,7 @@ class EventConfigView(EventPermissionRequiredMixin, FormView):
                                     if n else gettext("None selected"))
         ctx["origin_open"] = bool(form.errors.get("id_question"))
         ctx["origin_questions"] = _origin_questions(self.request.event)
-        ctx["origin_summary"] = (gettext("ID-document country on") if cfg.id_question_id
+        ctx["origin_summary"] = (gettext("ID-document country: on") if cfg.id_question_id
                                  else gettext("Automatic"))
         return ctx
 

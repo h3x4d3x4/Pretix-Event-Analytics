@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pretix-event-analytics 2.3.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-02 10:10+0000\n"
+"POT-Creation-Date: 2026-10-02 10:28+0000\n"
 "PO-Revision-Date: 2026-10-02 10:30+0000\n"
 "Last-Translator: Hexadexa <andrei@hexadexa.dev>\n"
 "Language-Team: Hexadexa <andrei@hexadexa.dev>\n"
@@ -24,8 +24,8 @@ msgstr "Event Analytics"
 
 #: __init__.py:16
 msgid ""
-"Analytics suite: sales against previous editions, first-timers and returning "
-"people across every edition, audience, tickets, check-in and refunds — "
+"Analytics suite: sales against previous editions, first-timers and returning"
+" people across every edition, audience, tickets, check-in and refunds — "
 "without storing personal data."
 msgstr ""
 "Analyse-Suite: Verkäufe im Vergleich zu früheren Ausgaben, "
@@ -65,8 +65,8 @@ msgid ""
 "One row per order with pseudonymous analytics fields (returning status, "
 "purchase timing, geography, age band). No names or e-mails."
 msgstr ""
-"Eine Zeile pro Bestellung mit pseudonymen Analysefeldern (Wiederkehr-Status, "
-"Kaufzeitpunkt, Herkunft, Altersgruppe). Keine Namen oder E-Mail-Adressen."
+"Eine Zeile pro Bestellung mit pseudonymen Analysefeldern (Wiederkehr-Status,"
+" Kaufzeitpunkt, Herkunft, Altersgruppe). Keine Namen oder E-Mail-Adressen."
 
 #: exporters.py:334
 msgid "Analytics: ticket facts"
@@ -196,8 +196,8 @@ msgstr "Bestellt ab"
 msgid "Ordered until"
 msgstr "Bestellt bis"
 
-#: forms.py:231 services/reports/loyalty.py:259 services/reports/loyalty.py:267
-#: services/reports/scope.py:208
+#: forms.py:231 services/reports/loyalty.py:259
+#: services/reports/loyalty.py:267 services/reports/scope.py:208
 #: templates/pretix_event_analytics/pages/audience.html:24
 #: templates/pretix_event_analytics/pages/audience.html:47
 #: templates/pretix_event_analytics/pages/sales.html:20
@@ -209,8 +209,8 @@ msgstr "Land"
 msgid "All ages"
 msgstr "Alle Altersgruppen"
 
-#: forms.py:237 services/reports/loyalty.py:260 services/reports/loyalty.py:268
-#: services/reports/scope.py:210
+#: forms.py:237 services/reports/loyalty.py:260
+#: services/reports/loyalty.py:268 services/reports/scope.py:210
 #: templates/pretix_event_analytics/pages/audience.html:82
 msgid "Age"
 msgstr "Alter"
@@ -932,7 +932,8 @@ msgstr "Analytics-Reihe „{name}“ wurde gelöscht."
 #: signals.py:328
 #, python-brace-format
 msgid "A resync of analytics series “{name}” was started."
-msgstr "Eine Neusynchronisierung der Analytics-Reihe „{name}“ wurde gestartet."
+msgstr ""
+"Eine Neusynchronisierung der Analytics-Reihe „{name}“ wurde gestartet."
 
 #: signals.py:330
 #, python-brace-format
@@ -1055,8 +1056,8 @@ msgid ""
 "New paid orders are picked up automatically. To import orders placed before "
 "the plugin was enabled, run a resync."
 msgstr ""
-"Neue bezahlte Bestellungen werden automatisch übernommen. Um Bestellungen zu "
-"importieren, die vor der Aktivierung des Plugins aufgegeben wurden, führen "
+"Neue bezahlte Bestellungen werden automatisch übernommen. Um Bestellungen zu"
+" importieren, die vor der Aktivierung des Plugins aufgegeben wurden, führen "
 "Sie eine Neusynchronisierung durch."
 
 #: templates/pretix_event_analytics/base.html:62
@@ -1131,7 +1132,8 @@ msgid "updated"
 msgstr "aktualisiert"
 
 #: templates/pretix_event_analytics/config.html:19
-msgid "No orders analysed yet. Save the settings below, then run a first sync."
+msgid ""
+"No orders analysed yet. Save the settings below, then run a first sync."
 msgstr ""
 "Noch keine Bestellungen analysiert. Speichern Sie die Einstellungen unten "
 "und führen Sie dann eine erste Synchronisierung durch."
@@ -1253,11 +1255,11 @@ msgstr "Auswertung von Fragen"
 #: templates/pretix_event_analytics/config.html:123
 msgid ""
 "Break down answers to your checkout questions (e.g. “How did you hear about "
-"us?”) by first-time and returning attendees. Only yes/no and multiple-choice "
-"questions can be used, and only the chosen option is stored."
+"us?”) by first-time and returning attendees. Only yes/no and multiple-choice"
+" questions can be used, and only the chosen option is stored."
 msgstr ""
-"Schlüsseln Sie Antworten auf Ihre Fragen im Bestellprozess (z. B. „Wie haben "
-"Sie von uns erfahren?“) nach Erstbesucher*innen und wiederkehrenden "
+"Schlüsseln Sie Antworten auf Ihre Fragen im Bestellprozess (z. B. „Wie haben"
+" Sie von uns erfahren?“) nach Erstbesucher*innen und wiederkehrenden "
 "Teilnehmer*innen auf. Nur Ja/Nein- und Auswahlfragen können verwendet "
 "werden, und nur die gewählte Option wird gespeichert."
 
@@ -1289,9 +1291,9 @@ msgid ""
 msgstr ""
 "Das Wohnland jeder Bestellung wird aus der ersten verfügbaren Quelle "
 "übernommen: einer Frage „Wohnland“, der Rechnungsadresse, PayPal, der "
-"Rechnungsadresse der Karte, dem Ausweisdokument (falls unten aktiviert), der "
-"IBAN und schließlich dem Land der Bank, die die Karte ausgegeben hat. Sonst "
-"wird nichts geraten – ohne Quelle bleibt das Land unbekannt. Die Seite "
+"Rechnungsadresse der Karte, dem Ausweisdokument (falls unten aktiviert), der"
+" IBAN und schließlich dem Land der Bank, die die Karte ausgegeben hat. Sonst"
+" wird nichts geraten – ohne Quelle bleibt das Land unbekannt. Die Seite "
 "„Publikum“ zeigt, wie viele Bestellungen jede Quelle abdeckt."
 
 #: templates/pretix_event_analytics/config.html:141
@@ -1322,9 +1324,9 @@ msgid ""
 "purpose in your privacy notice."
 msgstr ""
 "Am genauesten: Fügen Sie unter Produkte → Fragen die Fragen „Wohnland“ und "
-"„Aus welchem Land reisen Sie an?“ (Fragetyp Land) hinzu. Fragen Sie nach dem "
-"Wohnsitz, nicht nach „Herkunft“ oder Staatsangehörigkeit, und nennen Sie den "
-"Zweck in Ihrer Datenschutzerklärung."
+"„Aus welchem Land reisen Sie an?“ (Fragetyp Land) hinzu. Fragen Sie nach dem"
+" Wohnsitz, nicht nach „Herkunft“ oder Staatsangehörigkeit, und nennen Sie "
+"den Zweck in Ihrer Datenschutzerklärung."
 
 #: templates/pretix_event_analytics/config.html:152
 msgid "ID-document country"
@@ -1337,8 +1339,8 @@ msgid ""
 "(e.g. Spanish DNI/NIE, Portuguese Cartão de Cidadão). Unclear numbers are "
 "left unknown. Only the country is stored — never the number."
 msgstr ""
-"Optional. Wenn im Bestellprozess eine Ausweisnummer abgefragt wird, kann das "
-"ausstellende Land aus erkennbaren nationalen Formaten mit gültiger "
+"Optional. Wenn im Bestellprozess eine Ausweisnummer abgefragt wird, kann das"
+" ausstellende Land aus erkennbaren nationalen Formaten mit gültiger "
 "Prüfziffer ermittelt werden (z. B. spanischer DNI/NIE, portugiesischer "
 "Cartão de Cidadão). Unklare Nummern bleiben unbekannt. Gespeichert wird nur "
 "das Land – niemals die Nummer."
@@ -1386,8 +1388,8 @@ msgid ""
 "returning visitor. This event's own dashboard keeps working either way."
 msgstr ""
 "Deaktivieren Sie dies für Testveranstaltungen oder Ausgaben, die nicht "
-"darüber entscheiden sollen, wer als wiederkehrend gilt. Die eigene Übersicht "
-"dieser Veranstaltung funktioniert in beiden Fällen weiter."
+"darüber entscheiden sollen, wer als wiederkehrend gilt. Die eigene Übersicht"
+" dieser Veranstaltung funktioniert in beiden Fällen weiter."
 
 #: templates/pretix_event_analytics/config.html:178
 msgid "Save settings"
@@ -1406,20 +1408,17 @@ msgstr ""
 msgid ""
 "Hello,\n"
 "\n"
-"with %(days)s days to go, %(event)s has sold %(current)s tickets. At the "
-"same point, %(label)s had sold %(previous)s — that is %(gap)s%% behind."
+"with %(days)s days to go, %(event)s has sold %(current)s tickets. At the same point, %(label)s had sold %(previous)s — that is %(gap)s%% behind."
 msgstr ""
 "Hallo,\n"
 "\n"
-"%(days)s Tage vor Beginn hat %(event)s %(current)s Tickets verkauft. Zum "
-"gleichen Zeitpunkt hatte %(label)s %(previous)s verkauft – das sind "
-"%(gap)s%% weniger."
+"%(days)s Tage vor Beginn hat %(event)s %(current)s Tickets verkauft. Zum gleichen Zeitpunkt hatte %(label)s %(previous)s verkauft – das sind %(gap)s%% weniger."
 
 #: templates/pretix_event_analytics/email/pace_alert.txt:5
 #, python-format
 msgid ""
-"You receive this because the pace alert threshold is set to %(threshold)s%%. "
-"While sales stay behind, this reminder is repeated at most once a week."
+"You receive this because the pace alert threshold is set to %(threshold)s%%."
+" While sales stay behind, this reminder is repeated at most once a week."
 msgstr ""
 "Sie erhalten diese Nachricht, weil die Schwelle für die Tempo-Warnung auf "
 "%(threshold)s%% eingestellt ist. Solange die Verkäufe zurückliegen, wird "
@@ -1494,8 +1493,8 @@ msgstr "Woher das Land bekannt ist"
 msgid ""
 "First available source per order. Exact = what the buyer stated (or a "
 "residence document). Italic sources describe a bank or document, not "
-"necessarily where the buyer lives. Inferred and probable countries are shown "
-"only when switched on above."
+"necessarily where the buyer lives. Inferred and probable countries are shown"
+" only when switched on above."
 msgstr ""
 "Erste verfügbare Quelle pro Bestellung. Exakt = Angabe der Käufer*innen "
 "(oder ein Wohnsitznachweis). Kursive Quellen beschreiben eine Bank oder ein "
@@ -1700,8 +1699,8 @@ msgstr "Kommen wahrscheinlich wieder"
 #: templates/pretix_event_analytics/pages/loyalty.html:39
 #, python-format
 msgid ""
-"<strong>%(pct)s%%</strong> of this edition's %(total)s identified people are "
-"first-timers (%(n)s)."
+"<strong>%(pct)s%%</strong> of this edition's %(total)s identified people are"
+" first-timers (%(n)s)."
 msgstr ""
 "<strong>%(pct)s%%</strong> der %(total)s identifizierten Personen dieser "
 "Ausgabe sind Erstbesucher*innen (%(n)s)."
@@ -1729,7 +1728,8 @@ msgstr ""
 
 #: templates/pretix_event_analytics/pages/loyalty.html:48
 msgid "Have an old attendee or mailing list from earlier years?"
-msgstr "Sie haben eine alte Teilnehmer- oder Mailingliste aus früheren Jahren?"
+msgstr ""
+"Sie haben eine alte Teilnehmer- oder Mailingliste aus früheren Jahren?"
 
 #: templates/pretix_event_analytics/pages/loyalty.html:49
 msgid "Import it as a past edition"
@@ -1741,7 +1741,8 @@ msgstr "Es werden nur Hashes der Adressen gespeichert."
 
 #: templates/pretix_event_analytics/pages/loyalty.html:53
 #, python-format
-msgid "%(n)s orders have no e-mail and cannot be matched (%(pct)s%% coverage)."
+msgid ""
+"%(n)s orders have no e-mail and cannot be matched (%(pct)s%% coverage)."
 msgstr ""
 "%(n)s Bestellungen haben keine E-Mail-Adresse und können nicht zugeordnet "
 "werden (%(pct)s%% Abdeckung)."
@@ -1819,8 +1820,8 @@ msgid ""
 "ticket holder), so you can find them in Pretix — for example to send a “we "
 "miss you” voucher. No addresses leave Pretix."
 msgstr ""
-"Jede Liste enthält den Bestellcode ihres letzten Besuchs (als Käufer*in oder "
-"Ticketinhaber*in), damit Sie sie in Pretix finden – zum Beispiel, um einen "
+"Jede Liste enthält den Bestellcode ihres letzten Besuchs (als Käufer*in oder"
+" Ticketinhaber*in), damit Sie sie in Pretix finden – zum Beispiel, um einen "
 "„Wir vermissen Sie“-Gutschein zu senden. Keine Adressen verlassen Pretix."
 
 #: templates/pretix_event_analytics/pages/loyalty.html:89
@@ -1987,8 +1988,8 @@ msgid ""
 "People grouped by the edition they first came to, and the share of them at "
 "each later edition."
 msgstr ""
-"Personen gruppiert nach der Ausgabe, bei der sie zum ersten Mal dabei waren, "
-"und ihr Anteil bei jeder späteren Ausgabe."
+"Personen gruppiert nach der Ausgabe, bei der sie zum ersten Mal dabei waren,"
+" und ihr Anteil bei jeder späteren Ausgabe."
 
 #: templates/pretix_event_analytics/pages/loyalty.html:205
 #: templates/pretix_event_analytics/series_detail.html:67
@@ -2007,12 +2008,12 @@ msgstr "Verteilung der Wiederkehr-Werte"
 #, python-format
 msgid ""
 "%(n)s orders (%(p)s%%) score 60 or more. The score adds points for past "
-"visits (+40), check-in (+20), buying 30+ days ahead (+15), 3+ tickets (+10), "
-"being local (+10) and group orders (+5)."
+"visits (+40), check-in (+20), buying 30+ days ahead (+15), 3+ tickets (+10),"
+" being local (+10) and group orders (+5)."
 msgstr ""
-"%(n)s Bestellungen (%(p)s%%) erreichen 60 oder mehr. Der Wert vergibt Punkte "
-"für frühere Besuche (+40), Check-in (+20), Kauf 30+ Tage im Voraus (+15), 3+ "
-"Tickets (+10), lokale Herkunft (+10) und Gruppenbestellungen (+5)."
+"%(n)s Bestellungen (%(p)s%%) erreichen 60 oder mehr. Der Wert vergibt Punkte"
+" für frühere Besuche (+40), Check-in (+20), Kauf 30+ Tage im Voraus (+15), "
+"3+ Tickets (+10), lokale Herkunft (+10) und Gruppenbestellungen (+5)."
 
 #: templates/pretix_event_analytics/pages/operations.html:6
 msgid "Check-in"
@@ -2119,8 +2120,8 @@ msgstr "Abgeschlossen"
 
 #: templates/pretix_event_analytics/pages/operations.html:69
 msgid ""
-"A low completion rate for one method points to friction at that payment step "
-"(bank transfers that are never paid, failed card checks)."
+"A low completion rate for one method points to friction at that payment step"
+" (bank transfers that are never paid, failed card checks)."
 msgstr ""
 "Eine niedrige Abschlussquote bei einer Methode deutet auf Hürden in diesem "
 "Zahlungsschritt hin (nie bezahlte Überweisungen, fehlgeschlagene "
@@ -2278,8 +2279,8 @@ msgid ""
 "go. Comparisons and the forecast appear once earlier editions had sales at "
 "the same point."
 msgstr ""
-"Noch kein Vergleich: %(label)s hatte %(days)s Tage vorher noch nicht mit dem "
-"Verkauf begonnen. Vergleiche und Prognose erscheinen, sobald frühere "
+"Noch kein Vergleich: %(label)s hatte %(days)s Tage vorher noch nicht mit dem"
+" Verkauf begonnen. Vergleiche und Prognose erscheinen, sobald frühere "
 "Ausgaben zum selben Zeitpunkt Verkäufe hatten."
 
 #: templates/pretix_event_analytics/pages/overview.html:83
@@ -2297,8 +2298,8 @@ msgstr ""
 #: templates/pretix_event_analytics/pages/overview.html:88
 #, python-format
 msgid ""
-"%(pct)s%% of tickets are matched to a person with certainty (attendee name + "
-"birth date)."
+"%(pct)s%% of tickets are matched to a person with certainty (attendee name +"
+" birth date)."
 msgstr ""
 "%(pct)s%% der Tickets sind sicher einer Person zugeordnet (Name + "
 "Geburtsdatum der Teilnehmer*in)."
@@ -2310,8 +2311,9 @@ msgid ""
 "holders the same person."
 msgstr ""
 "Der Rest zählt in den Summen mit, bleibt aber bei den Kennzahlen zu "
-"Wiederkehrenden außen vor, statt geschätzt zu werden. Eine gemeinsame E-Mail-"
-"Adresse oder Karte macht zwei Ticketinhaber*innen nie zur selben Person."
+"Wiederkehrenden außen vor, statt geschätzt zu werden. Eine gemeinsame "
+"E-Mail-Adresse oder Karte macht zwei Ticketinhaber*innen nie zur selben "
+"Person."
 
 #: templates/pretix_event_analytics/pages/overview.html:90
 #, python-format
@@ -2319,8 +2321,8 @@ msgid ""
 "%(n)s ticket without a birth date matches a known person by name and a "
 "shared e-mail or card (“probable”)."
 msgid_plural ""
-"%(n)s tickets without a birth date match a known person by name and a shared "
-"e-mail or card (“probable”)."
+"%(n)s tickets without a birth date match a known person by name and a shared"
+" e-mail or card (“probable”)."
 msgstr[0] ""
 "%(n)s Ticket ohne Geburtsdatum passt über Namen und gemeinsame E-Mail-"
 "Adresse oder Karte zu einer bekannten Person („wahrscheinlich“)."
@@ -2417,8 +2419,8 @@ msgstr "Besitzerwechsel pro Monat"
 
 #: templates/pretix_event_analytics/pages/resale.html:61
 msgid ""
-"This TicketSwap version does not record when a swap happened, so only manual "
-"changes have a date."
+"This TicketSwap version does not record when a swap happened, so only manual"
+" changes have a date."
 msgstr ""
 "Diese TicketSwap-Version erfasst nicht, wann ein Tausch stattfand, daher "
 "haben nur manuelle Änderungen ein Datum."
@@ -2434,9 +2436,9 @@ msgstr "Besitzerwechsel nach Ausgabe"
 #: templates/pretix_event_analytics/pages/resale.html:68
 msgid ""
 "A manual name change counts when the birth date or attendee e-mail changed "
-"with the name, or when a later rename clearly differs from the previous one. "
-"Pretix does not log the previous name, so other single edits cannot be told "
-"apart from corrections:"
+"with the name, or when a later rename clearly differs from the previous one."
+" Pretix does not log the previous name, so other single edits cannot be told"
+" apart from corrections:"
 msgstr ""
 "Eine manuelle Namensänderung zählt, wenn sich Geburtsdatum oder E-Mail-"
 "Adresse der Teilnehmer*in zusammen mit dem Namen geändert haben oder wenn "
@@ -2450,7 +2452,8 @@ msgid "%(n)s ticket with such an unclear edit is not counted."
 msgid_plural "%(n)s tickets with such unclear edits are not counted."
 msgstr[0] ""
 "%(n)s Ticket mit einer solchen unklaren Änderung wird nicht gezählt."
-msgstr[1] "%(n)s Tickets mit solchen unklaren Änderungen werden nicht gezählt."
+msgstr[1] ""
+"%(n)s Tickets mit solchen unklaren Änderungen werden nicht gezählt."
 
 #: templates/pretix_event_analytics/pages/resale.html:70
 msgid "Filters do not apply here."
@@ -2539,8 +2542,8 @@ msgstr "Keine Verkäufe entsprechen den aktuellen Filtern."
 
 #: templates/pretix_event_analytics/pages/sales.html:47
 msgid ""
-"Admission tickets; add-ons are not counted as tickets. Markers: your moments "
-"(solid) and price-tier changes (dashed)."
+"Admission tickets; add-ons are not counted as tickets. Markers: your moments"
+" (solid) and price-tier changes (dashed)."
 msgstr ""
 "Eintrittstickets; Zusatzprodukte zählen nicht als Tickets. Markierungen: "
 "Ihre Ereignisse (durchgezogen) und Preisstufenwechsel (gestrichelt)."
@@ -2551,8 +2554,8 @@ msgid ""
 "explain spikes. Shown on the charts above and on the edition comparison."
 msgstr ""
 "Markieren Sie, was passiert ist – Line-up-Ankündigungen, Newsletter, "
-"Kampagnen –, um Spitzen zu erklären. Angezeigt in den Diagrammen oben und im "
-"Ausgabenvergleich."
+"Kampagnen –, um Spitzen zu erklären. Angezeigt in den Diagrammen oben und im"
+" Ausgabenvergleich."
 
 #: templates/pretix_event_analytics/pages/sales.html:61
 msgid "Remove"
@@ -2668,8 +2671,8 @@ msgstr "Bis dahin verkaufter Anteil"
 
 #: templates/pretix_event_analytics/pages/sales.html:160
 msgid ""
-"Dashboard filters apply to every edition, so you can compare e.g. only first-"
-"time buyers or only one country."
+"Dashboard filters apply to every edition, so you can compare e.g. only "
+"first-time buyers or only one country."
 msgstr ""
 "Filter der Übersicht gelten für jede Ausgabe, sodass Sie z. B. nur "
 "Erstkäufer*innen oder nur ein Land vergleichen können."
@@ -2802,8 +2805,8 @@ msgid ""
 "every list price a product sold at, in order of first sale · voucher sales "
 "excluded"
 msgstr ""
-"jeder Listenpreis, zu dem ein Produkt verkauft wurde, in der Reihenfolge des "
-"ersten Verkaufs · Gutschein-Verkäufe ausgenommen"
+"jeder Listenpreis, zu dem ein Produkt verkauft wurde, in der Reihenfolge des"
+" ersten Verkaufs · Gutschein-Verkäufe ausgenommen"
 
 #: templates/pretix_event_analytics/pages/tickets.html:66
 msgid "Price"
@@ -2980,8 +2983,8 @@ msgid ""
 "pseudonymous (HMAC-hashed) identities; no names or e-mail addresses are "
 "stored in the analytics tables."
 msgstr ""
-"Erstellt mit Pretix Event Analytics. Kennzahlen zu Wiederkehrenden verwenden "
-"pseudonyme (HMAC-gehashte) Identitäten; in den Analytics-Tabellen werden "
+"Erstellt mit Pretix Event Analytics. Kennzahlen zu Wiederkehrenden verwenden"
+" pseudonyme (HMAC-gehashte) Identitäten; in den Analytics-Tabellen werden "
 "keine Namen oder E-Mail-Adressen gespeichert."
 
 #: templates/pretix_event_analytics/series_confirm_delete.html:4
@@ -2994,31 +2997,38 @@ msgstr "Reihe löschen"
 
 #: templates/pretix_event_analytics/series_confirm_delete.html:17
 #, python-format
+#| msgid ""
+#| "\n"
+#| "              This series is linked to %(count)s event(s). Deleting it will unlink those events\n"
+#| "              and disable cross-edition analytics. The analytics data itself will not be deleted.\n"
+#| "            "
 msgid ""
-"\n"
-"              This series is linked to %(count)s event(s). Deleting it will "
-"unlink those events\n"
-"              and disable cross-edition analytics. The analytics data itself "
-"will not be deleted.\n"
-"            "
-msgstr ""
-"\n"
-"              Diese Reihe ist mit %(count)s Veranstaltung(en) verknüpft. "
-"Beim Löschen werden diese Veranstaltungen\n"
-"              getrennt und ausgabenübergreifende Analysen deaktiviert. Die "
-"Analysedaten selbst werden nicht gelöscht.\n"
-"            "
+"This series is linked to %(count)s event. Deleting it will unlink it and "
+"disable cross-edition analytics. The analytics data itself will not be "
+"deleted."
+msgid_plural ""
+"This series is linked to %(count)s events. Deleting it will unlink those "
+"events and disable cross-edition analytics. The analytics data itself will "
+"not be deleted."
+msgstr[0] ""
+"Diese Reihe ist mit %(count)s Veranstaltung verknüpft. Beim Löschen wird sie"
+" getrennt und ausgabenübergreifende Analysen werden deaktiviert. Die "
+"Analysedaten selbst werden nicht gelöscht."
+msgstr[1] ""
+"Diese Reihe ist mit %(count)s Veranstaltungen verknüpft. Beim Löschen werden"
+" diese Veranstaltungen getrennt und ausgabenübergreifende Analysen "
+"deaktiviert. Die Analysedaten selbst werden nicht gelöscht."
 
-#: templates/pretix_event_analytics/series_confirm_delete.html:23
+#: templates/pretix_event_analytics/series_confirm_delete.html:26
 msgid "This action cannot be undone."
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 
-#: templates/pretix_event_analytics/series_confirm_delete.html:28
+#: templates/pretix_event_analytics/series_confirm_delete.html:31
 #: templates/pretix_event_analytics/series_form.html:55
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#: templates/pretix_event_analytics/series_confirm_delete.html:31
+#: templates/pretix_event_analytics/series_confirm_delete.html:34
 msgid "Yes, delete"
 msgstr "Ja, löschen"
 
@@ -3080,8 +3090,9 @@ msgid ""
 "For overlaps between any chosen editions and once/twice/three-times counts, "
 "open the Loyalty tab of an edition’s dashboard."
 msgstr ""
-"Für Überschneidungen zwischen beliebigen Ausgaben und Einmal-/Zweimal-/"
-"Dreimal-Zählungen öffnen Sie den Treue-Tab in der Übersicht einer Ausgabe."
+"Für Überschneidungen zwischen beliebigen Ausgaben und "
+"Einmal-/Zweimal-/Dreimal-Zählungen öffnen Sie den Treue-Tab in der Übersicht"
+" einer Ausgabe."
 
 #: templates/pretix_event_analytics/series_detail.html:80
 msgid "Past editions from before Pretix"
@@ -3108,8 +3119,8 @@ msgstr ""
 
 #: templates/pretix_event_analytics/series_detail.html:87
 msgid ""
-"Everything is hashed on the server with the same secret key as all analytics "
-"data; the file itself and the plain values are discarded immediately."
+"Everything is hashed on the server with the same secret key as all analytics"
+" data; the file itself and the plain values are discarded immediately."
 msgstr ""
 "Alles wird auf dem Server mit demselben geheimen Schlüssel wie alle "
 "Analysedaten gehasht; die Datei selbst und die Klartextwerte werden sofort "
@@ -3149,15 +3160,12 @@ msgstr "Speichern"
 msgid ""
 "\n"
 "          Series group your events for cross-edition analytics.\n"
-"          For example, all yearly editions of \"My Festival\" form one "
-"series.\n"
+"          For example, all yearly editions of \"My Festival\" form one series.\n"
 "        "
 msgstr ""
 "\n"
-"          Reihen fassen Ihre Veranstaltungen für ausgabenübergreifende "
-"Analysen zusammen.\n"
-"          Zum Beispiel bilden alle jährlichen Ausgaben von „Mein Festival“ "
-"eine Reihe.\n"
+"          Reihen fassen Ihre Veranstaltungen für ausgabenübergreifende Analysen zusammen.\n"
+"          Zum Beispiel bilden alle jährlichen Ausgaben von „Mein Festival“ eine Reihe.\n"
 "        "
 
 #: templates/pretix_event_analytics/series_list.html:32
@@ -3196,7 +3204,8 @@ msgstr ""
 "Analysen zu aktivieren."
 
 #: views.py:93
-msgid "Please configure analytics for this event before viewing the dashboard."
+msgid ""
+"Please configure analytics for this event before viewing the dashboard."
 msgstr ""
 "Bitte konfigurieren Sie Analytics für diese Veranstaltung, bevor Sie die "
 "Übersicht aufrufen."
@@ -3262,8 +3271,9 @@ msgid "None selected"
 msgstr "Keine ausgewählt"
 
 #: views.py:355
-msgid "ID-document country on"
-msgstr "Land des Ausweisdokuments aus"
+#| msgid "ID-document country on"
+msgid "ID-document country: on"
+msgstr "Land des Ausweisdokuments: an"
 
 #: views.py:356
 msgid "Automatic"
@@ -3293,7 +3303,8 @@ msgstr "Reihe „%s“ gelöscht."
 
 #: views.py:491
 msgid "You need order access to every edition of this series."
-msgstr "Sie benötigen Zugriff auf die Bestellungen jeder Ausgabe dieser Reihe."
+msgstr ""
+"Sie benötigen Zugriff auf die Bestellungen jeder Ausgabe dieser Reihe."
 
 #: views.py:545
 #, python-format
@@ -3339,8 +3350,8 @@ msgstr ""
 #: views.py:635
 msgid "A resync is already running for this event. Please wait a few minutes."
 msgstr ""
-"Für diese Veranstaltung läuft bereits eine Neusynchronisierung. Bitte warten "
-"Sie einige Minuten."
+"Für diese Veranstaltung läuft bereits eine Neusynchronisierung. Bitte warten"
+" Sie einige Minuten."
 
 #: views.py:640
 msgid "Analytics resync queued. The dashboard will update shortly."

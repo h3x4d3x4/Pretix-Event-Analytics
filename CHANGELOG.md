@@ -3,6 +3,18 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.3.1] — 2026-10-02
+
+No migration, no resync needed.
+
+### Changed
+- **Portuguese (Portugal) reviewed:** consistent terms across the whole plugin, more natural
+  wording (59 strings), "Edição importada" for imported past lists.
+- German: the ID-document setting summary said "off" when it was on.
+- Series deletion warning uses proper singular/plural instead of "event(s)".
+- The development-only `generate_test_data` command moved to `scripts/` and is no longer
+  installed with the plugin.
+
 ## [2.3.0] — 2026-10-02
 
 No migration, no resync needed.

@@ -2,7 +2,7 @@
 """
 DEVELOPMENT ONLY — seed a local Pretix instance with realistic *real* orders.
 
-Unlike ``generate_test_data`` (which writes fake analytics rows), this script
+Unlike ``scripts/generate_test_data.py`` (which writes fake analytics rows), this script
 creates genuine Pretix orders, positions, answers, payments, refunds,
 vouchers and check-ins for a series of yearly editions, so the whole
 ingestion pipeline (resync → identity resolution → dashboards) can be

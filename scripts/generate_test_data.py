@@ -1,5 +1,5 @@
 """
-Management command: generate_test_data
+Dev script: generate_test_data (not shipped in the package since 2.3.1)
 
 DEVELOPMENT ONLY. Injects realistic fake AnalyticsOrderFact and
 AnalyticsTicketFact rows for a specific Pretix event so you can preview the
@@ -27,13 +27,13 @@ SAFETY GATES
 
 Usage:
     # Basic — 150 fake orders for one event (dev only)
-    python -m pretix generate_test_data --organizer <organizer-slug> --event <event-slug>
+    PRETIX_CONFIG_FILE=pretix.cfg python scripts/generate_test_data.py --organizer <organizer-slug> --event <event-slug>
 
     # Full 4-edition scenario (run once per event; shared buyer pool ensures cohort data)
-    python -m pretix generate_test_data --organizer <org> --event <event-2022> --edition-year 2022 --orders 80
-    python -m pretix generate_test_data --organizer <org> --event <event-2023> --edition-year 2023 --orders 120
-    python -m pretix generate_test_data --organizer <org> --event <event-2024> --edition-year 2024 --orders 160
-    python -m pretix generate_test_data --organizer <org> --event <event-2025> --edition-year 2025 --orders 200
+    PRETIX_CONFIG_FILE=pretix.cfg python scripts/generate_test_data.py --organizer <org> --event <event-2022> --edition-year 2022 --orders 80
+    PRETIX_CONFIG_FILE=pretix.cfg python scripts/generate_test_data.py --organizer <org> --event <event-2023> --edition-year 2023 --orders 120
+    PRETIX_CONFIG_FILE=pretix.cfg python scripts/generate_test_data.py --organizer <org> --event <event-2024> --edition-year 2024 --orders 160
+    PRETIX_CONFIG_FILE=pretix.cfg python scripts/generate_test_data.py --organizer <org> --event <event-2025> --edition-year 2025 --orders 200
 
 Options:
     --orders N          Number of fake orders to generate (default: 150)
@@ -54,7 +54,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from ...models import FACT_VERSION
+from pretix_event_analytics.models import FACT_VERSION
 
 # ── Fake data pools ───────────────────────────────────────────────────────────
 
@@ -188,7 +188,9 @@ class Command(BaseCommand):
         from django_scopes import scopes_disabled
         from pretix.base.models import Event, Organizer
 
-        from ...models import AnalyticsOrderFact, AnalyticsTicketFact, EventAnalyticsConfig, EventSeries
+        from pretix_event_analytics.models import (
+            AnalyticsOrderFact, AnalyticsTicketFact, EventAnalyticsConfig, EventSeries,
+        )
 
         try:
             organizer = Organizer.objects.get(slug=options["organizer"])
@@ -416,7 +418,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  Inserted {len(created_facts)} AnalyticsOrderFact rows.")
 
         # ── Bulk insert identities ────────────────────────────────────────────
-        from ...models import AnalyticsIdentity
+        from pretix_event_analytics.models import AnalyticsIdentity
         identity_rows = []
         for fact in created_facts:
             if fact.repeat_hash:
@@ -492,7 +494,7 @@ class Command(BaseCommand):
         # should come from real attendee-name-change workflows.
 
         # ── Resolve returning people across the series ────────────────────────
-        from ...services.people import recompute_series
+        from pretix_event_analytics.services.people import recompute_series
         recompute_series(organizer.pk, series.slug)
 
         self.stdout.write(
@@ -500,13 +502,23 @@ class Command(BaseCommand):
                 f"\n✓ Done. {n_orders} orders for {event.slug} ({edition_year}).\n"
                 f"  Visit: /control/event/{organizer.slug}/{event.slug}/analytics/\n"
                 f"\n  To generate all 4 editions for a full cohort matrix:\n"
-                f"  python -m pretix generate_test_data --organizer {organizer.slug} "
+                f"  PRETIX_CONFIG_FILE=pretix.cfg python scripts/generate_test_data.py --organizer {organizer.slug} "
                 f"--event <event-2022> --edition-year 2022 --orders 80\n"
-                f"  python -m pretix generate_test_data --organizer {organizer.slug} "
+                f"  PRETIX_CONFIG_FILE=pretix.cfg python scripts/generate_test_data.py --organizer {organizer.slug} "
                 f"--event <event-2023> --edition-year 2023 --orders 120\n"
-                f"  python -m pretix generate_test_data --organizer {organizer.slug} "
+                f"  PRETIX_CONFIG_FILE=pretix.cfg python scripts/generate_test_data.py --organizer {organizer.slug} "
                 f"--event <event-2024> --edition-year 2024 --orders 160\n"
-                f"  python -m pretix generate_test_data --organizer {organizer.slug} "
+                f"  PRETIX_CONFIG_FILE=pretix.cfg python scripts/generate_test_data.py --organizer {organizer.slug} "
                 f"--event <event-2026> --edition-year 2026 --orders 200"
             )
         )
+
+
+if __name__ == "__main__":
+    import os
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "pretix.settings")
+    import django
+
+    django.setup()
+    Command().run_from_argv(["generate_test_data", "generate_test_data", *sys.argv[1:]])

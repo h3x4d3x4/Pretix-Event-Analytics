@@ -14,8 +14,11 @@
       <div class="panel-body">
         {% if object.event_configs.exists %}
           <div class="alert alert-warning">
-            {% blocktrans with count=object.event_configs.count %}
-              This series is linked to {{ count }} event(s). Deleting it will unlink those events
+            {% blocktrans trimmed count count=object.event_configs.count %}
+              This series is linked to {{ count }} event. Deleting it will unlink it
+              and disable cross-edition analytics. The analytics data itself will not be deleted.
+            {% plural %}
+              This series is linked to {{ count }} events. Deleting it will unlink those events
               and disable cross-edition analytics. The analytics data itself will not be deleted.
             {% endblocktrans %}
           </div>

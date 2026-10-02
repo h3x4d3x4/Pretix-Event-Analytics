@@ -42,14 +42,22 @@ def test_salt_missing_fails_closed(settings, monkeypatch):
         hash_service._get_salt()
 
 
-def test_generate_test_data_command(make_edition, series):
+def test_generate_test_data_script(make_edition, series):
+    import importlib.util
+    import pathlib
+
     from django.core.management import call_command
 
     from pretix_event_analytics.models import AnalyticsOrderFact
 
+    path = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "generate_test_data.py"
+    spec = importlib.util.spec_from_file_location("generate_test_data", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
     e24, e26 = make_edition(2024), make_edition(2026)
     for kit, year in ((e24, 2024), (e26, 2026)):
-        call_command("generate_test_data", "--organizer", "suti", "--event", kit.event.slug,
+        call_command(module.Command(), "--organizer", "suti", "--event", kit.event.slug,
                      "--series", series.slug, "--edition-year", str(year), "--orders", "40",
                      "--i-understand-this-is-fake-data")
     facts = AnalyticsOrderFact.objects.filter(event=e26.event)

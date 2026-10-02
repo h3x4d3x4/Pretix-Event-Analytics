@@ -79,13 +79,7 @@ def write_order(order, config, *, checkins: Optional[Dict[int, object]] = None, 
     :raises ValueError: when the order cannot be normalized (skip, no retry).
     :returns: the AnalyticsOrderFact.
     """
-    from ..models import (
-        FACT_VERSION,
-        AnalyticsAnswerFact,
-        AnalyticsIdentity,
-        AnalyticsOrderFact,
-        AnalyticsTicketFact,
-    )
+    from ..models import FACT_VERSION, AnalyticsAnswerFact, AnalyticsIdentity, AnalyticsOrderFact, AnalyticsTicketFact
     from .normalizer import normalize_order
     from .predictor import score_from_fact
     from .repeat_detector import evaluate_repeat_status

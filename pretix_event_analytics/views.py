@@ -21,23 +21,33 @@ from decimal import Decimal
 from urllib.parse import urlencode
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Max
-from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import DeleteView, FormView, ListView, TemplateView, UpdateView
-
 from pretix.control.permissions import EventPermissionRequiredMixin, OrganizerPermissionRequiredMixin
 
+from ._compat import CHANGE_EVENT_SETTINGS, CHANGE_ORGANIZER_SETTINGS, VIEW_ORDERS
 from .forms import DashboardFilterForm, EventAnalyticsConfigForm, EventSeriesForm, LegacyImportForm
 from .models import AnalyticsOrderFact, EventAnalyticsConfig, EventSeries, LegacyEdition
-from ._compat import CHANGE_EVENT_SETTINGS, CHANGE_ORGANIZER_SETTINGS, VIEW_ORDERS
 
 logger = logging.getLogger(__name__)
+
+
+# Settings recorded in the activity log when they change (recipients' e-mail addresses are not).
+_LOGGED_CONFIG_FIELDS = (
+    "series", "edition_year", "home_country", "is_active", "tracked_question_ids", "id_question_id",
+    "ticket_target", "revenue_target", "pace_alert_threshold",
+)
+
+
+def _json_safe(data):
+    return json.loads(json.dumps(data, cls=DjangoJSONEncoder))
 
 
 class _Encoder(DjangoJSONEncoder):
@@ -203,7 +213,11 @@ class AnnotationView(EventPermissionRequiredMixin, View):
 
         back = redirect(_event_url(request, "sales") + "#annotations")
         if request.POST.get("delete"):
-            SalesAnnotation.objects.filter(event=request.event, pk=request.POST.get("delete")).delete()
+            note = SalesAnnotation.objects.filter(event=request.event, pk=request.POST.get("delete")).first()
+            if note:
+                note.delete()
+                request.event.log_action("pretix_event_analytics.moment.deleted", user=request.user,
+                                         data={"label": note.label, "date": note.date.isoformat()})
         else:
             label = (request.POST.get("label") or "").strip()[:120]
             try:
@@ -214,6 +228,8 @@ class AnnotationView(EventPermissionRequiredMixin, View):
                 messages.error(request, _("Enter a date and a short description."))
                 return back
             SalesAnnotation.objects.create(event=request.event, date=date, label=label)
+            request.event.log_action("pretix_event_analytics.moment.added", user=request.user,
+                                     data={"label": label, "date": date.isoformat()})
         bump(request.organizer.pk)
         return back
 
@@ -280,6 +296,16 @@ class EventConfigView(EventPermissionRequiredMixin, FormView):
             or before.home_country != data.get("home_country")
         )
         config = form.save()
+        diff = {f: getattr(config, f) for f in _LOGGED_CONFIG_FIELDS if getattr(before, f) != getattr(config, f)}
+        if "series" in diff:
+            diff["series"] = config.series.slug if config.series else None
+        if before.pace_alert_recipients != config.pace_alert_recipients:
+            # Only how many recipients — the log is visible to the whole team.
+            from .services.alerts import _recipients
+            diff["pace_alert_recipients"] = len(_recipients(config.pace_alert_recipients))
+        if diff:
+            self.request.event.log_action("pretix_event_analytics.config.changed", user=self.request.user,
+                                          data=_json_safe(diff))
         if changed:
             # Series membership, ordering or scoring inputs moved: re-resolve
             # returning buyers for the old and the new series.
@@ -377,6 +403,8 @@ class SeriesCreateView(SeriesMixin, FormView):
 
     def form_valid(self, form):
         series = form.save()
+        self.request.organizer.log_action("pretix_event_analytics.series.added", user=self.request.user,
+                                          data={"name": series.name, "slug": series.slug})
         messages.success(self.request, _('Series "%s" created.') % series.name)
         return redirect(self.series_url("series_list"))
 
@@ -404,7 +432,9 @@ class SeriesEditView(SeriesMixin, UpdateView):
         return self.series_url("series_list")
 
     def form_valid(self, form):
-        form.save()
+        series = form.save()
+        self.request.organizer.log_action("pretix_event_analytics.series.changed", user=self.request.user,
+                                          data={"name": series.name, "slug": series.slug})
         messages.success(self.request, _("Series updated."))
         return redirect(self.get_success_url())
 
@@ -430,6 +460,8 @@ class SeriesDeleteView(SeriesMixin, DeleteView):
         messages.success(self.request, _('Series "%s" deleted.') % obj.name)
         event_ids = list(obj.event_configs.values_list("event_id", flat=True))
         response = super().form_valid(form)
+        self.request.organizer.log_action("pretix_event_analytics.series.deleted", user=self.request.user,
+                                          data={"name": obj.name, "slug": obj.slug, "editions": len(event_ids)})
         # Former editions are now standalone: nobody is "returning" any more.
         from .services.people import queue_recompute
         for ev_id in event_ids:
@@ -505,6 +537,10 @@ class LegacyImportView(SeriesMixin, FormView):
             raw = form.cleaned_data["emails_file"].read().decode("utf-8", errors="ignore")
         raw += "\n" + (form.cleaned_data.get("emails_text") or "")
         result = import_legacy_list(series, form.cleaned_data["label"], form.cleaned_data["edition_year"], raw)
+        request.organizer.log_action("pretix_event_analytics.legacy.imported", user=request.user, data={
+            "series": series.name, "label": form.cleaned_data["label"], "year": form.cleaned_data["edition_year"],
+            "count": result["imported"], "kind": "people" if result["people"] else "emails",
+        })
         if result["people"]:
             msg = _("Imported %(n)s people (name + birth date) into “%(label)s”. The list itself was not stored.")
         else:
@@ -520,6 +556,8 @@ class LegacyDeleteView(SeriesMixin, View):
         le = get_object_or_404(LegacyEdition, series__organizer=request.organizer, pk=kwargs["legacy_pk"])
         series = le.series
         le.delete()
+        request.organizer.log_action("pretix_event_analytics.legacy.deleted", user=request.user,
+                                     data={"series": series.name, "label": le.label, "year": le.edition_year})
         queue_recompute(series.organizer_id, series.slug)
         messages.success(request, _("Legacy edition removed."))
         return redirect(self.series_url("series_detail", pk=series.pk))
@@ -538,6 +576,8 @@ class SeriesResyncView(SeriesMixin, View):
             messages.warning(request, _("A resync for this series was started recently. Please wait a few minutes."))
         else:
             trigger_series_resync.apply_async(args=[series.pk])
+            request.organizer.log_action("pretix_event_analytics.series.resync", user=request.user,
+                                         data={"name": series.name})
             messages.success(request, _("Series resync queued. Figures update when it finishes."))
         return redirect(self.series_url("series_detail", pk=series.pk))
 
@@ -596,5 +636,6 @@ class TriggerResyncView(EventPermissionRequiredMixin, View):
             return back
 
         trigger_event_resync.apply_async(args=[request.event.pk])
+        request.event.log_action("pretix_event_analytics.resync", user=request.user)
         messages.success(request, _("Analytics resync queued. The dashboard will update shortly."))
         return back

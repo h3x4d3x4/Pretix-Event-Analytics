@@ -1,7 +1,7 @@
 # Pretix Event Analytics
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Pretix](https://img.shields.io/badge/Pretix-2026.2%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.2.1-green.svg)
+[![Pretix](https://img.shields.io/badge/Pretix-2026.2%2B-purple.svg)](https://pretix.eu) ![Version](https://img.shields.io/badge/version-2.3.0-green.svg)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://python.org)
 
 Analytics suite for [Pretix](https://pretix.eu): sales over time and against previous editions, first-timers and returning people across every edition of a recurring event, audience, tickets, check-in and refunds — without storing personal data.
@@ -27,6 +27,7 @@ Analytics suite for [Pretix](https://pretix.eu): sales over time and against pre
 - **Pretix dashboard widgets** — returning buyers and first-time attendees on each event's main dashboard.
 - **Resale** — one "changed hands" figure combining TicketSwap resales (read from the TicketSwap plugin, when installed) and manual name changes, counted once per ticket; breakdown by channel, product and current holder; per month and per edition; order codes as CSV.
 - **Series overview** (organizer level) — every edition side by side, edition flow and first-timer cohorts, plus **import of past attendee lists** — a CSV with name + birth date (people) or any file with e-mail addresses (customers) — so visitors from before Pretix count as returning. Only hashes are kept.
+- **Languages** — English, German and Portuguese (Portugal); each user sees their pretix language.
 - **Exports** — orders, tickets and "returning buyers by order code" as CSV (respecting filters), a full PDF report, and two exporters in Pretix's own *Export* menu (CSV/Excel).
 
 ### How returning people are detected
@@ -211,9 +212,11 @@ These are standard Pretix team permissions.
 ## Safety Guarantee: Read-Only Against the Ticketing Database
 
 This plugin is an analytics overlay. It reads Pretix orders, positions,
-answers, payments, refunds and check-ins — it **never writes** to any
-Pretix core table. All persistence happens in the plugin's own analytics
-tables (`AnalyticsOrderFact`, `AnalyticsTicketFact`, `AnalyticsIdentity`,
+answers, payments, refunds and check-ins — it **never writes** ticketing
+data. Its only write outside its own tables is Pretix's activity log, where
+admin actions (settings changes, resyncs, series changes, list imports) are
+recorded without personal data. All other persistence happens in the
+plugin's own analytics tables (`AnalyticsOrderFact`, `AnalyticsTicketFact`, `AnalyticsIdentity`,
 `AnalyticsAnswerFact`, `EventSeries`, `EventAnalyticsConfig`,
 `LegacyEdition`, `LegacyIdentity`).
 
@@ -224,7 +227,7 @@ The invariant is enforced two ways:
    `.update()`, `.bulk_create()`, `.bulk_update()`, or `.raw()` call
    targeting a Pretix core model and exits non-zero if it finds one. Run
    it any time; it requires no database and no Django setup.
-2. **Signal-path discipline** — signal handlers do zero DB work inline;
+2. **Signal-path discipline** — order and check-in signal handlers do zero DB work inline;
    they dispatch a Celery task. All task code is read-only against
    `pretix.base.models.*`. Failures in analytics never block, delay, or
    roll back a ticket checkout or payment.
@@ -320,6 +323,10 @@ See [ROADMAP.md](ROADMAP.md).
 
 Releases follow [Semantic Versioning](https://semver.org). See
 [CHANGELOG.md](CHANGELOG.md) for the history of user-visible changes.
+
+## Security
+
+Please report vulnerabilities privately to andrei@hexadexa.dev — see [SECURITY.md](SECURITY.md).
 
 ## License
 

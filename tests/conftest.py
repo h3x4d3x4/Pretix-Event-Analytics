@@ -31,6 +31,15 @@ def _real_cache(settings):
 
 
 @pytest.fixture(autouse=True)
+def _english():
+    # pretix's middleware leaves the last request's language active in this thread.
+    from django.utils import translation
+    translation.activate("en")
+    yield
+    translation.activate("en")
+
+
+@pytest.fixture(autouse=True)
 def _clear_cache(_real_cache):
     from django.core.cache import cache
     cache.clear()
@@ -141,6 +150,7 @@ class EventKit:
 def make_edition(organizer, series):
     """make_edition(2024) → EventKit for a configured edition of the series."""
     from pretix.base.models import Event
+
     from pretix_event_analytics.models import EventAnalyticsConfig
 
     def _make(year, *, in_series=True, date=None):

@@ -52,6 +52,7 @@ def _pt_cc_document(v: str) -> bool:
     m = re.fullmatch(r"(\d{8})(\d)([A-Z0-9]{2})(\d)", v)
     if not m:
         return False
+
     def val(c):
         return int(c) if c.isdigit() else ord(c) - 55  # A=10 … Z=35
     chars = v

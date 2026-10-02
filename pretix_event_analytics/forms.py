@@ -1,20 +1,20 @@
 """
 Forms for event analytics configuration and series management.
 """
-import pycountry
 from django import forms
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+from django_countries import countries
 from pretix.base.forms.widgets import DatePickerWidget
 
-from .models import EventAnalyticsConfig, EventSeries
 from ._compat import VIEW_ORDERS
+from .models import EventAnalyticsConfig, EventSeries
 
 
 def _country_choices():
     """Return (alpha_2, name) choices sorted by name, with blank first."""
-    countries = sorted(pycountry.countries, key=lambda c: c.name)
-    return [("", _("— Select country —"))] + [(c.alpha_2, c.name) for c in countries]
+    # Names in the user's language (django_countries ships with pretix), sorted accordingly.
+    return [("", _("— Select country —"))] + [(code, str(name)) for code, name in countries]
 
 
 class EventSeriesForm(forms.ModelForm):
@@ -210,7 +210,6 @@ def provider_label(identifier: str) -> str:
     return str(PROVIDER_LABELS.get(identifier, identifier.replace("_", " ").title()))
 
 
-
 class DashboardFilterForm(forms.Form):
     """
     Shared filter bar for every analytics page. All fields optional —
@@ -294,13 +293,8 @@ class DashboardFilterForm(forms.Form):
         self.fields["ticket_type"].choices = [(n, n) for n in names]
 
         facts = AnalyticsOrderFact.objects.filter(event_id__in=peer_ids)
-        countries = facts.exclude(country_code="").values_list("country_code", flat=True).distinct()
-        country_choices = []
-        for c in countries:
-            try:
-                country_choices.append((c, pycountry.countries.get(alpha_2=c).name))
-            except Exception:
-                country_choices.append((c, c))
+        codes = facts.exclude(country_code="").values_list("country_code", flat=True).distinct()
+        country_choices = [(c, str(countries.name(c)) or c) for c in codes]
         self.fields["country"].choices += sorted(country_choices, key=lambda x: str(x[1]))
 
         providers = facts.exclude(payment_provider="").values_list("payment_provider", flat=True).distinct()

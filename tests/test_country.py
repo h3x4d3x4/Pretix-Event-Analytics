@@ -257,6 +257,7 @@ def test_exact_country_clears_derived_fields(make_edition):
 
 def test_audience_country_switch(admin_client, make_edition, series):
     from django.urls import reverse
+
     from pretix_event_analytics.services.resync_service import resync_series
 
     e24, e26 = make_edition(2024), make_edition(2026)

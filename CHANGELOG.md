@@ -3,6 +3,26 @@
 All user-visible changes to this project are documented here. Dates are in
 ISO 8601. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] — 2026-10-02
+
+No migration, no resync needed.
+
+### Added
+- **German and Portuguese (Portugal)** translations of the whole plugin — dashboards, settings,
+  exports, e-mails and PDF follow each user's pretix language.
+- **Activity log:** settings changes, resyncs, sales moments, series changes and imports of past
+  attendee lists appear in pretix's event / organizer log. Entries hold settings and counts only —
+  never names or e-mail addresses (alert recipients are logged as a count).
+- **Copying an event** (usually next year's edition) carries its analytics settings over: same
+  series, home country, tracked questions (mapped to the copy's questions) and alert threshold.
+  The edition year comes from the new event's date; sales targets are not copied.
+- `SECURITY.md` with a private reporting address.
+
+### Changed
+- README: the plugin never writes ticketing data; its only write outside its own tables is
+  pretix's activity log.
+- flake8 / isort configuration (pretix's limits); code style findings fixed.
+
 ## [2.2.1] — 2026-10-02
 
 No migration, no resync needed.

@@ -1,0 +1,3320 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pretix-event-analytics 2.3.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-02 10:10+0000\n"
+"PO-Revision-Date: 2026-10-02 10:30+0000\n"
+"Last-Translator: Hexadexa <andrei@hexadexa.dev>\n"
+"Language-Team: Hexadexa <andrei@hexadexa.dev>\n"
+"Language: pt_PT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: __init__.py:10
+msgid "Event Analytics"
+msgstr "Event Analytics"
+
+#: __init__.py:16
+msgid ""
+"Analytics suite: sales against previous editions, first-timers and returning "
+"people across every edition, audience, tickets, check-in and refunds — "
+"without storing personal data."
+msgstr ""
+"Conjunto de análises: vendas face a edições anteriores, estreantes e pessoas "
+"que regressam em todas as edições, público, bilhetes, check-in e reembolsos "
+"— sem guardar dados pessoais."
+
+#: exporters.py:183
+msgid "returning"
+msgstr "recorrente"
+
+#: exporters.py:183
+msgid "first time"
+msgstr "primeira vez"
+
+#: exporters.py:183
+msgid "unknown"
+msgstr "desconhecido"
+
+#: exporters.py:302 signals.py:203 signals.py:238
+#: templates/pretix_event_analytics/base.html:4
+#: templates/pretix_event_analytics/base.html:11
+#: templates/pretix_event_analytics/series_detail.html:3
+msgid "Analytics"
+msgstr "Análises"
+
+#: exporters.py:309
+msgid "Include canceled and refunded orders"
+msgstr "Incluir pedidos cancelados e reembolsados"
+
+#: exporters.py:321
+msgid "Analytics: order facts"
+msgstr "Análises: dados de pedidos"
+
+#: exporters.py:322
+msgid ""
+"One row per order with pseudonymous analytics fields (returning status, "
+"purchase timing, geography, age band). No names or e-mails."
+msgstr ""
+"Uma linha por pedido com campos de análise pseudonimizados (estado de "
+"recorrência, momento da compra, geografia, faixa etária). Sem nomes nem e-"
+"mails."
+
+#: exporters.py:334
+msgid "Analytics: ticket facts"
+msgstr "Análises: dados de bilhetes"
+
+#: exporters.py:335
+msgid ""
+"One row per ticket and add-on with check-in, voucher and returning-attendee "
+"fields."
+msgstr ""
+"Uma linha por bilhete e extra com campos de check-in, voucher e participante "
+"recorrente."
+
+#: forms.py:17
+msgid "— Select country —"
+msgstr "— Selecionar país —"
+
+#: forms.py:28
+msgid "e.g. My Festival"
+msgstr "p. ex. O Meu Festival"
+
+#: forms.py:31
+msgid "e.g. my-festival"
+msgstr "p. ex. o-meu-festival"
+
+#: forms.py:36
+msgid ""
+"Short unique identifier used internally. Cannot be changed after editions "
+"are linked to this series."
+msgstr ""
+"Identificador curto e único, utilizado internamente. Não pode ser alterado "
+"depois de haver edições associadas a esta série."
+
+#: forms.py:49
+msgid "Slug cannot be changed — editions are already linked to this series."
+msgstr ""
+"O slug não pode ser alterado — já existem edições associadas a esta série."
+
+#: forms.py:55
+msgid "Slug is required."
+msgstr "O slug é obrigatório."
+
+#: forms.py:59
+msgid "Slug must contain at least one alphanumeric character."
+msgstr "O slug tem de conter pelo menos um carácter alfanumérico."
+
+#: forms.py:65
+msgid "A series with this slug already exists for this organiser."
+msgstr "Já existe uma série com este slug para este organizador."
+
+#: forms.py:104
+msgid "— Select a series (optional) —"
+msgstr "— Selecionar uma série (opcional) —"
+
+#: forms.py:110
+msgid "Event Country"
+msgstr "País do evento"
+
+#: forms.py:129
+msgid "Questions to analyse"
+msgstr "Perguntas a analisar"
+
+#: forms.py:131
+msgid ""
+"Answers to these yes/no and multiple-choice questions are counted on the "
+"Operations page. Only the chosen option is stored — never free text. Avoid "
+"questions about health or other sensitive topics unless you have a legal "
+"basis. Changes apply after the next resync."
+msgstr ""
+"As respostas a estas perguntas de sim/não e de escolha múltipla são contadas "
+"na página Operações. Apenas a opção escolhida é guardada — nunca texto "
+"livre. Evite perguntas sobre saúde ou outros temas sensíveis, salvo se tiver "
+"fundamento jurídico. As alterações aplicam-se após a próxima "
+"ressincronização."
+
+#: forms.py:142
+msgid "— Not used —"
+msgstr "— Não utilizado —"
+
+#: forms.py:149
+msgid "ID-document question"
+msgstr "Pergunta do documento de identificação"
+
+#: forms.py:169
+msgid "Add at least one address to receive pace alerts."
+msgstr "Adicione pelo menos um endereço para receber alertas de ritmo."
+
+#: forms.py:189
+msgid "Edition year must be between 1990 and 2100."
+msgstr "O ano da edição tem de estar entre 1990 e 2100."
+
+#: forms.py:196
+msgid "Bank transfer"
+msgstr "Transferência bancária"
+
+#: forms.py:197 forms.py:198
+msgid "Card (Stripe)"
+msgstr "Cartão (Stripe)"
+
+#: forms.py:201
+msgid "Free"
+msgstr "Gratuito"
+
+#: forms.py:202
+msgid "Manual"
+msgstr "Manual"
+
+#: forms.py:203
+msgid "Box office"
+msgstr "Bilheteira"
+
+#: forms.py:204
+msgid "Gift card"
+msgstr "Cartão-oferta"
+
+#: forms.py:205
+msgid "Cash"
+msgstr "Numerário"
+
+#: forms.py:224
+msgid "Ordered from"
+msgstr "Encomendado desde"
+
+#: forms.py:229
+msgid "Ordered until"
+msgstr "Encomendado até"
+
+#: forms.py:231 services/reports/loyalty.py:259 services/reports/loyalty.py:267
+#: services/reports/scope.py:208
+#: templates/pretix_event_analytics/pages/audience.html:24
+#: templates/pretix_event_analytics/pages/audience.html:47
+#: templates/pretix_event_analytics/pages/sales.html:20
+#: templates/pretix_event_analytics/pdf_report.html:92
+msgid "Country"
+msgstr "País"
+
+#: forms.py:235
+msgid "All ages"
+msgstr "Todas as idades"
+
+#: forms.py:237 services/reports/loyalty.py:260 services/reports/loyalty.py:268
+#: services/reports/scope.py:210
+#: templates/pretix_event_analytics/pages/audience.html:82
+msgid "Age"
+msgstr "Idade"
+
+#: forms.py:241
+msgid "New and returning"
+msgstr "Novos e recorrentes"
+
+#: forms.py:241 services/reports/scope.py:212 services/reports/tickets.py:88
+msgid "First-time buyers"
+msgstr "Compradores pela primeira vez"
+
+#: forms.py:241 services/reports/scope.py:214 services/reports/tickets.py:86
+#: signals.py:168 templates/pretix_event_analytics/pages/overview.html:54
+#: templates/pretix_event_analytics/pdf_report.html:51
+msgid "Returning buyers"
+msgstr "Compradores recorrentes"
+
+#: forms.py:243
+msgid "Buyers"
+msgstr "Compradores"
+
+#: forms.py:245 services/reports/loyalty.py:269
+#: templates/pretix_event_analytics/pages/operations.html:64
+msgid "Payment method"
+msgstr "Forma de pagamento"
+
+#: forms.py:250 services/reports/scope.py:218
+#: templates/pretix_event_analytics/pages/tickets.html:8
+msgid "Products"
+msgstr "Produtos"
+
+#: forms.py:255 services/reports/scope.py:220
+msgid "Events"
+msgstr "Eventos"
+
+#: forms.py:256
+msgid "Select several to merge their data."
+msgstr "Selecione vários para juntar os respetivos dados."
+
+#: forms.py:261
+msgid "Include canceled & refunded"
+msgstr "Incluir cancelados e reembolsados"
+
+#: forms.py:266
+msgid "Caravan pass only"
+msgstr "Apenas passe de caravana"
+
+#: forms.py:275
+msgid "All countries"
+msgstr "Todos os países"
+
+#: forms.py:276 templates/pretix_event_analytics/pages/operations.html:67
+msgid "All methods"
+msgstr "Todas as formas"
+
+#: forms.py:344
+msgid "‘From’ date must be on or before ‘To’ date."
+msgstr "A data ‘De’ tem de ser igual ou anterior à data ‘Até’."
+
+#: forms.py:352
+msgid "Edition name"
+msgstr "Nome da edição"
+
+#: forms.py:353
+msgid "e.g. Festival 2019"
+msgstr "p. ex. Festival 2019"
+
+#: forms.py:354 models.py:65 models.py:462
+#: templates/pretix_event_analytics/config.html:66
+msgid "Edition year"
+msgstr "Ano da edição"
+
+#: forms.py:357
+msgid "CSV or text file"
+msgstr "Ficheiro CSV ou de texto"
+
+#: forms.py:358
+msgid ""
+"A CSV with name + birth-date columns, or any file containing e-mail "
+"addresses. Other data is ignored."
+msgstr ""
+"Um CSV com colunas de nome + data de nascimento, ou qualquer ficheiro com "
+"endereços de e-mail. Os restantes dados são ignorados."
+
+#: forms.py:362
+msgid "…or paste addresses"
+msgstr "…ou colar endereços"
+
+#: forms.py:372
+msgid "The file is too large (20 MB maximum)."
+msgstr "O ficheiro é demasiado grande (máximo de 20 MB)."
+
+#: forms.py:374
+msgid "Upload a file or paste some addresses."
+msgstr "Carregue um ficheiro ou cole alguns endereços."
+
+#: models.py:19
+msgid "Series name"
+msgstr "Nome da série"
+
+#: models.py:22 templates/pretix_event_analytics/series_list.html:33
+msgid "Slug"
+msgstr "Slug"
+
+#: models.py:23
+msgid "Short unique identifier, e.g. my-festival"
+msgstr "Identificador curto e único, p. ex. o-meu-festival"
+
+#: models.py:38 models.py:39
+msgid "Event Series"
+msgstr "Série de eventos"
+
+#: models.py:61 templates/pretix_event_analytics/base.html:14
+#: templates/pretix_event_analytics/config.html:47
+msgid "Series"
+msgstr "Série"
+
+#: models.py:66
+msgid "Calendar year of this edition, e.g. 2024"
+msgstr "Ano civil desta edição, p. ex. 2024"
+
+#: models.py:73
+msgid "Home country (ISO alpha-2)"
+msgstr "País de origem (ISO alfa-2)"
+
+#: models.py:74
+msgid "Country code of the event venue, used in repeat probability scoring."
+msgstr ""
+"Código do país do local do evento, utilizado no cálculo da probabilidade de "
+"regresso."
+
+#: models.py:78 models.py:463
+msgid "Include in analytics"
+msgstr "Incluir nas análises"
+
+#: models.py:79
+msgid "Uncheck to exclude this edition from cohort calculations."
+msgstr "Desmarque para excluir esta edição dos cálculos de coorte."
+
+#: models.py:87 templates/pretix_event_analytics/pages/sales.html:97
+msgid "Ticket target"
+msgstr "Objetivo de bilhetes"
+
+#: models.py:88
+msgid "Optional goal shown on the sales forecast, e.g. venue capacity."
+msgstr ""
+"Objetivo opcional apresentado na previsão de vendas, p. ex. a lotação do "
+"recinto."
+
+#: models.py:94
+msgid "Pace alert threshold (%)"
+msgstr "Limiar do alerta de ritmo (%)"
+
+#: models.py:95
+msgid ""
+"Send an alert when tickets sold are this far behind the previous edition at "
+"the same point. Leave empty to disable."
+msgstr ""
+"Enviar um alerta quando os bilhetes vendidos estiverem esta percentagem "
+"abaixo da edição anterior no mesmo momento. Deixe vazio para desativar."
+
+#: models.py:100
+msgid "Pace alert recipients"
+msgstr "Destinatários do alerta de ritmo"
+
+#: models.py:101
+msgid "E-mail addresses, one per line or comma-separated."
+msgstr "Endereços de e-mail, um por linha ou separados por vírgulas."
+
+#: models.py:112 templates/pretix_event_analytics/pages/sales.html:104
+msgid "Revenue target"
+msgstr "Objetivo de receita"
+
+#: models.py:113
+msgid "Optional revenue goal shown on the sales forecast."
+msgstr "Objetivo de receita opcional apresentado na previsão de vendas."
+
+#: models.py:119
+msgid "Event Analytics Config"
+msgstr "Configuração do Event Analytics"
+
+#: models.py:120
+msgid "Event Analytics Configs"
+msgstr "Configurações do Event Analytics"
+
+#: models.py:150 templates/pretix_event_analytics/pages/operations.html:64
+#: templates/pretix_event_analytics/pages/tickets.html:29
+msgid "Pending"
+msgstr "Pendente"
+
+#: models.py:151 templates/pretix_event_analytics/pages/operations.html:64
+#: templates/pretix_event_analytics/pages/tickets.html:29
+msgid "Paid"
+msgstr "Pago"
+
+#: models.py:152
+msgid "Expired"
+msgstr "Expirado"
+
+#: models.py:153 templates/pretix_event_analytics/pages/operations.html:52
+#: templates/pretix_event_analytics/pages/operations.html:64
+#: templates/pretix_event_analytics/series_detail.html:38
+msgid "Canceled"
+msgstr "Cancelado"
+
+#: models.py:268
+msgid "Analytics Order Fact"
+msgstr "Dado de pedido (análises)"
+
+#: models.py:269
+msgid "Analytics Order Facts"
+msgstr "Dados de pedidos (análises)"
+
+#: models.py:362
+msgid "Analytics Ticket Fact"
+msgstr "Dado de bilhete (análises)"
+
+#: models.py:363
+msgid "Analytics Ticket Facts"
+msgstr "Dados de bilhetes (análises)"
+
+#: models.py:416
+msgid "Analytics Identity"
+msgstr "Identidade (análises)"
+
+#: models.py:417
+msgid "Analytics Identities"
+msgstr "Identidades (análises)"
+
+#: models.py:446
+msgid "Analytics Answer Fact"
+msgstr "Dado de resposta (análises)"
+
+#: models.py:447
+msgid "Analytics Answer Facts"
+msgstr "Dados de respostas (análises)"
+
+#: models.py:461
+msgid "Label"
+msgstr "Rótulo"
+
+#: models.py:468
+msgid "Legacy edition"
+msgstr "Edição anterior"
+
+#: models.py:469
+msgid "Legacy editions"
+msgstr "Edições anteriores"
+
+#: models.py:510 templates/pretix_event_analytics/pages/sales.html:23
+#: templates/pretix_event_analytics/pages/sales.html:69
+msgid "Date"
+msgstr "Data"
+
+#: models.py:511 templates/pretix_event_analytics/pages/sales.html:71
+msgid "What happened"
+msgstr "O que aconteceu"
+
+#: models.py:516
+msgid "Sales annotation"
+msgstr "Momento de vendas"
+
+#: models.py:517
+msgid "Sales annotations"
+msgstr "Momentos de vendas"
+
+#: services/alerts.py:103
+#, python-brace-format
+msgid "{event}: ticket sales {gap}% behind {previous}"
+msgstr "{event}: vendas de bilhetes {gap}% abaixo de {previous}"
+
+#: services/reports/audience.py:24 services/reports/loyalty.py:278
+#: services/reports/sales.py:143
+msgid "Unknown"
+msgstr "Desconhecido"
+
+#: services/reports/audience.py:117 services/reports/audience.py:173
+#: services/reports/audience.py:174 services/reports/sales.py:158
+#: services/reports/sales.py:162 services/reports/sales.py:179
+#: services/reports/tickets.py:40
+msgid "Other"
+msgstr "Outro"
+
+#: services/reports/audience.py:119 services/reports/audience.py:120
+#: services/reports/audience.py:175 services/reports/audience.py:183
+#: services/reports/audience.py:193 services/reports/audience.py:194
+#: services/reports/loyalty.py:320 services/reports/operations.py:97
+#: templates/pretix_event_analytics/pages/audience.html:24
+#: templates/pretix_event_analytics/pages/audience.html:37
+#: templates/pretix_event_analytics/pages/audience.html:47
+#: templates/pretix_event_analytics/pages/audience.html:71
+#: templates/pretix_event_analytics/pages/audience.html:95
+#: templates/pretix_event_analytics/pages/audience.html:106
+#: templates/pretix_event_analytics/pages/loyalty.html:112
+#: templates/pretix_event_analytics/pages/operations.html:64
+#: templates/pretix_event_analytics/pages/overview.html:44
+#: templates/pretix_event_analytics/pages/sales.html:191
+#: templates/pretix_event_analytics/pages/tickets.html:89
+#: templates/pretix_event_analytics/pages/tickets.html:102
+#: templates/pretix_event_analytics/pdf_report.html:50
+#: templates/pretix_event_analytics/pdf_report.html:92
+#: templates/pretix_event_analytics/pdf_report.html:101
+#: templates/pretix_event_analytics/series_detail.html:36
+msgid "Orders"
+msgstr "Pedidos"
+
+#: services/reports/audience.py:154
+#: templates/pretix_event_analytics/config.html:95
+msgid "tickets"
+msgstr "bilhetes"
+
+#: services/reports/audience.py:157
+msgid "orders"
+msgstr "pedidos"
+
+#: services/reports/audience.py:162
+#: templates/pretix_event_analytics/pages/loyalty.html:95
+#: templates/pretix_event_analytics/pages/loyalty.html:145
+#: templates/pretix_event_analytics/pages/loyalty.html:175
+#: templates/pretix_event_analytics/pdf_report.html:63
+#: templates/pretix_event_analytics/pdf_report.html:68
+#: templates/pretix_event_analytics/pdf_report.html:84
+msgid "Share"
+msgstr "Percentagem"
+
+#: services/reports/audience.py:163
+#, python-format
+msgid "Share of %(basis)s with a known age"
+msgstr "Percentagem de %(basis)s com idade conhecida"
+
+#: services/reports/audience.py:193
+msgid "Tickets per order"
+msgstr "Bilhetes por pedido"
+
+#: services/reports/audience.py:205
+msgid "Vans"
+msgstr "Autocaravanas"
+
+#: services/reports/audience.py:227
+msgid "Early bird"
+msgstr "Early bird"
+
+#: services/reports/audience.py:227
+msgid "Regular"
+msgstr "Normal"
+
+#: services/reports/audience.py:227
+#, python-format
+msgid "Last minute (final %(d)s days)"
+msgstr "Última hora (últimos %(d)s dias)"
+
+#: services/reports/audience.py:251
+#, python-format
+msgid "Early bird: first %(e)s days of sales · Last minute: final %(l)s days"
+msgstr ""
+"Early bird: primeiros %(e)s dias de vendas · Última hora: últimos %(l)s dias"
+
+#: services/reports/loyalty.py:99 services/reports/loyalty.py:219
+#: templates/pretix_event_analytics/pages/loyalty.html:58
+#: templates/pretix_event_analytics/pages/loyalty.html:189
+#: templates/pretix_event_analytics/pages/resale.html:41
+#: templates/pretix_event_analytics/pdf_report.html:73
+msgid "First time"
+msgstr "Primeira vez"
+
+#: services/reports/loyalty.py:99
+msgid "1 previous"
+msgstr "1 anterior"
+
+#: services/reports/loyalty.py:99
+msgid "2 previous"
+msgstr "2 anteriores"
+
+#: services/reports/loyalty.py:99
+msgid "3 previous"
+msgstr "3 anteriores"
+
+#: services/reports/loyalty.py:106
+msgid "4+ previous"
+msgstr "4+ anteriores"
+
+#: services/reports/loyalty.py:137 services/reports/loyalty.py:178
+#: services/reports/loyalty.py:222
+#: templates/pretix_event_analytics/pages/loyalty.html:95
+#: templates/pretix_event_analytics/pages/loyalty.html:145
+#: templates/pretix_event_analytics/pages/loyalty.html:175
+#: templates/pretix_event_analytics/pages/loyalty.html:189
+#: templates/pretix_event_analytics/pdf_report.html:63
+#: templates/pretix_event_analytics/pdf_report.html:68
+#: templates/pretix_event_analytics/pdf_report.html:73
+#: templates/pretix_event_analytics/series_detail.html:17
+#: templates/pretix_event_analytics/series_detail.html:37
+#: templates/pretix_event_analytics/series_detail.html:102
+msgid "People"
+msgstr "Pessoas"
+
+#: services/reports/loyalty.py:153
+msgid "1 edition"
+msgstr "1 edição"
+
+#: services/reports/loyalty.py:153
+#, python-format
+msgid "%(n)s editions"
+msgstr "%(n)s edições"
+
+#: services/reports/loyalty.py:179
+msgid "Editions attended (of those selected)"
+msgstr "Edições frequentadas (das selecionadas)"
+
+#: services/reports/loyalty.py:220
+msgid "Back from previous edition"
+msgstr "Regressam da edição anterior"
+
+#: services/reports/loyalty.py:221
+#: templates/pretix_event_analytics/pages/loyalty.html:189
+msgid "Back after a gap"
+msgstr "Regressam após uma pausa"
+
+#: services/reports/loyalty.py:258
+#: templates/pretix_event_analytics/pages/operations.html:28
+#: templates/pretix_event_analytics/pages/operations.html:52
+#: templates/pretix_event_analytics/pages/resale.html:50
+#: templates/pretix_event_analytics/pages/sales.html:17
+#: templates/pretix_event_analytics/pages/tickets.html:15
+#: templates/pretix_event_analytics/pages/tickets.html:54
+#: templates/pretix_event_analytics/pages/tickets.html:66
+#: templates/pretix_event_analytics/pdf_report.html:108
+msgid "Product"
+msgstr "Produto"
+
+#: services/reports/loyalty.py:292
+#, python-format
+msgid "By %(dim)s"
+msgstr "Por %(dim)s"
+
+#: services/reports/loyalty.py:306
+msgid "By purchase timing"
+msgstr "Por momento da compra"
+
+#: services/reports/loyalty.py:306
+msgid "Bought"
+msgstr "Compra"
+
+#: services/reports/loyalty.py:320
+msgid "Return score"
+msgstr "Pontuação de regresso"
+
+#: services/reports/market.py:17 services/reports/market.py:41
+msgid "Manual name change"
+msgstr "Alteração manual de nome"
+
+#: services/reports/market.py:17
+msgid "Both"
+msgstr "Ambos"
+
+#: services/reports/market.py:42 services/reports/sales.py:115
+#: services/reports/sales.py:119 services/reports/sales.py:186
+#: services/reports/sales.py:485 services/reports/sales.py:486
+#: services/reports/series.py:55 services/reports/series.py:56
+#: services/reports/tickets.py:41 signals.py:199
+#: templates/pretix_event_analytics/pages/audience.html:24
+#: templates/pretix_event_analytics/pages/audience.html:58
+#: templates/pretix_event_analytics/pages/audience.html:71
+#: templates/pretix_event_analytics/pages/audience.html:106
+#: templates/pretix_event_analytics/pages/loyalty.html:112
+#: templates/pretix_event_analytics/pages/operations.html:28
+#: templates/pretix_event_analytics/pages/operations.html:52
+#: templates/pretix_event_analytics/pages/resale.html:25
+#: templates/pretix_event_analytics/pages/sales.html:117
+#: templates/pretix_event_analytics/pages/sales.html:191
+#: templates/pretix_event_analytics/pages/tickets.html:15
+#: templates/pretix_event_analytics/pages/tickets.html:45
+#: templates/pretix_event_analytics/pdf_report.html:84
+#: templates/pretix_event_analytics/pdf_report.html:107
+#: templates/pretix_event_analytics/pdf_report.html:108
+#: templates/pretix_event_analytics/series_detail.html:36 views.py:78
+msgid "Tickets"
+msgstr "Bilhetes"
+
+#: services/reports/market.py:51
+msgid "Tickets that changed hands"
+msgstr "Bilhetes que mudaram de mãos"
+
+#: services/reports/market.py:52
+msgid "Share of tickets"
+msgstr "Percentagem de bilhetes"
+
+#: services/reports/operations.py:50
+msgid "Returning attendees"
+msgstr "Participantes recorrentes"
+
+#: services/reports/operations.py:51 signals.py:170
+msgid "First-time attendees"
+msgstr "Participantes pela primeira vez"
+
+#: services/reports/operations.py:65
+msgid "First entries"
+msgstr "Primeiras entradas"
+
+#: services/reports/operations.py:66
+msgid "Attendees"
+msgstr "Participantes"
+
+#: services/reports/operations.py:96
+msgid "Canceled orders"
+msgstr "Pedidos cancelados"
+
+#: services/reports/operations.py:97
+msgid "Week of cancellation"
+msgstr "Semana do cancelamento"
+
+#: services/reports/operations.py:129 services/reports/sales.py:139
+#: services/reports/sales.py:153
+msgid "First-time"
+msgstr "Estreantes"
+
+#: services/reports/operations.py:130 services/reports/sales.py:139
+#: services/reports/sales.py:153
+#: templates/pretix_event_analytics/pages/audience.html:24
+#: templates/pretix_event_analytics/pages/audience.html:71
+#: templates/pretix_event_analytics/pages/audience.html:106
+#: templates/pretix_event_analytics/pages/tickets.html:15
+#: templates/pretix_event_analytics/pdf_report.html:92
+#: templates/pretix_event_analytics/pdf_report.html:101
+#: templates/pretix_event_analytics/pdf_report.html:108
+msgid "Returning"
+msgstr "Recorrentes"
+
+#: services/reports/sales.py:116 services/reports/sales.py:122
+#: services/reports/sales.py:188 services/reports/sales.py:369
+#: templates/pretix_event_analytics/pages/audience.html:24
+#: templates/pretix_event_analytics/pages/audience.html:71
+#: templates/pretix_event_analytics/pages/audience.html:95
+#: templates/pretix_event_analytics/pages/audience.html:106
+#: templates/pretix_event_analytics/pages/overview.html:28
+#: templates/pretix_event_analytics/pages/sales.html:49
+#: templates/pretix_event_analytics/pages/sales.html:118
+#: templates/pretix_event_analytics/pages/sales.html:191
+#: templates/pretix_event_analytics/pages/tickets.html:15
+#: templates/pretix_event_analytics/pages/tickets.html:45
+#: templates/pretix_event_analytics/pages/tickets.html:54
+#: templates/pretix_event_analytics/pages/tickets.html:81
+#: templates/pretix_event_analytics/pages/tickets.html:102
+#: templates/pretix_event_analytics/pdf_report.html:46
+#: templates/pretix_event_analytics/pdf_report.html:84
+#: templates/pretix_event_analytics/pdf_report.html:92
+#: templates/pretix_event_analytics/pdf_report.html:108
+#: templates/pretix_event_analytics/series_detail.html:36
+msgid "Revenue"
+msgstr "Receita"
+
+#: services/reports/sales.py:141 services/reports/tickets.py:48
+msgid "Uncategorised"
+msgstr "Sem categoria"
+
+#: services/reports/sales.py:208
+msgid ""
+"Revenue split by product counts ticket and add-on prices only; fees are not "
+"attributed to a product."
+msgstr ""
+"A divisão da receita por produto conta apenas os preços dos bilhetes e dos "
+"extras; as taxas não são atribuídas a nenhum produto."
+
+#: services/reports/sales.py:363
+msgid "Days before the event"
+msgstr "Dias antes do evento"
+
+#: services/reports/sales.py:366
+#: templates/pretix_event_analytics/pages/overview.html:36
+#: templates/pretix_event_analytics/pages/sales.html:46
+#: templates/pretix_event_analytics/pdf_report.html:48
+msgid "Tickets sold"
+msgstr "Bilhetes vendidos"
+
+#: services/reports/sales.py:452
+msgid "Mon"
+msgstr "Seg"
+
+#: services/reports/sales.py:452
+msgid "Tue"
+msgstr "Ter"
+
+#: services/reports/sales.py:452
+msgid "Wed"
+msgstr "Qua"
+
+#: services/reports/sales.py:452
+msgid "Thu"
+msgstr "Qui"
+
+#: services/reports/sales.py:452
+msgid "Fri"
+msgstr "Sex"
+
+#: services/reports/sales.py:452
+msgid "Sat"
+msgstr "Sáb"
+
+#: services/reports/sales.py:452
+msgid "Sun"
+msgstr "Dom"
+
+#: services/reports/scope.py:204
+msgid "From"
+msgstr "De"
+
+#: services/reports/scope.py:206
+msgid "Until"
+msgstr "Até"
+
+#: services/reports/scope.py:216
+#: templates/pretix_event_analytics/pages/sales.html:26
+msgid "Payment"
+msgstr "Pagamento"
+
+#: services/reports/scope.py:222
+msgid "Incl. canceled & refunded"
+msgstr "Incl. cancelados e reembolsados"
+
+#: services/reports/scope.py:224
+msgid "Caravan only"
+msgstr "Apenas caravana"
+
+#: services/reports/tickets.py:93
+#, python-format
+msgid "Age %(a)s"
+msgstr "Idade %(a)s"
+
+#: services/reports/tickets.py:108
+msgid "(no tag)"
+msgstr "(sem etiqueta)"
+
+#: shredder.py:25
+msgid "Analytics data (hashed buyer identities, order facts)"
+msgstr ""
+"Dados de análise (identidades de compradores em hash, dados de pedidos)"
+
+#: shredder.py:28
+msgid ""
+"This will remove all analytics fact records for this event, including HMAC-"
+"hashed buyer identities used for repeat detection, order-level aggregates, "
+"and ticket-level breakdowns. Cohort retention data that depends on this "
+"event will also be affected."
+msgstr ""
+"Isto irá remover todos os registos de análise deste evento, incluindo as "
+"identidades de compradores em hash HMAC utilizadas para detetar recorrência, "
+"os agregados por pedido e os detalhes por bilhete. Os dados de retenção por "
+"coorte que dependem deste evento também serão afetados."
+
+#: signals.py:198 templates/pretix_event_analytics/pdf_report.html:44
+#: views.py:74
+msgid "Overview"
+msgstr "Visão geral"
+
+#: signals.py:198 views.py:75
+msgid "Sales"
+msgstr "Vendas"
+
+#: signals.py:198 templates/pretix_event_analytics/pdf_report.html:88
+#: views.py:76
+msgid "Audience"
+msgstr "Público"
+
+#: signals.py:199 templates/pretix_event_analytics/pdf_report.html:59
+#: views.py:77
+msgid "Loyalty"
+msgstr "Fidelização"
+
+#: signals.py:199 templates/pretix_event_analytics/pdf_report.html:117
+#: views.py:79
+msgid "Operations"
+msgstr "Operações"
+
+#: signals.py:200 views.py:80
+msgid "Resale"
+msgstr "Revenda"
+
+#: signals.py:266
+msgid "Analytics series"
+msgstr "Série de análises"
+
+#: signals.py:315
+msgid "Analytics settings were changed."
+msgstr "As configurações das análises foram alteradas."
+
+#: signals.py:316
+msgid "An analytics resync was started."
+msgstr "Foi iniciada uma ressincronização das análises."
+
+#: signals.py:317
+#, python-brace-format
+msgid "A sales moment was added to the analytics timeline: {label}"
+msgstr "Foi adicionado um momento de vendas à cronologia das análises: {label}"
+
+#: signals.py:318
+#, python-brace-format
+msgid "A sales moment was removed from the analytics timeline: {label}"
+msgstr "Foi removido um momento de vendas da cronologia das análises: {label}"
+
+#: signals.py:325
+#, python-brace-format
+msgid "Analytics series “{name}” was created."
+msgstr "A série de análises “{name}” foi criada."
+
+#: signals.py:326
+#, python-brace-format
+msgid "Analytics series “{name}” was changed."
+msgstr "A série de análises “{name}” foi alterada."
+
+#: signals.py:327
+#, python-brace-format
+msgid "Analytics series “{name}” was deleted."
+msgstr "A série de análises “{name}” foi eliminada."
+
+#: signals.py:328
+#, python-brace-format
+msgid "A resync of analytics series “{name}” was started."
+msgstr "Foi iniciada uma ressincronização da série de análises “{name}”."
+
+#: signals.py:330
+#, python-brace-format
+msgid ""
+"Past attendee list “{label}” ({year}) was imported into analytics series "
+"“{series}”: {count} entries, stored as hashes only."
+msgstr ""
+"A lista de participantes anterior “{label}” ({year}) foi importada para a "
+"série de análises “{series}”: {count} entradas, guardadas apenas como hashes."
+
+#: signals.py:333
+#, python-brace-format
+msgid ""
+"Past attendee list “{label}” was removed from analytics series “{series}”."
+msgstr ""
+"A lista de participantes anterior “{label}” foi removida da série de "
+"análises “{series}”."
+
+#: templates/pretix_event_analytics/_chart.html:10
+#: templates/pretix_event_analytics/pages/sales.html:29
+msgid "Cumulative"
+msgstr "Acumulado"
+
+#: templates/pretix_event_analytics/_chart.html:12
+msgid "Show the data as a table"
+msgstr "Mostrar os dados em tabela"
+
+#: templates/pretix_event_analytics/_chart.html:13
+msgid "Table"
+msgstr "Tabela"
+
+#: templates/pretix_event_analytics/base.html:6
+msgid "No data for this selection yet"
+msgstr "Ainda não há dados para esta seleção"
+
+#: templates/pretix_event_analytics/base.html:7
+msgid "Event"
+msgstr "Evento"
+
+#: templates/pretix_event_analytics/base.html:7
+msgid "days before"
+msgstr "dias antes"
+
+#: templates/pretix_event_analytics/base.html:7
+#: templates/pretix_event_analytics/series_detail.html:5
+msgid "Total"
+msgstr "Total"
+
+#: templates/pretix_event_analytics/base.html:14
+#: templates/pretix_event_analytics/pages/loyalty.html:189
+#: templates/pretix_event_analytics/pages/sales.html:138
+#: templates/pretix_event_analytics/pdf_report.html:38
+#: templates/pretix_event_analytics/pdf_report.html:73
+#: templates/pretix_event_analytics/pdf_report.html:79
+#: templates/pretix_event_analytics/series_detail.html:36
+#: templates/pretix_event_analytics/series_detail.html:102
+msgid "Edition"
+msgstr "Edição"
+
+#: templates/pretix_event_analytics/base.html:16
+msgid "Link this event to a series to compare editions"
+msgstr "Associe este evento a uma série para comparar edições"
+
+#: templates/pretix_event_analytics/base.html:18
+msgid "Updated"
+msgstr "Atualizado"
+
+#: templates/pretix_event_analytics/base.html:24
+msgid "Export"
+msgstr "Exportar"
+
+#: templates/pretix_event_analytics/base.html:27
+msgid "Report (PDF)"
+msgstr "Relatório (PDF)"
+
+#: templates/pretix_event_analytics/base.html:28
+msgid "Orders (CSV)"
+msgstr "Pedidos (CSV)"
+
+#: templates/pretix_event_analytics/base.html:29
+msgid "Tickets (CSV)"
+msgstr "Bilhetes (CSV)"
+
+#: templates/pretix_event_analytics/base.html:30
+msgid "Returning buyers by order code (CSV)"
+msgstr "Compradores recorrentes por código de pedido (CSV)"
+
+#: templates/pretix_event_analytics/base.html:34
+msgid "All editions"
+msgstr "Todas as edições"
+
+#: templates/pretix_event_analytics/base.html:36
+msgid "Settings"
+msgstr "Configurações"
+
+#: templates/pretix_event_analytics/base.html:41
+#: templates/pretix_event_analytics/config.html:27
+msgid "Re-process all orders for this event? This may take a minute."
+msgstr ""
+"Reprocessar todos os pedidos deste evento? Isto pode demorar um minuto."
+
+#: templates/pretix_event_analytics/base.html:42
+#: templates/pretix_event_analytics/config.html:28
+msgid "Resync"
+msgstr "Ressincronizar"
+
+#: templates/pretix_event_analytics/base.html:49
+msgid "Analytics sections"
+msgstr "Secções de análise"
+
+#: templates/pretix_event_analytics/base.html:57
+msgid "No analytics data yet."
+msgstr "Ainda não há dados de análise."
+
+#: templates/pretix_event_analytics/base.html:58
+msgid ""
+"New paid orders are picked up automatically. To import orders placed before "
+"the plugin was enabled, run a resync."
+msgstr ""
+"Os novos pedidos pagos são incluídos automaticamente. Para importar pedidos "
+"feitos antes de o plugin ser ativado, execute uma ressincronização."
+
+#: templates/pretix_event_analytics/base.html:62
+msgid "Run initial resync"
+msgstr "Executar a ressincronização inicial"
+
+#: templates/pretix_event_analytics/base.html:78
+#, python-format
+msgid "%(n)s selected"
+msgid_plural "%(n)s selected"
+msgstr[0] "%(n)s selecionado"
+msgstr[1] "%(n)s selecionados"
+
+#: templates/pretix_event_analytics/base.html:78
+msgid "All products"
+msgstr "Todos os produtos"
+
+#: templates/pretix_event_analytics/base.html:86
+#, python-format
+msgid "%(n)s event"
+msgid_plural "%(n)s events"
+msgstr[0] "%(n)s evento"
+msgstr[1] "%(n)s eventos"
+
+#: templates/pretix_event_analytics/base.html:86
+msgid "This event"
+msgstr "Este evento"
+
+#: templates/pretix_event_analytics/base.html:92
+msgid "Clear"
+msgstr "Limpar"
+
+#: templates/pretix_event_analytics/base.html:93
+msgid "Apply"
+msgstr "Aplicar"
+
+#: templates/pretix_event_analytics/base.html:97
+msgid "Quick range:"
+msgstr "Intervalo rápido:"
+
+#: templates/pretix_event_analytics/base.html:101
+msgid "More filters"
+msgstr "Mais filtros"
+
+#: templates/pretix_event_analytics/base.html:116
+#: templates/pretix_event_analytics/pdf_report.html:42
+msgid "Filtered by"
+msgstr "Filtrado por"
+
+#: templates/pretix_event_analytics/base.html:118
+msgid "clear all"
+msgstr "limpar tudo"
+
+#: templates/pretix_event_analytics/base.html:125
+msgid "Back to top"
+msgstr "Voltar ao topo"
+
+#: templates/pretix_event_analytics/config.html:4
+#: templates/pretix_event_analytics/config.html:11
+msgid "Analytics settings"
+msgstr "Configurações das análises"
+
+#: templates/pretix_event_analytics/config.html:15
+#, python-format
+msgid "%(n)s order analysed"
+msgid_plural "%(n)s orders analysed"
+msgstr[0] "%(n)s pedido analisado"
+msgstr[1] "%(n)s pedidos analisados"
+
+#: templates/pretix_event_analytics/config.html:16
+msgid "updated"
+msgstr "atualizado"
+
+#: templates/pretix_event_analytics/config.html:19
+msgid "No orders analysed yet. Save the settings below, then run a first sync."
+msgstr ""
+"Ainda não foram analisados pedidos. Guarde as configurações abaixo e execute "
+"uma primeira sincronização."
+
+#: templates/pretix_event_analytics/config.html:24
+msgid "Open dashboard"
+msgstr "Abrir painel"
+
+#: templates/pretix_event_analytics/config.html:28
+msgid "Run first sync"
+msgstr "Executar a primeira sincronização"
+
+#: templates/pretix_event_analytics/config.html:42
+#: templates/pretix_event_analytics/pages/loyalty.html:30
+msgid "This edition"
+msgstr "Esta edição"
+
+#: templates/pretix_event_analytics/config.html:43
+msgid ""
+"Tell the plugin which recurring event this is, so editions can be compared."
+msgstr ""
+"Indique ao plugin a que evento recorrente este pertence, para que as edições "
+"possam ser comparadas."
+
+#: templates/pretix_event_analytics/config.html:52
+msgid "All editions of the same festival share one series."
+msgstr "Todas as edições do mesmo festival partilham uma série."
+
+#: templates/pretix_event_analytics/config.html:53
+#: templates/pretix_event_analytics/series_list.html:16
+msgid "New series"
+msgstr "Nova série"
+
+#: templates/pretix_event_analytics/config.html:54
+msgid "Manage series"
+msgstr "Gerir séries"
+
+#: templates/pretix_event_analytics/config.html:58
+msgid "What is a series?"
+msgstr "O que é uma série?"
+
+#: templates/pretix_event_analytics/config.html:59
+msgid ""
+"A series is your recurring event — e.g. <strong>My Festival</strong>. Each "
+"year is one edition. Linking editions unlocks returning-people figures, "
+"edition comparisons and the forecast. One-off events can skip this."
+msgstr ""
+"Uma série é o seu evento recorrente — p. ex. <strong>O Meu Festival</"
+"strong>. Cada ano é uma edição. Associar edições desbloqueia os números de "
+"pessoas que regressam, as comparações entre edições e a previsão. Eventos "
+"únicos podem saltar este passo."
+
+#: templates/pretix_event_analytics/config.html:70
+msgid "Orders editions on timelines and in comparisons."
+msgstr "Ordena as edições nas cronologias e nas comparações."
+
+#: templates/pretix_event_analytics/config.html:75
+msgid "Event country"
+msgstr "País do evento"
+
+#: templates/pretix_event_analytics/config.html:78
+msgid "Buyers from this country count as local."
+msgstr "Os compradores deste país contam como locais."
+
+#: templates/pretix_event_analytics/config.html:86
+msgid "Goals & alerts"
+msgstr "Objetivos e alertas"
+
+#: templates/pretix_event_analytics/config.html:89
+msgid ""
+"Optional. Targets appear next to the sales forecast; the alert e-mails you "
+"if sales fall behind last year."
+msgstr ""
+"Opcional. Os objetivos aparecem junto à previsão de vendas; o alerta envia-"
+"lhe um e-mail se as vendas ficarem abaixo das do ano passado."
+
+#: templates/pretix_event_analytics/config.html:92
+msgid "Sales target"
+msgstr "Objetivo de vendas"
+
+#: templates/pretix_event_analytics/config.html:98
+msgid ""
+"E.g. your capacity or budget break-even. Leave empty if you don't need it."
+msgstr ""
+"P. ex. a sua lotação ou o ponto de equilíbrio do orçamento. Deixe vazio se "
+"não precisar."
+
+#: templates/pretix_event_analytics/config.html:103
+msgid "Pace alert"
+msgstr "Alerta de ritmo"
+
+#: templates/pretix_event_analytics/config.html:106
+msgid "E-mail when tickets are"
+msgstr "Enviar e-mail quando os bilhetes estiverem"
+
+#: templates/pretix_event_analytics/config.html:106
+#, python-format
+msgid "%% behind the previous edition"
+msgstr "%% abaixo da edição anterior"
+
+#: templates/pretix_event_analytics/config.html:109
+msgid "Send to"
+msgstr "Enviar para"
+
+#: templates/pretix_event_analytics/config.html:112
+msgid ""
+"Compared at the same number of days before the event. At most one e-mail a "
+"week while sales stay behind. Leave the percentage empty to switch it off."
+msgstr ""
+"Comparado ao mesmo número de dias antes do evento. No máximo um e-mail por "
+"semana enquanto as vendas se mantiverem abaixo. Deixe a percentagem vazia "
+"para desativar."
+
+#: templates/pretix_event_analytics/config.html:120
+msgid "Question insights"
+msgstr "Análise de perguntas"
+
+#: templates/pretix_event_analytics/config.html:123
+msgid ""
+"Break down answers to your checkout questions (e.g. “How did you hear about "
+"us?”) by first-time and returning attendees. Only yes/no and multiple-choice "
+"questions can be used, and only the chosen option is stored."
+msgstr ""
+"Divida as respostas às perguntas do checkout (p. ex. “Como teve conhecimento "
+"de nós?”) entre participantes pela primeira vez e recorrentes. Só podem ser "
+"utilizadas perguntas de sim/não e de escolha múltipla, e apenas a opção "
+"escolhida é guardada."
+
+#: templates/pretix_event_analytics/config.html:126
+msgid ""
+"Avoid sensitive topics (health, diet related to health) unless you have a "
+"legal basis. Changes apply after the next resync."
+msgstr ""
+"Evite temas sensíveis (saúde, alimentação relacionada com a saúde), salvo se "
+"tiver fundamento jurídico. As alterações aplicam-se após a próxima "
+"ressincronização."
+
+#: templates/pretix_event_analytics/config.html:128
+msgid "This event has no yes/no or multiple-choice questions."
+msgstr "Este evento não tem perguntas de sim/não nem de escolha múltipla."
+
+#: templates/pretix_event_analytics/config.html:135
+msgid "Where people come from"
+msgstr "De onde vêm as pessoas"
+
+#: templates/pretix_event_analytics/config.html:138
+msgid ""
+"Each order's country of residence is taken from the first of: a “Country of "
+"residence” question, the invoice address, PayPal, the card's billing "
+"address, the ID document (if enabled below), the IBAN, and finally the "
+"country of the bank that issued the card. Nothing else is guessed — without "
+"a source the country stays unknown. The Audience page shows how many orders "
+"each source covers."
+msgstr ""
+"O país de residência de cada pedido é obtido da primeira fonte disponível: "
+"uma pergunta “País de residência”, o endereço de faturação, o PayPal, o "
+"endereço de faturação do cartão, o documento de identificação (se ativado "
+"abaixo), o IBAN e, por fim, o país do banco emissor do cartão. Nada mais é "
+"deduzido — sem fonte, o país fica desconhecido. A página Público mostra "
+"quantos pedidos cada fonte cobre."
+
+#: templates/pretix_event_analytics/config.html:141
+msgid "Checkout questions"
+msgstr "Perguntas do checkout"
+
+#: templates/pretix_event_analytics/config.html:144
+msgid "Residence:"
+msgstr "Residência:"
+
+#: templates/pretix_event_analytics/config.html:144
+msgid "No “Country of residence” question"
+msgstr "Sem pergunta “País de residência”"
+
+#: templates/pretix_event_analytics/config.html:145
+msgid "Travel:"
+msgstr "Viagem:"
+
+#: templates/pretix_event_analytics/config.html:145
+msgid "No “Travelling from” question"
+msgstr "Sem pergunta “Viaja a partir de”"
+
+#: templates/pretix_event_analytics/config.html:147
+msgid ""
+"Most accurate: add the questions “Country of residence” and “Which country "
+"are you travelling from?” (question type Country) under Products → "
+"Questions. Ask for residence, not “origin” or nationality, and mention the "
+"purpose in your privacy notice."
+msgstr ""
+"Mais preciso: adicione as perguntas “País de residência” e “De que país "
+"viaja?” (tipo de pergunta País) em Produtos → Perguntas. Pergunte pela "
+"residência, não pela “origem” nem pela nacionalidade, e mencione a "
+"finalidade no seu aviso de privacidade."
+
+#: templates/pretix_event_analytics/config.html:152
+msgid "ID-document country"
+msgstr "País do documento de identificação"
+
+#: templates/pretix_event_analytics/config.html:156
+msgid ""
+"Optional. If checkout asks for an ID-document number, the issuing country "
+"can be read from recognisable national formats with a valid check digit "
+"(e.g. Spanish DNI/NIE, Portuguese Cartão de Cidadão). Unclear numbers are "
+"left unknown. Only the country is stored — never the number."
+msgstr ""
+"Opcional. Se o checkout pedir o número de um documento de identificação, o "
+"país emissor pode ser lido a partir de formatos nacionais reconhecíveis com "
+"dígito de controlo válido (p. ex. DNI/NIE espanhol, Cartão de Cidadão "
+"português). Os números pouco claros ficam como desconhecidos. Apenas o país "
+"é guardado — nunca o número."
+
+#: templates/pretix_event_analytics/config.html:158
+msgid "Before you enable this (GDPR)"
+msgstr "Antes de ativar (RGPD)"
+
+#: templates/pretix_event_analytics/config.html:159
+msgid ""
+"ID numbers are collected for entry checks. Reusing them for statistics is a "
+"new purpose: list it in your privacy notice (e.g. “aggregate statistics on "
+"where visitors come from”) and make sure you have a legal basis such as "
+"legitimate interest. A document shows the issuing country — usually "
+"nationality, not residence — so it is used only when no residence source "
+"exists."
+msgstr ""
+"Os números de identificação são recolhidos para o controlo de entradas. "
+"Reutilizá-los para estatísticas é uma nova finalidade: indique-a no seu "
+"aviso de privacidade (p. ex. “estatísticas agregadas sobre a proveniência "
+"dos visitantes”) e assegure-se de que tem fundamento jurídico, como o "
+"interesse legítimo. Um documento mostra o país emissor — normalmente a "
+"nacionalidade, não a residência — pelo que só é utilizado quando não existe "
+"nenhuma fonte de residência."
+
+#: templates/pretix_event_analytics/config.html:168
+msgid "Advanced"
+msgstr "Avançado"
+
+#: templates/pretix_event_analytics/config.html:169
+msgid "Counted in comparisons"
+msgstr "Incluída nas comparações"
+
+#: templates/pretix_event_analytics/config.html:169
+msgid "Excluded from comparisons"
+msgstr "Excluída das comparações"
+
+#: templates/pretix_event_analytics/config.html:172
+msgid "Count this edition when comparing editions"
+msgstr "Incluir esta edição ao comparar edições"
+
+#: templates/pretix_event_analytics/config.html:174
+msgid ""
+"Untick for test events or editions that should not decide who counts as a "
+"returning visitor. This event's own dashboard keeps working either way."
+msgstr ""
+"Desmarque para eventos de teste ou edições que não devem determinar quem "
+"conta como visitante recorrente. O painel deste evento continua a funcionar "
+"em qualquer caso."
+
+#: templates/pretix_event_analytics/config.html:178
+msgid "Save settings"
+msgstr "Guardar configurações"
+
+#: templates/pretix_event_analytics/config.html:179
+msgid ""
+"No personal data is stored: e-mails and other identifiers are kept only as "
+"irreversible hashes."
+msgstr ""
+"Não são guardados dados pessoais: os e-mails e outros identificadores são "
+"mantidos apenas como hashes irreversíveis."
+
+#: templates/pretix_event_analytics/email/pace_alert.txt:1
+#, python-format
+msgid ""
+"Hello,\n"
+"\n"
+"with %(days)s days to go, %(event)s has sold %(current)s tickets. At the "
+"same point, %(label)s had sold %(previous)s — that is %(gap)s%% behind."
+msgstr ""
+"Olá,\n"
+"\n"
+"faltando %(days)s dias, %(event)s vendeu %(current)s bilhetes. No mesmo "
+"momento, %(label)s tinha vendido %(previous)s — ou seja, %(gap)s%% abaixo."
+
+#: templates/pretix_event_analytics/email/pace_alert.txt:5
+#, python-format
+msgid ""
+"You receive this because the pace alert threshold is set to %(threshold)s%%. "
+"While sales stay behind, this reminder is repeated at most once a week."
+msgstr ""
+"Recebe esta mensagem porque o limiar do alerta de ritmo está definido em "
+"%(threshold)s%%. Enquanto as vendas se mantiverem abaixo, este lembrete é "
+"repetido no máximo uma vez por semana."
+
+#: templates/pretix_event_analytics/email/pace_alert.txt:7
+msgid "Sales and forecast:"
+msgstr "Vendas e previsão:"
+
+#: templates/pretix_event_analytics/pages/audience.html:5
+msgid "No orders match the current filters."
+msgstr "Nenhum pedido corresponde aos filtros atuais."
+
+#: templates/pretix_event_analytics/pages/audience.html:8
+msgid "Where buyers come from"
+msgstr "De onde vêm os compradores"
+
+#: templates/pretix_event_analytics/pages/audience.html:8
+#, python-format
+msgid "%(p)s%% local"
+msgstr "%(p)s%% locais"
+
+#: templates/pretix_event_analytics/pages/audience.html:10
+#: templates/pretix_event_analytics/pages/audience.html:22
+msgid "Countries"
+msgstr "Países"
+
+#: templates/pretix_event_analytics/pages/audience.html:12
+msgid "Only countries the buyer or their payment stated"
+msgstr "Apenas países indicados pelo comprador ou pelo respetivo pagamento"
+
+#: templates/pretix_event_analytics/pages/audience.html:12
+msgid "Exact"
+msgstr "Exato"
+
+#: templates/pretix_event_analytics/pages/audience.html:13
+msgid "Plus the country of the same customer on their other orders"
+msgstr "Mais o país do mesmo cliente nos seus outros pedidos"
+
+#: templates/pretix_event_analytics/pages/audience.html:13
+msgid "+ inferred"
+msgstr "+ inferido"
+
+#: templates/pretix_event_analytics/pages/audience.html:14
+msgid ""
+"Plus the buyer’s nationality, the paying bank’s country (card issuer, IBAN) "
+"and the e-mail domain (.pt, .es …)"
+msgstr ""
+"Mais a nacionalidade do comprador, o país do banco pagador (emissor do "
+"cartão, IBAN) e o domínio do e-mail (.pt, .es …)"
+
+#: templates/pretix_event_analytics/pages/audience.html:14
+msgid "+ probable"
+msgstr "+ provável"
+
+#: templates/pretix_event_analytics/pages/audience.html:19
+msgid "Orders by country"
+msgstr "Pedidos por país"
+
+#: templates/pretix_event_analytics/pages/audience.html:24
+#: templates/pretix_event_analytics/pages/audience.html:95
+#: templates/pretix_event_analytics/pages/audience.html:106
+msgid "Avg order"
+msgstr "Pedido médio"
+
+#: templates/pretix_event_analytics/pages/audience.html:34
+msgid "How the country is known"
+msgstr "Como o país é conhecido"
+
+#: templates/pretix_event_analytics/pages/audience.html:35
+msgid ""
+"First available source per order. Exact = what the buyer stated (or a "
+"residence document). Italic sources describe a bank or document, not "
+"necessarily where the buyer lives. Inferred and probable countries are shown "
+"only when switched on above."
+msgstr ""
+"Primeira fonte disponível por pedido. Exato = o que o comprador indicou (ou "
+"um documento de residência). As fontes em itálico descrevem um banco ou "
+"documento, não necessariamente onde o comprador vive. Os países inferidos e "
+"prováveis só são mostrados quando ativados acima."
+
+#: templates/pretix_event_analytics/pages/audience.html:37
+msgid "Source"
+msgstr "Fonte"
+
+#: templates/pretix_event_analytics/pages/audience.html:38
+msgid "inferred"
+msgstr "inferido"
+
+#: templates/pretix_event_analytics/pages/audience.html:38
+msgid "probable"
+msgstr "provável"
+
+#: templates/pretix_event_analytics/pages/audience.html:44
+msgid "Travelling from"
+msgstr "Viaja a partir de"
+
+#: templates/pretix_event_analytics/pages/audience.html:45
+#, python-format
+msgid "Answers to the “travelling from” question (%(p)s%% of orders)"
+msgstr "Respostas à pergunta “viaja a partir de” (%(p)s%% dos pedidos)"
+
+#: templates/pretix_event_analytics/pages/audience.html:55
+#: templates/pretix_event_analytics/pages/audience.html:58
+msgid "Nationality"
+msgstr "Nacionalidade"
+
+#: templates/pretix_event_analytics/pages/audience.html:56
+#, python-format
+msgid ""
+"Per ticket holder, where known (%(n)s tickets, %(p)s%%): a nationality "
+"question, or an ID document that proves citizenship. Kept apart from where "
+"people live."
+msgstr ""
+"Por titular do bilhete, quando conhecida (%(n)s bilhetes, %(p)s%%): uma "
+"pergunta de nacionalidade ou um documento de identificação que comprove a "
+"cidadania. Mantida à parte do local onde as pessoas vivem."
+
+#: templates/pretix_event_analytics/pages/audience.html:68
+msgid "Top cities"
+msgstr "Principais cidades"
+
+#: templates/pretix_event_analytics/pages/audience.html:69
+#, python-format
+msgid "From invoice addresses (%(p)s%% of orders include a city)"
+msgstr ""
+"A partir dos endereços de faturação (%(p)s%% dos pedidos incluem uma cidade)"
+
+#: templates/pretix_event_analytics/pages/audience.html:71
+msgid "City"
+msgstr "Cidade"
+
+#: templates/pretix_event_analytics/pages/audience.html:79
+msgid "Who they are"
+msgstr "Quem são"
+
+#: templates/pretix_event_analytics/pages/audience.html:83
+#, python-format
+msgid "Age on the event date, from %(n)s %(b)s with a birth date."
+msgstr ""
+"Idade na data do evento, a partir de %(n)s %(b)s com data de nascimento."
+
+#: templates/pretix_event_analytics/pages/audience.html:84
+#, python-format
+msgid "%(n)s buyers confirmed they are 18 or older."
+msgstr "%(n)s compradores confirmaram ter 18 anos ou mais."
+
+#: templates/pretix_event_analytics/pages/audience.html:87
+msgid "Group size"
+msgstr "Dimensão do grupo"
+
+#: templates/pretix_event_analytics/pages/audience.html:88
+#, python-format
+msgid "%(a)s tickets per order on average"
+msgstr "%(a)s bilhetes por pedido, em média"
+
+#: templates/pretix_event_analytics/pages/audience.html:90
+msgid "Checkout language"
+msgstr "Idioma do checkout"
+
+#: templates/pretix_event_analytics/pages/audience.html:93
+msgid "Payment methods"
+msgstr "Formas de pagamento"
+
+#: templates/pretix_event_analytics/pages/audience.html:95
+msgid "Method"
+msgstr "Forma"
+
+#: templates/pretix_event_analytics/pages/audience.html:103
+msgid "Buyer personas"
+msgstr "Perfis de comprador"
+
+#: templates/pretix_event_analytics/pages/audience.html:106
+msgid "Persona"
+msgstr "Perfil"
+
+#: templates/pretix_event_analytics/pages/audience.html:106
+msgid "Bought add-ons"
+msgstr "Compraram extras"
+
+#: templates/pretix_event_analytics/pages/audience.html:113
+msgid "Caravans & camping"
+msgstr "Caravanas e campismo"
+
+#: templates/pretix_event_analytics/pages/audience.html:113
+#, python-format
+msgid "%(n)s orders (%(p)s%%) with a caravan pass"
+msgstr "%(n)s pedidos (%(p)s%%) com passe de caravana"
+
+#: templates/pretix_event_analytics/pages/audience.html:114
+msgid "Vehicle length"
+msgstr "Comprimento do veículo"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:7
+msgid "Loyalty needs more than one edition."
+msgstr "A fidelização precisa de mais do que uma edição."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:8
+msgid ""
+"Link this event to a series (and the previous editions to the same series) "
+"to see first-timers, returning people and how editions overlap."
+msgstr ""
+"Associe este evento a uma série (e as edições anteriores à mesma série) para "
+"ver estreantes, pessoas que regressam e a sobreposição entre edições."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:9
+#: templates/pretix_event_analytics/pages/operations.html:84
+msgid "Open settings"
+msgstr "Abrir configurações"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:13
+msgid "Loyalty compares every edition of the series."
+msgstr "A fidelização compara todas as edições da série."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:14
+msgid ""
+"Your team can only see some of those events, so these figures are hidden. "
+"Ask an administrator for order access to all editions."
+msgstr ""
+"A sua equipa só pode ver alguns desses eventos, pelo que estes números estão "
+"ocultos. Peça a um administrador acesso aos pedidos de todas as edições."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:20
+msgid "Count"
+msgstr "Contagem"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:22
+msgid "Ticket holders, matched by name + birth date"
+msgstr "Titulares de bilhetes, identificados por nome + data de nascimento"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:22
+msgid "People (ticket holders)"
+msgstr "Pessoas (titulares de bilhetes)"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:23
+msgid "Customers, matched by the order e-mail"
+msgstr "Clientes, identificados pelo e-mail do pedido"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:23
+msgid "Customers (order e-mail)"
+msgstr "Clientes (e-mail do pedido)"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:28
+#: templates/pretix_event_analytics/pages/sales.html:32
+msgid "On this page"
+msgstr "Nesta página"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:29
+#: templates/pretix_event_analytics/pages/sales.html:33
+msgid "On this page:"
+msgstr "Nesta página:"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:31
+msgid "Who the first-timers are"
+msgstr "Quem são os estreantes"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:32
+#: templates/pretix_event_analytics/pages/loyalty.html:121
+#: templates/pretix_event_analytics/series_list.html:58
+msgid "Compare editions"
+msgstr "Comparar edições"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:33
+#: templates/pretix_event_analytics/pages/loyalty.html:184
+#: templates/pretix_event_analytics/pdf_report.html:72
+msgid "Edition by edition"
+msgstr "Edição a edição"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:34
+#: templates/pretix_event_analytics/pages/loyalty.html:217
+msgid "Likely to return"
+msgstr "Com probabilidade de regressar"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:39
+#, python-format
+msgid ""
+"<strong>%(pct)s%%</strong> of this edition's %(total)s identified people are "
+"first-timers (%(n)s)."
+msgstr ""
+"<strong>%(pct)s%%</strong> das %(total)s pessoas identificadas desta edição "
+"são estreantes (%(n)s)."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:41
+#, python-format
+msgid "<strong>%(pct)s%%</strong> have been before."
+msgstr "<strong>%(pct)s%%</strong> já cá estiveram antes."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:43
+#, python-format
+msgid "Including probable matches: %(pct)s%% first-timers."
+msgstr "Incluindo correspondências prováveis: %(pct)s%% estreantes."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:46
+#, python-format
+msgid ""
+"History starts in <strong>%(year)s</strong>: someone whose last visit was "
+"before that counts as a first-timer."
+msgstr ""
+"O histórico começa em <strong>%(year)s</strong>: quem tiver vindo pela "
+"última vez antes disso conta como estreante."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:48
+msgid "Have an old attendee or mailing list from earlier years?"
+msgstr ""
+"Tem uma lista antiga de participantes ou de correio eletrónico de anos "
+"anteriores?"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:49
+msgid "Import it as a past edition"
+msgstr "Importe-a como edição anterior"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:50
+msgid "only hashes of the addresses are kept."
+msgstr "só são guardados hashes dos endereços."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:53
+#, python-format
+msgid "%(n)s orders have no e-mail and cannot be matched (%(pct)s%% coverage)."
+msgstr ""
+"%(n)s pedidos não têm e-mail e não podem ser associados (%(pct)s%% de "
+"cobertura)."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:53
+#, python-format
+msgid ""
+"%(n)s tickets have no attendee name + birth date, or only an unclear match, "
+"and are left unknown rather than guessed (%(pct)s%% coverage). Asking for "
+"the attendee name and birth date on every ticket improves this."
+msgstr ""
+"%(n)s bilhetes não têm nome do participante + data de nascimento, ou só têm "
+"uma correspondência pouco clara, e ficam como desconhecidos em vez de serem "
+"adivinhados (%(pct)s%% de cobertura). Pedir o nome do participante e a data "
+"de nascimento em todos os bilhetes melhora este valor."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:60
+#: templates/pretix_event_analytics/pages/resale.html:40
+msgid "Been before"
+msgstr "Já vieram antes"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:63
+#, python-format
+msgid "Also at %(l)s"
+msgstr "Também em %(l)s"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:65
+msgid "Came back after a gap"
+msgstr "Regressaram após uma pausa"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:67
+#, python-format
+msgid "been before, but not at %(l)s"
+msgstr "já vieram antes, mas não a %(l)s"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:68
+#, python-format
+msgid "From %(l)s, not (yet) back"
+msgstr "De %(l)s, (ainda) não regressaram"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:70
+#, python-format
+msgid "of %(n)s people"
+msgstr "de %(n)s pessoas"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:71
+msgid "At every edition so far"
+msgstr "Em todas as edições até agora"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:73
+#: templates/pretix_event_analytics/series_detail.html:11
+#, python-format
+msgid "%(n)s edition"
+msgid_plural "%(n)s editions"
+msgstr[0] "%(n)s edição"
+msgstr[1] "%(n)s edições"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:80
+msgid "Win them back:"
+msgstr "Reconquiste-os:"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:81
+#, python-format
+msgid "%(n)s from %(l)s not back yet"
+msgstr "%(n)s de %(l)s ainda não regressaram"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:82
+#, python-format
+msgid "%(n)s who came earlier but skipped %(l)s"
+msgstr "%(n)s que vieram antes mas faltaram a %(l)s"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:84
+msgid ""
+"Each list gives the order code of their most recent visit (as buyer or "
+"ticket holder), so you can find them in Pretix — for example to send a “we "
+"miss you” voucher. No addresses leave Pretix."
+msgstr ""
+"Cada lista indica o código do pedido da visita mais recente (como comprador "
+"ou titular do bilhete), para que os possa encontrar no pretix — por exemplo, "
+"para enviar um voucher “temos saudades suas”. Nenhum endereço sai do pretix."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:89
+msgid "How many times have they been before?"
+msgstr "Quantas vezes vieram antes?"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:90
+msgid "People at this edition by number of earlier editions attended"
+msgstr "Pessoas nesta edição por número de edições anteriores a que assistiram"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:93
+msgid "Breakdown"
+msgstr "Distribuição"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:102
+msgid ""
+"This edition is excluded from comparisons in its settings, so it has no "
+"loyalty figures of its own. The series views below still work."
+msgstr ""
+"Esta edição está excluída das comparações nas suas configurações, pelo que "
+"não tem valores de fidelização próprios. As vistas da série abaixo continuam "
+"a funcionar."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:106
+msgid "Who are the first-timers?"
+msgstr "Quem são os estreantes?"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:106
+msgid "this edition · dashboard filters apply"
+msgstr "esta edição · aplicam-se os filtros do painel"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:112
+#: templates/pretix_event_analytics/series_detail.html:37
+msgid "First-timers"
+msgstr "Estreantes"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:121
+msgid "pick any editions — whole series, filters do not apply"
+msgstr "escolha quaisquer edições — série completa, os filtros não se aplicam"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:126
+#: templates/pretix_event_analytics/pages/loyalty.html:162
+#: templates/pretix_event_analytics/pages/loyalty.html:209
+#: templates/pretix_event_analytics/series_detail.html:71
+#, python-format
+msgid "%(n)s people"
+msgstr "%(n)s pessoas"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:126
+msgid "imported list"
+msgstr "lista importada"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:131
+msgid "Compare"
+msgstr "Comparar"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:135
+#, python-format
+msgid "<strong>%(n)s</strong> different people took part in %(eds)s."
+msgstr "<strong>%(n)s</strong> pessoas diferentes participaram em %(eds)s."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:136
+#, python-format
+msgid "<strong>%(n)s</strong> were at all of them."
+msgstr "<strong>%(n)s</strong> estiveram em todas."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:140
+msgid "How many of the selected editions did each person attend?"
+msgstr "A quantas das edições selecionadas assistiu cada pessoa?"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:143
+msgid "Attended once, twice, …"
+msgstr "Assistiram uma vez, duas vezes, …"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:154
+msgid "Overlap between editions"
+msgstr "Sobreposição entre edições"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:155
+msgid ""
+"Read across: of the people at the row's edition, how many were also at the "
+"column's edition."
+msgstr ""
+"Leitura por linha: das pessoas na edição da linha, quantas estiveram também "
+"na edição da coluna."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:172
+msgid "Most common attendance patterns"
+msgstr "Padrões de presença mais comuns"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:173
+msgid "Exactly these editions and none of the other selected ones."
+msgstr "Exatamente estas edições e nenhuma das outras selecionadas."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:177
+msgid "attended"
+msgstr "presente"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:177
+msgid "not attended"
+msgstr "ausente"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:180
+#, python-format
+msgid "%(n)s rarer pattern not shown."
+msgid_plural "%(n)s rarer patterns not shown."
+msgstr[0] "%(n)s padrão mais raro não apresentado."
+msgstr[1] "%(n)s padrões mais raros não apresentados."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:184
+msgid "all editions of the series"
+msgstr "todas as edições da série"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:185
+#: templates/pretix_event_analytics/series_detail.html:57
+msgid "Who made up each edition"
+msgstr "Composição de cada edição"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:189
+#: templates/pretix_event_analytics/pdf_report.html:73
+msgid "Back from previous"
+msgstr "Regressaram da anterior"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:189
+msgid "Previous edition's people who returned"
+msgstr "Pessoas da edição anterior que regressaram"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:189
+msgid "Did not return"
+msgstr "Não regressaram"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:191
+#: templates/pretix_event_analytics/series_detail.html:41
+#: templates/pretix_event_analytics/series_list.html:51
+msgid "imported"
+msgstr "importada"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:191
+#: templates/pretix_event_analytics/pages/sales.html:152
+#: templates/pretix_event_analytics/pdf_report.html:80
+#: templates/pretix_event_analytics/series_detail.html:41
+msgid "on sale"
+msgstr "à venda"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:194
+#: templates/pretix_event_analytics/series_detail.html:47
+msgid "so far"
+msgstr "até agora"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:195
+#, python-format
+msgid "%(n)s not yet"
+msgstr "%(n)s ainda não"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:201
+#: templates/pretix_event_analytics/series_detail.html:63
+msgid "Do first-timers come back?"
+msgstr "Os estreantes regressam?"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:202
+#: templates/pretix_event_analytics/series_detail.html:64
+msgid ""
+"People grouped by the edition they first came to, and the share of them at "
+"each later edition."
+msgstr ""
+"Pessoas agrupadas pela edição a que vieram pela primeira vez e a percentagem "
+"delas em cada edição posterior."
+
+#: templates/pretix_event_analytics/pages/loyalty.html:205
+#: templates/pretix_event_analytics/series_detail.html:67
+msgid "First came"
+msgstr "Primeira vinda"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:217
+msgid "predictive score, this selection"
+msgstr "pontuação preditiva, esta seleção"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:218
+msgid "Return score distribution"
+msgstr "Distribuição da pontuação de regresso"
+
+#: templates/pretix_event_analytics/pages/loyalty.html:219
+#, python-format
+msgid ""
+"%(n)s orders (%(p)s%%) score 60 or more. The score adds points for past "
+"visits (+40), check-in (+20), buying 30+ days ahead (+15), 3+ tickets (+10), "
+"being local (+10) and group orders (+5)."
+msgstr ""
+"%(n)s pedidos (%(p)s%%) têm pontuação de 60 ou mais. A pontuação soma pontos "
+"por visitas anteriores (+40), check-in (+20), compra com 30+ dias de "
+"antecedência (+15), 3+ bilhetes (+10), ser local (+10) e pedidos de grupo "
+"(+5)."
+
+#: templates/pretix_event_analytics/pages/operations.html:6
+msgid "Check-in"
+msgstr "Check-in"
+
+#: templates/pretix_event_analytics/pages/operations.html:9
+msgid "No check-ins yet — they appear here as soon as the doors open."
+msgstr "Ainda não há check-ins — aparecem aqui assim que as portas abrirem."
+
+#: templates/pretix_event_analytics/pages/operations.html:9
+msgid "No check-ins were recorded for these tickets."
+msgstr "Não foram registados check-ins para estes bilhetes."
+
+#: templates/pretix_event_analytics/pages/operations.html:13
+#: templates/pretix_event_analytics/pages/operations.html:28
+#: templates/pretix_event_analytics/pages/overview.html:65
+#: templates/pretix_event_analytics/pages/tickets.html:15
+#: templates/pretix_event_analytics/pdf_report.html:53
+#: templates/pretix_event_analytics/pdf_report.html:119
+#: templates/pretix_event_analytics/series_detail.html:38
+msgid "Checked in"
+msgstr "Com check-in"
+
+#: templates/pretix_event_analytics/pages/operations.html:14
+#, python-format
+msgid "%(c)s of %(t)s tickets"
+msgstr "%(c)s de %(t)s bilhetes"
+
+#: templates/pretix_event_analytics/pages/operations.html:15
+msgid "No-shows"
+msgstr "Ausências"
+
+#: templates/pretix_event_analytics/pages/operations.html:18
+#, python-format
+msgid "%(c)s of %(t)s checked in"
+msgstr "%(c)s de %(t)s com check-in"
+
+#: templates/pretix_event_analytics/pages/operations.html:22
+msgid "Arrivals"
+msgstr "Chegadas"
+
+#: templates/pretix_event_analytics/pages/operations.html:23
+msgid "First entry scans per hour, event timezone"
+msgstr "Primeiras leituras de entrada por hora, fuso horário do evento"
+
+#: templates/pretix_event_analytics/pages/operations.html:26
+msgid "Check-in by product"
+msgstr "Check-in por produto"
+
+#: templates/pretix_event_analytics/pages/operations.html:36
+msgid "Cancellations & refunds"
+msgstr "Cancelamentos e reembolsos"
+
+#: templates/pretix_event_analytics/pages/operations.html:38
+msgid "Canceled or fully refunded"
+msgstr "Cancelados ou totalmente reembolsados"
+
+#: templates/pretix_event_analytics/pages/operations.html:39
+#, python-format
+msgid "of %(n)s orders placed"
+msgstr "de %(n)s pedidos efetuados"
+
+#: templates/pretix_event_analytics/pages/operations.html:40
+msgid "Value of canceled orders"
+msgstr "Valor dos pedidos cancelados"
+
+#: templates/pretix_event_analytics/pages/operations.html:41
+#: templates/pretix_event_analytics/pdf_report.html:121
+msgid "Money refunded"
+msgstr "Montante reembolsado"
+
+#: templates/pretix_event_analytics/pages/operations.html:42
+#, python-format
+msgid "incl. %(n)s partial refund"
+msgid_plural "incl. %(n)s partial refunds"
+msgstr[0] "incl. %(n)s reembolso parcial"
+msgstr[1] "incl. %(n)s reembolsos parciais"
+
+#: templates/pretix_event_analytics/pages/operations.html:46
+msgid "Cancellations over time"
+msgstr "Cancelamentos ao longo do tempo"
+
+#: templates/pretix_event_analytics/pages/operations.html:50
+msgid "Cancellation rate by product"
+msgstr "Taxa de cancelamento por produto"
+
+#: templates/pretix_event_analytics/pages/operations.html:61
+msgid "Payment completion"
+msgstr "Conclusão do pagamento"
+
+#: templates/pretix_event_analytics/pages/operations.html:61
+msgid "every order started in this event, by payment method"
+msgstr "todos os pedidos iniciados neste evento, por forma de pagamento"
+
+#: templates/pretix_event_analytics/pages/operations.html:64
+msgid "Expired unpaid"
+msgstr "Expirados sem pagamento"
+
+#: templates/pretix_event_analytics/pages/operations.html:64
+msgid "Completed"
+msgstr "Concluídos"
+
+#: templates/pretix_event_analytics/pages/operations.html:69
+msgid ""
+"A low completion rate for one method points to friction at that payment step "
+"(bank transfers that are never paid, failed card checks)."
+msgstr ""
+"Uma taxa de conclusão baixa numa forma de pagamento indica atrito nesse "
+"passo do pagamento (transferências bancárias nunca pagas, verificações de "
+"cartão falhadas)."
+
+#: templates/pretix_event_analytics/pages/operations.html:73
+msgid "Questions"
+msgstr "Perguntas"
+
+#: templates/pretix_event_analytics/pages/operations.html:73
+msgid ""
+"yes/no and multiple-choice answers, split by first-time and returning "
+"attendees"
+msgstr ""
+"respostas sim/não e de escolha múltipla, divididas entre participantes "
+"estreantes e recorrentes"
+
+#: templates/pretix_event_analytics/pages/operations.html:77
+#, python-format
+msgid "%(n)s answers"
+msgstr "%(n)s respostas"
+
+#: templates/pretix_event_analytics/pages/operations.html:83
+msgid ""
+"Pick the questions you want to analyse (for example “How did you hear about "
+"us?”) in the analytics settings, then run a resync."
+msgstr ""
+"Escolha as perguntas que quer analisar (por exemplo “Como teve conhecimento "
+"de nós?”) nas configurações de análise e depois execute uma ressincronização."
+
+#: templates/pretix_event_analytics/pages/overview.html:8
+#, python-format
+msgid "%(n)s order was processed by an older version of the plugin."
+msgid_plural "%(n)s orders were processed by an older version of the plugin."
+msgstr[0] "%(n)s pedido foi processado por uma versão mais antiga do plugin."
+msgstr[1] ""
+"%(n)s pedidos foram processados por uma versão mais antiga do plugin."
+
+#: templates/pretix_event_analytics/pages/overview.html:9
+msgid ""
+"Run a resync so ticket counts, check-ins and returning buyers use the "
+"improved logic."
+msgstr ""
+"Execute uma ressincronização para que as contagens de bilhetes, os check-ins "
+"e os compradores recorrentes usem a lógica melhorada."
+
+#: templates/pretix_event_analytics/pages/overview.html:15
+#, python-format
+msgid ""
+"<strong>%(pct)s%%</strong> of the %(people)s identified people at this "
+"edition are here for the first time (%(count)s people)."
+msgstr ""
+"<strong>%(pct)s%%</strong> das %(people)s pessoas identificadas nesta edição "
+"vêm pela primeira vez (%(count)s pessoas)."
+
+#: templates/pretix_event_analytics/pages/overview.html:16
+#, python-format
+msgid "Including probable matches: %(pct)s%%."
+msgstr "Incluindo correspondências prováveis: %(pct)s%%."
+
+#: templates/pretix_event_analytics/pages/overview.html:18
+#, python-format
+msgid "Based on editions since %(year)s."
+msgstr "Com base nas edições desde %(year)s."
+
+#: templates/pretix_event_analytics/pages/overview.html:20
+msgid "This is the first edition with data, so everyone counts as new."
+msgstr "Esta é a primeira edição com dados, por isso todos contam como novos."
+
+#: templates/pretix_event_analytics/pages/overview.html:22
+msgid "Loyalty details"
+msgstr "Detalhes de fidelização"
+
+#: templates/pretix_event_analytics/pages/overview.html:32
+#, python-format
+msgid "vs %(label)s with %(days)s days to go"
+msgstr "vs %(label)s a %(days)s dias do evento"
+
+#: templates/pretix_event_analytics/pages/overview.html:32
+#, python-format
+msgid "vs %(label)s"
+msgstr "vs %(label)s"
+
+#: templates/pretix_event_analytics/pages/overview.html:40
+#, python-format
+msgid "%(label)s had %(n)s at this point"
+msgstr "%(label)s tinha %(n)s nesta altura"
+
+#: templates/pretix_event_analytics/pages/overview.html:40
+#, python-format
+msgid "%(label)s sold %(n)s"
+msgstr "%(label)s vendeu %(n)s"
+
+#: templates/pretix_event_analytics/pages/overview.html:46
+#, python-format
+msgid "%(p)s%% with 2+ tickets"
+msgstr "%(p)s%% com 2+ bilhetes"
+
+#: templates/pretix_event_analytics/pages/overview.html:49
+msgid "Average order"
+msgstr "Pedido médio"
+
+#: templates/pretix_event_analytics/pages/overview.html:51
+#, python-format
+msgid "%(p)s per ticket"
+msgstr "%(p)s por bilhete"
+
+#: templates/pretix_event_analytics/pages/overview.html:56
+#: templates/pretix_event_analytics/pages/overview.html:61
+#, python-format
+msgid "%(n)s order"
+msgid_plural "%(n)s orders"
+msgstr[0] "%(n)s pedido"
+msgstr[1] "%(n)s pedidos"
+
+#: templates/pretix_event_analytics/pages/overview.html:56
+#, python-format
+msgid "%(p)s%% of attendees"
+msgstr "%(p)s%% dos participantes"
+
+#: templates/pretix_event_analytics/pages/overview.html:59
+msgid "Canceled or refunded"
+msgstr "Cancelados ou reembolsados"
+
+#: templates/pretix_event_analytics/pages/overview.html:61
+#, python-format
+msgid "%(a)s refunded"
+msgstr "%(a)s reembolsados"
+
+#: templates/pretix_event_analytics/pages/overview.html:67
+#, python-format
+msgid "%(n)s attendees"
+msgstr "%(n)s participantes"
+
+#: templates/pretix_event_analytics/pages/overview.html:72
+msgid "Forecast: tickets"
+msgstr "Previsão: bilhetes"
+
+#: templates/pretix_event_analytics/pages/overview.html:74
+#, python-format
+msgid "range %(lo)s–%(hi)s"
+msgstr "intervalo %(lo)s–%(hi)s"
+
+#: templates/pretix_event_analytics/pages/overview.html:74
+#, python-format
+msgid "%(p)s%% of target"
+msgstr "%(p)s%% do objetivo"
+
+#: templates/pretix_event_analytics/pages/overview.html:80
+#, python-format
+msgid ""
+"No comparison yet: %(label)s had not started selling with %(days)s days to "
+"go. Comparisons and the forecast appear once earlier editions had sales at "
+"the same point."
+msgstr ""
+"Ainda sem comparação: %(label)s ainda não tinha começado a vender a %(days)s "
+"dias do evento. As comparações e a previsão aparecem quando edições "
+"anteriores tiverem vendas no mesmo ponto."
+
+#: templates/pretix_event_analytics/pages/overview.html:83
+msgid "Sales pace by edition"
+msgstr "Ritmo de vendas por edição"
+
+#: templates/pretix_event_analytics/pages/overview.html:84
+msgid ""
+"Cumulative tickets by days before the event. The current edition is drawn "
+"thicker."
+msgstr ""
+"Bilhetes acumulados por dias antes do evento. A edição atual é desenhada com "
+"traço mais grosso."
+
+#: templates/pretix_event_analytics/pages/overview.html:88
+#, python-format
+msgid ""
+"%(pct)s%% of tickets are matched to a person with certainty (attendee name + "
+"birth date)."
+msgstr ""
+"%(pct)s%% dos bilhetes estão associados a uma pessoa com certeza (nome do "
+"participante + data de nascimento)."
+
+#: templates/pretix_event_analytics/pages/overview.html:89
+msgid ""
+"The rest are counted in totals but left out of returning-people figures "
+"rather than guessed. Sharing an e-mail or a card never makes two ticket "
+"holders the same person."
+msgstr ""
+"Os restantes são contados nos totais, mas ficam de fora dos valores de "
+"pessoas recorrentes em vez de serem adivinhados. Partilhar um e-mail ou um "
+"cartão nunca torna dois titulares de bilhete a mesma pessoa."
+
+#: templates/pretix_event_analytics/pages/overview.html:90
+#, python-format
+msgid ""
+"%(n)s ticket without a birth date matches a known person by name and a "
+"shared e-mail or card (“probable”)."
+msgid_plural ""
+"%(n)s tickets without a birth date match a known person by name and a shared "
+"e-mail or card (“probable”)."
+msgstr[0] ""
+"%(n)s bilhete sem data de nascimento corresponde a uma pessoa conhecida pelo "
+"nome e por um e-mail ou cartão partilhado (“provável”)."
+msgstr[1] ""
+"%(n)s bilhetes sem data de nascimento correspondem a uma pessoa conhecida "
+"pelo nome e por um e-mail ou cartão partilhado (“provável”)."
+
+#: templates/pretix_event_analytics/pages/resale.html:6
+msgid "Resale figures could not be calculated. Check the server log."
+msgstr ""
+"Não foi possível calcular os valores de revenda. Consulte o registo do "
+"servidor."
+
+#: templates/pretix_event_analytics/pages/resale.html:10
+#, python-format
+msgid "<strong>%(pct)s%%</strong> of tickets changed hands (%(n)s of %(t)s)."
+msgstr ""
+"<strong>%(pct)s%%</strong> dos bilhetes mudaram de mãos (%(n)s de %(t)s)."
+
+#: templates/pretix_event_analytics/pages/resale.html:11
+msgid ""
+"TicketSwap resales and manual name changes together, each ticket counted "
+"once."
+msgstr ""
+"Revendas TicketSwap e alterações manuais de nome em conjunto, cada bilhete "
+"contado uma vez."
+
+#: templates/pretix_event_analytics/pages/resale.html:16
+msgid "No ticket has changed hands for this event yet."
+msgstr "Ainda nenhum bilhete mudou de mãos neste evento."
+
+#: templates/pretix_event_analytics/pages/resale.html:17
+msgid ""
+"TicketSwap is not enabled for this event; only manual name changes are "
+"checked."
+msgstr ""
+"O TicketSwap não está ativo neste evento; só são verificadas as alterações "
+"manuais de nome."
+
+#: templates/pretix_event_analytics/pages/resale.html:22
+msgid "How they changed hands"
+msgstr "Como mudaram de mãos"
+
+#: templates/pretix_event_analytics/pages/resale.html:23
+msgid "TicketSwap is not enabled for this event."
+msgstr "O TicketSwap não está ativo neste evento."
+
+#: templates/pretix_event_analytics/pages/resale.html:25
+msgid "Channel"
+msgstr "Canal"
+
+#: templates/pretix_event_analytics/pages/resale.html:28
+#: templates/pretix_event_analytics/pages/resale.html:50
+msgid "Changed hands"
+msgstr "Mudaram de mãos"
+
+#: templates/pretix_event_analytics/pages/resale.html:31
+#, python-format
+msgid "%(n)s ticket was resold more than once on TicketSwap."
+msgid_plural "%(n)s tickets were resold more than once on TicketSwap."
+msgstr[0] "%(n)s bilhete foi revendido mais do que uma vez no TicketSwap."
+msgstr[1] "%(n)s bilhetes foram revendidos mais do que uma vez no TicketSwap."
+
+#: templates/pretix_event_analytics/pages/resale.html:32
+#, python-format
+msgid "%(n)s carry the new holder's name."
+msgstr "%(n)s têm o nome do novo titular."
+
+#: templates/pretix_event_analytics/pages/resale.html:37
+msgid "Who holds them now"
+msgstr "Quem os tem agora"
+
+#: templates/pretix_event_analytics/pages/resale.html:38
+msgid "Current holders of the tickets that changed hands"
+msgstr "Titulares atuais dos bilhetes que mudaram de mãos"
+
+#: templates/pretix_event_analytics/pages/resale.html:42
+msgid "Unknown (no name + birth date)"
+msgstr "Desconhecido (sem nome + data de nascimento)"
+
+#: templates/pretix_event_analytics/pages/resale.html:48
+msgid "By product"
+msgstr "Por produto"
+
+#: templates/pretix_event_analytics/pages/resale.html:50
+msgid "Of sold"
+msgstr "Dos vendidos"
+
+#: templates/pretix_event_analytics/pages/resale.html:60
+msgid "Changed hands per month"
+msgstr "Mudanças de mãos por mês"
+
+#: templates/pretix_event_analytics/pages/resale.html:61
+msgid ""
+"This TicketSwap version does not record when a swap happened, so only manual "
+"changes have a date."
+msgstr ""
+"Esta versão do TicketSwap não regista quando ocorreu uma troca, pelo que só "
+"as alterações manuais têm data."
+
+#: templates/pretix_event_analytics/pages/resale.html:61
+msgid "By the month of the latest change of each ticket."
+msgstr "Pelo mês da alteração mais recente de cada bilhete."
+
+#: templates/pretix_event_analytics/pages/resale.html:63
+msgid "Changed hands by edition"
+msgstr "Mudanças de mãos por edição"
+
+#: templates/pretix_event_analytics/pages/resale.html:68
+msgid ""
+"A manual name change counts when the birth date or attendee e-mail changed "
+"with the name, or when a later rename clearly differs from the previous one. "
+"Pretix does not log the previous name, so other single edits cannot be told "
+"apart from corrections:"
+msgstr ""
+"Uma alteração manual de nome conta quando a data de nascimento ou o e-mail "
+"do participante mudaram juntamente com o nome, ou quando uma alteração "
+"posterior difere claramente da anterior. O pretix não regista o nome "
+"anterior, por isso outras edições isoladas não se distinguem de correções:"
+
+#: templates/pretix_event_analytics/pages/resale.html:69
+#, python-format
+msgid "%(n)s ticket with such an unclear edit is not counted."
+msgid_plural "%(n)s tickets with such unclear edits are not counted."
+msgstr[0] "%(n)s bilhete com uma edição pouco clara deste tipo não é contado."
+msgstr[1] ""
+"%(n)s bilhetes com edições pouco claras deste tipo não são contados."
+
+#: templates/pretix_event_analytics/pages/resale.html:70
+msgid "Filters do not apply here."
+msgstr "Os filtros não se aplicam aqui."
+
+#: templates/pretix_event_analytics/pages/resale.html:71
+msgid "Order codes (CSV)"
+msgstr "Códigos de pedido (CSV)"
+
+#: templates/pretix_event_analytics/pages/sales.html:7
+msgid "Group by"
+msgstr "Agrupar por"
+
+#: templates/pretix_event_analytics/pages/sales.html:9
+msgid "Day"
+msgstr "Dia"
+
+#: templates/pretix_event_analytics/pages/sales.html:10
+msgid "Week"
+msgstr "Semana"
+
+#: templates/pretix_event_analytics/pages/sales.html:11
+msgid "Month"
+msgstr "Mês"
+
+#: templates/pretix_event_analytics/pages/sales.html:14
+msgid "Split by"
+msgstr "Dividir por"
+
+#: templates/pretix_event_analytics/pages/sales.html:16
+msgid "Nothing"
+msgstr "Nada"
+
+#: templates/pretix_event_analytics/pages/sales.html:18
+#: templates/pretix_event_analytics/pages/tickets.html:45
+msgid "Category"
+msgstr "Categoria"
+
+#: templates/pretix_event_analytics/pages/sales.html:19
+msgid "New / returning"
+msgstr "Novos / recorrentes"
+
+#: templates/pretix_event_analytics/pages/sales.html:25
+msgid "Order placed"
+msgstr "Pedido efetuado"
+
+#: templates/pretix_event_analytics/pages/sales.html:26
+msgid ""
+"Matches Pretix’s own statistics, which use the date of the last payment."
+msgstr ""
+"Corresponde às estatísticas do próprio pretix, que usam a data do último "
+"pagamento."
+
+#: templates/pretix_event_analytics/pages/sales.html:34
+msgid "Over time"
+msgstr "Ao longo do tempo"
+
+#: templates/pretix_event_analytics/pages/sales.html:35
+#: templates/pretix_event_analytics/pages/sales.html:54
+msgid "Moments"
+msgstr "Momentos"
+
+#: templates/pretix_event_analytics/pages/sales.html:36
+#: templates/pretix_event_analytics/pages/sales.html:81
+msgid "Forecast"
+msgstr "Previsão"
+
+#: templates/pretix_event_analytics/pages/sales.html:37
+#: templates/pretix_event_analytics/pages/sales.html:114
+msgid "Editions compared"
+msgstr "Edições comparadas"
+
+#: templates/pretix_event_analytics/pages/sales.html:38
+#: templates/pretix_event_analytics/pages/sales.html:165
+msgid "When people buy"
+msgstr "Quando as pessoas compram"
+
+#: templates/pretix_event_analytics/pages/sales.html:39
+#: templates/pretix_event_analytics/pages/sales.html:187
+msgid "By period"
+msgstr "Por período"
+
+#: templates/pretix_event_analytics/pages/sales.html:44
+msgid "No sales match the current filters."
+msgstr "Nenhuma venda corresponde aos filtros atuais."
+
+#: templates/pretix_event_analytics/pages/sales.html:47
+msgid ""
+"Admission tickets; add-ons are not counted as tickets. Markers: your moments "
+"(solid) and price-tier changes (dashed)."
+msgstr ""
+"Bilhetes de entrada; os extras não contam como bilhetes. Marcadores: os seus "
+"momentos (contínuos) e mudanças de escalão de preço (tracejados)."
+
+#: templates/pretix_event_analytics/pages/sales.html:55
+msgid ""
+"Mark what happened — line-up announcements, newsletters, campaigns — to "
+"explain spikes. Shown on the charts above and on the edition comparison."
+msgstr ""
+"Assinale o que aconteceu — anúncios do cartaz, newsletters, campanhas — para "
+"explicar picos. Aparece nos gráficos acima e na comparação de edições."
+
+#: templates/pretix_event_analytics/pages/sales.html:61
+msgid "Remove"
+msgstr "Remover"
+
+#: templates/pretix_event_analytics/pages/sales.html:63
+msgid "No moments recorded yet."
+msgstr "Ainda não há momentos registados."
+
+#: templates/pretix_event_analytics/pages/sales.html:66
+msgid "Add a moment"
+msgstr "Adicionar um momento"
+
+#: templates/pretix_event_analytics/pages/sales.html:72
+msgid "Line-up announced"
+msgstr "Cartaz anunciado"
+
+#: templates/pretix_event_analytics/pages/sales.html:73
+msgid "Add"
+msgstr "Adicionar"
+
+#: templates/pretix_event_analytics/pages/sales.html:81
+#, python-format
+msgid "%(d)s days to go"
+msgstr "Faltam %(d)s dias"
+
+#: templates/pretix_event_analytics/pages/sales.html:84
+msgid "Projected tickets"
+msgstr "Bilhetes previstos"
+
+#: templates/pretix_event_analytics/pages/sales.html:86
+#, python-format
+msgid "likely between %(lo)s and %(hi)s"
+msgstr "provavelmente entre %(lo)s e %(hi)s"
+
+#: templates/pretix_event_analytics/pages/sales.html:90
+msgid "Projected revenue"
+msgstr "Receita prevista"
+
+#: templates/pretix_event_analytics/pages/sales.html:92
+#, python-format
+msgid "%(lo)s – %(hi)s"
+msgstr "%(lo)s – %(hi)s"
+
+#: templates/pretix_event_analytics/pages/sales.html:99
+#, python-format
+msgid "of %(t)s sold · forecast %(p)s%%"
+msgstr "de %(t)s vendidos · previsão %(p)s%%"
+
+#: templates/pretix_event_analytics/pages/sales.html:106
+#, python-format
+msgid "of %(t)s"
+msgstr "de %(t)s"
+
+#: templates/pretix_event_analytics/pages/sales.html:110
+#, python-format
+msgid ""
+"Projection: sales so far × how much each previous edition (%(years)s) still "
+"grew from the same number of days out. The range spans the slowest and "
+"fastest of those editions."
+msgstr ""
+"Projeção: vendas até agora × quanto cada edição anterior (%(years)s) ainda "
+"cresceu a partir do mesmo número de dias antes do evento. O intervalo vai da "
+"mais lenta à mais rápida dessas edições."
+
+#: templates/pretix_event_analytics/pages/sales.html:114
+msgid "same days-before-event timeline"
+msgstr "mesma cronologia em dias antes do evento"
+
+#: templates/pretix_event_analytics/pages/sales.html:122
+msgid "Cumulative tickets"
+msgstr "Bilhetes acumulados"
+
+#: templates/pretix_event_analytics/pages/sales.html:126
+msgid "Cumulative revenue"
+msgstr "Receita acumulada"
+
+#: templates/pretix_event_analytics/pages/sales.html:133
+#, python-format
+msgid "Where each edition stood with %(d)s days to go"
+msgstr "Situação de cada edição a %(d)s dias do evento"
+
+#: templates/pretix_event_analytics/pages/sales.html:133
+msgid "Final totals by edition"
+msgstr "Totais finais por edição"
+
+#: templates/pretix_event_analytics/pages/sales.html:139
+msgid "Tickets then"
+msgstr "Bilhetes nessa altura"
+
+#: templates/pretix_event_analytics/pages/sales.html:139
+#: templates/pretix_event_analytics/pdf_report.html:79
+msgid "Revenue then"
+msgstr "Receita nessa altura"
+
+#: templates/pretix_event_analytics/pages/sales.html:139
+msgid "Current vs then"
+msgstr "Atual vs nessa altura"
+
+#: templates/pretix_event_analytics/pages/sales.html:140
+#: templates/pretix_event_analytics/pdf_report.html:79
+msgid "Final tickets"
+msgstr "Bilhetes finais"
+
+#: templates/pretix_event_analytics/pages/sales.html:140
+#: templates/pretix_event_analytics/pdf_report.html:79
+msgid "Final revenue"
+msgstr "Receita final"
+
+#: templates/pretix_event_analytics/pages/sales.html:141
+msgid "Share sold by then"
+msgstr "Percentagem vendida até então"
+
+#: templates/pretix_event_analytics/pages/sales.html:160
+msgid ""
+"Dashboard filters apply to every edition, so you can compare e.g. only first-"
+"time buyers or only one country."
+msgstr ""
+"Os filtros do painel aplicam-se a todas as edições, para poder comparar, por "
+"exemplo, apenas compradores estreantes ou apenas um país."
+
+#: templates/pretix_event_analytics/pages/sales.html:167
+#: templates/pretix_event_analytics/pdf_report.html:83
+msgid "How far ahead tickets were bought"
+msgstr "Com quanta antecedência foram comprados os bilhetes"
+
+#: templates/pretix_event_analytics/pages/sales.html:170
+#: templates/pretix_event_analytics/pages/sales.html:173
+msgid "Orders by weekday and hour"
+msgstr "Pedidos por dia da semana e hora"
+
+#: templates/pretix_event_analytics/pages/sales.html:182
+msgid "fewer"
+msgstr "menos"
+
+#: templates/pretix_event_analytics/pages/sales.html:182
+msgid "more"
+msgstr "mais"
+
+#: templates/pretix_event_analytics/pages/sales.html:182
+#, python-format
+msgid "busiest hour: %(n)s orders"
+msgstr "hora mais movimentada: %(n)s pedidos"
+
+#: templates/pretix_event_analytics/pages/sales.html:191
+msgid "Period"
+msgstr "Período"
+
+#: templates/pretix_event_analytics/pages/sales.html:191
+msgid "Tickets to date"
+msgstr "Bilhetes até à data"
+
+#: templates/pretix_event_analytics/pages/sales.html:191
+msgid "Revenue to date"
+msgstr "Receita até à data"
+
+#: templates/pretix_event_analytics/pages/sales.html:196
+msgid "No sales in this selection."
+msgstr "Sem vendas nesta seleção."
+
+#: templates/pretix_event_analytics/pages/tickets.html:5
+msgid "No tickets match the current filters."
+msgstr "Nenhum bilhete corresponde aos filtros atuais."
+
+#: templates/pretix_event_analytics/pages/tickets.html:8
+#, python-format
+msgid "%(n)s admission tickets"
+msgstr "%(n)s bilhetes de entrada"
+
+#: templates/pretix_event_analytics/pages/tickets.html:10
+msgid "Tickets by product"
+msgstr "Bilhetes por produto"
+
+#: templates/pretix_event_analytics/pages/tickets.html:13
+msgid "Product performance"
+msgstr "Desempenho dos produtos"
+
+#: templates/pretix_event_analytics/pages/tickets.html:15
+#: templates/pretix_event_analytics/pages/tickets.html:54
+#: templates/pretix_event_analytics/pages/tickets.html:102
+#: templates/pretix_event_analytics/pdf_report.html:108
+msgid "Avg price"
+msgstr "Preço médio"
+
+#: templates/pretix_event_analytics/pages/tickets.html:15
+msgid "Share of identified ticket holders who attended an earlier edition"
+msgstr ""
+"Percentagem de titulares de bilhete identificados que estiveram numa edição "
+"anterior"
+
+#: templates/pretix_event_analytics/pages/tickets.html:26
+msgid "Capacity"
+msgstr "Lotação"
+
+#: templates/pretix_event_analytics/pages/tickets.html:27
+msgid ""
+"Live from Pretix quotas: paid, reserved (pending payment) and still "
+"available."
+msgstr ""
+"Em direto das quotas do pretix: pagos, reservados (pagamento pendente) e "
+"ainda disponíveis."
+
+#: templates/pretix_event_analytics/pages/tickets.html:29
+msgid "Quota"
+msgstr "Quota"
+
+#: templates/pretix_event_analytics/pages/tickets.html:29
+msgid "Size"
+msgstr "Tamanho"
+
+#: templates/pretix_event_analytics/pages/tickets.html:29
+msgid "Available"
+msgstr "Disponíveis"
+
+#: templates/pretix_event_analytics/pages/tickets.html:29
+msgid "Waiting list"
+msgstr "Lista de espera"
+
+#: templates/pretix_event_analytics/pages/tickets.html:43
+msgid "Categories"
+msgstr "Categorias"
+
+#: templates/pretix_event_analytics/pages/tickets.html:45
+msgid "Items incl. add-ons"
+msgstr "Itens incl. extras"
+
+#: templates/pretix_event_analytics/pages/tickets.html:52
+msgid "Variations"
+msgstr "Variações"
+
+#: templates/pretix_event_analytics/pages/tickets.html:54
+msgid "Variation"
+msgstr "Variação"
+
+#: templates/pretix_event_analytics/pages/tickets.html:54
+#: templates/pretix_event_analytics/pages/tickets.html:66
+#: templates/pretix_event_analytics/pages/tickets.html:81
+msgid "Sold"
+msgstr "Vendidos"
+
+#: templates/pretix_event_analytics/pages/tickets.html:63
+msgid "Price tiers"
+msgstr "Escalões de preço"
+
+#: templates/pretix_event_analytics/pages/tickets.html:63
+msgid ""
+"every list price a product sold at, in order of first sale · voucher sales "
+"excluded"
+msgstr ""
+"todos os preços de tabela a que um produto foi vendido, por ordem da "
+"primeira venda · vendas com voucher excluídas"
+
+#: templates/pretix_event_analytics/pages/tickets.html:66
+msgid "Price"
+msgstr "Preço"
+
+#: templates/pretix_event_analytics/pages/tickets.html:66
+msgid "First sale"
+msgstr "Primeira venda"
+
+#: templates/pretix_event_analytics/pages/tickets.html:66
+msgid "Last sale"
+msgstr "Última venda"
+
+#: templates/pretix_event_analytics/pages/tickets.html:68
+msgid "add-on"
+msgstr "extra"
+
+#: templates/pretix_event_analytics/pages/tickets.html:76
+#: templates/pretix_event_analytics/pdf_report.html:111
+msgid "Add-ons"
+msgstr "Extras"
+
+#: templates/pretix_event_analytics/pages/tickets.html:79
+msgid "Add-on products"
+msgstr "Produtos extra"
+
+#: templates/pretix_event_analytics/pages/tickets.html:81
+msgid "Add-on"
+msgstr "Extra"
+
+#: templates/pretix_event_analytics/pages/tickets.html:81
+msgid "Share of orders that include this add-on"
+msgstr "Percentagem de pedidos que incluem este extra"
+
+#: templates/pretix_event_analytics/pages/tickets.html:81
+#, python-format
+msgid "In %% of orders"
+msgstr "Em %% dos pedidos"
+
+#: templates/pretix_event_analytics/pages/tickets.html:87
+msgid "Who buys add-ons"
+msgstr "Quem compra extras"
+
+#: templates/pretix_event_analytics/pages/tickets.html:89
+msgid "Segment"
+msgstr "Segmento"
+
+#: templates/pretix_event_analytics/pages/tickets.html:89
+msgid "With add-ons"
+msgstr "Com extras"
+
+#: templates/pretix_event_analytics/pages/tickets.html:99
+msgid "Vouchers & discount codes"
+msgstr "Vouchers e códigos de desconto"
+
+#: templates/pretix_event_analytics/pages/tickets.html:99
+#, python-format
+msgid "%(p)s%% of items used a voucher"
+msgstr "%(p)s%% dos itens usaram um voucher"
+
+#: templates/pretix_event_analytics/pages/tickets.html:102
+msgid "Voucher tag"
+msgstr "Etiqueta do voucher"
+
+#: templates/pretix_event_analytics/pages/tickets.html:102
+msgid "Codes used"
+msgstr "Códigos usados"
+
+#: templates/pretix_event_analytics/pages/tickets.html:102
+msgid "Items"
+msgstr "Itens"
+
+#: templates/pretix_event_analytics/pages/tickets.html:105
+#, python-format
+msgid "Tickets bought without a voucher averaged %(p)s."
+msgstr "Os bilhetes comprados sem voucher custaram em média %(p)s."
+
+#: templates/pretix_event_analytics/pdf_report.html:5
+#: templates/pretix_event_analytics/pdf_report.html:36
+#, python-format
+msgid "Analytics report — %(name)s"
+msgstr "Relatório de análise — %(name)s"
+
+#: templates/pretix_event_analytics/pdf_report.html:39
+msgid "Event date"
+msgstr "Data do evento"
+
+#: templates/pretix_event_analytics/pdf_report.html:40
+msgid "Generated"
+msgstr "Gerado"
+
+#: templates/pretix_event_analytics/pdf_report.html:47
+#: templates/pretix_event_analytics/pdf_report.html:49
+#, python-format
+msgid "vs %(l)s"
+msgstr "vs %(l)s"
+
+#: templates/pretix_event_analytics/pdf_report.html:50
+msgid "Avg"
+msgstr "Média"
+
+#: templates/pretix_event_analytics/pdf_report.html:52
+msgid "Canceled / refunded"
+msgstr "Cancelados / reembolsados"
+
+#: templates/pretix_event_analytics/pdf_report.html:54
+msgid "Forecast tickets"
+msgstr "Bilhetes previstos"
+
+#: templates/pretix_event_analytics/pdf_report.html:56
+#, python-format
+msgid ""
+"<strong>%(pct)s%%</strong> of the %(people)s identified people are first-"
+"timers (history since %(year)s)."
+msgstr ""
+"<strong>%(pct)s%%</strong> das %(people)s pessoas identificadas são "
+"estreantes (histórico desde %(year)s)."
+
+#: templates/pretix_event_analytics/pdf_report.html:62
+msgid "Times attended before"
+msgstr "Vezes que vieram antes"
+
+#: templates/pretix_event_analytics/pdf_report.html:67
+msgid "Across all editions"
+msgstr "Em todas as edições"
+
+#: templates/pretix_event_analytics/pdf_report.html:73
+msgid "After a gap"
+msgstr "Após uma pausa"
+
+#: templates/pretix_event_analytics/pdf_report.html:73
+#: templates/pretix_event_analytics/series_detail.html:37
+msgid "Retention"
+msgstr "Retenção"
+
+#: templates/pretix_event_analytics/pdf_report.html:78
+msgid "Sales pace"
+msgstr "Ritmo de vendas"
+
+#: templates/pretix_event_analytics/pdf_report.html:79
+#, python-format
+msgid "Tickets at T–%(d)s"
+msgstr "Bilhetes em T–%(d)s"
+
+#: templates/pretix_event_analytics/pdf_report.html:91
+msgid "Top countries"
+msgstr "Principais países"
+
+#: templates/pretix_event_analytics/pdf_report.html:97
+msgid "Age on the event date"
+msgstr "Idade na data do evento"
+
+#: templates/pretix_event_analytics/pdf_report.html:100
+msgid "Personas"
+msgstr "Perfis"
+
+#: templates/pretix_event_analytics/pdf_report.html:112
+#, python-format
+msgid "in %(p)s%% of orders"
+msgstr "em %(p)s%% dos pedidos"
+
+#: templates/pretix_event_analytics/pdf_report.html:119
+#, python-format
+msgid "%(n)s no-shows"
+msgstr "%(n)s ausências"
+
+#: templates/pretix_event_analytics/pdf_report.html:120
+msgid "Canceled / refunded orders"
+msgstr "Pedidos cancelados / reembolsados"
+
+#: templates/pretix_event_analytics/pdf_report.html:129
+msgid ""
+"Generated by Pretix Event Analytics. Returning-people figures use "
+"pseudonymous (HMAC-hashed) identities; no names or e-mail addresses are "
+"stored in the analytics tables."
+msgstr ""
+"Gerado pelo Pretix Event Analytics. Os valores de pessoas recorrentes usam "
+"identidades pseudonimizadas (hash HMAC); não são guardados nomes nem "
+"endereços de e-mail nas tabelas de análise."
+
+#: templates/pretix_event_analytics/series_confirm_delete.html:4
+msgid "Delete Series"
+msgstr "Eliminar série"
+
+#: templates/pretix_event_analytics/series_confirm_delete.html:12
+msgid "Delete series"
+msgstr "Eliminar série"
+
+#: templates/pretix_event_analytics/series_confirm_delete.html:17
+#, python-format
+msgid ""
+"\n"
+"              This series is linked to %(count)s event(s). Deleting it will "
+"unlink those events\n"
+"              and disable cross-edition analytics. The analytics data itself "
+"will not be deleted.\n"
+"            "
+msgstr ""
+"\n"
+"              Esta série está associada a %(count)s evento(s). Eliminá-la "
+"vai desassociar esses eventos\n"
+"              e desativar a análise entre edições. Os dados de análise em si "
+"não serão eliminados.\n"
+"            "
+
+#: templates/pretix_event_analytics/series_confirm_delete.html:23
+msgid "This action cannot be undone."
+msgstr "Esta ação não pode ser anulada."
+
+#: templates/pretix_event_analytics/series_confirm_delete.html:28
+#: templates/pretix_event_analytics/series_form.html:55
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: templates/pretix_event_analytics/series_confirm_delete.html:31
+msgid "Yes, delete"
+msgstr "Sim, eliminar"
+
+#: templates/pretix_event_analytics/series_detail.html:5
+msgid "No data yet"
+msgstr "Ainda sem dados"
+
+#: templates/pretix_event_analytics/series_detail.html:12
+#, python-format
+msgid "%(n)s different people across the series"
+msgstr "%(n)s pessoas diferentes ao longo da série"
+
+#: templates/pretix_event_analytics/series_detail.html:18
+msgid "Buyers only"
+msgstr "Apenas compradores"
+
+#: templates/pretix_event_analytics/series_detail.html:22
+msgid ""
+"Re-process every order of every edition in this series? This can take a few "
+"minutes."
+msgstr ""
+"Reprocessar todos os pedidos de todas as edições desta série? Isto pode "
+"demorar alguns minutos."
+
+#: templates/pretix_event_analytics/series_detail.html:22
+msgid "Resync all editions"
+msgstr "Ressincronizar todas as edições"
+
+#: templates/pretix_event_analytics/series_detail.html:24
+msgid "All series"
+msgstr "Todas as séries"
+
+#: templates/pretix_event_analytics/series_detail.html:29
+msgid ""
+"No editions are linked to this series yet. Open an event’s Analytics "
+"settings and choose this series."
+msgstr ""
+"Ainda não há edições associadas a esta série. Abra as configurações de "
+"análise de um evento e escolha esta série."
+
+#: templates/pretix_event_analytics/series_detail.html:33
+msgid "Editions side by side"
+msgstr "Edições lado a lado"
+
+#: templates/pretix_event_analytics/series_detail.html:37
+msgid "Share of the previous edition’s people who came to this one"
+msgstr "Percentagem das pessoas da edição anterior que vieram a esta"
+
+#: templates/pretix_event_analytics/series_detail.html:45
+msgid "tickets without identity"
+msgstr "bilhetes sem identidade"
+
+#: templates/pretix_event_analytics/series_detail.html:55
+msgid "Tickets per edition"
+msgstr "Bilhetes por edição"
+
+#: templates/pretix_event_analytics/series_detail.html:77
+msgid ""
+"For overlaps between any chosen editions and once/twice/three-times counts, "
+"open the Loyalty tab of an edition’s dashboard."
+msgstr ""
+"Para sobreposições entre quaisquer edições escolhidas e contagens de uma/"
+"duas/três vezes, abra o separador Fidelização do painel de uma edição."
+
+#: templates/pretix_event_analytics/series_detail.html:80
+msgid "Past editions from before Pretix"
+msgstr "Edições anteriores ao pretix"
+
+#: templates/pretix_event_analytics/series_detail.html:83
+msgid "Import an attendee list"
+msgstr "Importar uma lista de participantes"
+
+#: templates/pretix_event_analytics/series_detail.html:86
+msgid ""
+"Best: a CSV with a header row and columns for the name and the birth date "
+"(e.g. “Name, Birth date” or “First name, Last name, DOB”) — people are then "
+"matched to later ticket holders exactly like Pretix tickets. Otherwise, any "
+"file with e-mail addresses (a mailing list, an old ticketing export) counts "
+"those addresses as past customers."
+msgstr ""
+"Ideal: um CSV com linha de cabeçalho e colunas para o nome e a data de "
+"nascimento (p. ex. “Nome, Data de nascimento” ou “Nome próprio, Apelido, "
+"DOB”) — as pessoas são então associadas a titulares de bilhete posteriores "
+"exatamente como os bilhetes do pretix. Caso contrário, qualquer ficheiro com "
+"endereços de e-mail (uma lista de correio, uma exportação de bilheteira "
+"antiga) conta esses endereços como clientes anteriores."
+
+#: templates/pretix_event_analytics/series_detail.html:87
+msgid ""
+"Everything is hashed on the server with the same secret key as all analytics "
+"data; the file itself and the plain values are discarded immediately."
+msgstr ""
+"Tudo é convertido em hash no servidor com a mesma chave secreta de todos os "
+"dados de análise; o ficheiro e os valores em claro são descartados de "
+"imediato."
+
+#: templates/pretix_event_analytics/series_detail.html:95
+msgid "Import"
+msgstr "Importar"
+
+#: templates/pretix_event_analytics/series_detail.html:100
+msgid "Imported editions"
+msgstr "Edições importadas"
+
+#: templates/pretix_event_analytics/series_detail.html:102
+msgid "Imported"
+msgstr "Importada"
+
+#: templates/pretix_event_analytics/series_detail.html:106
+msgid "Remove this imported edition?"
+msgstr "Remover esta edição importada?"
+
+#: templates/pretix_event_analytics/series_detail.html:107
+msgid "None yet."
+msgstr "Ainda nenhuma."
+
+#: templates/pretix_event_analytics/series_form.html:4
+#: templates/pretix_event_analytics/series_list.html:4
+#: templates/pretix_event_analytics/series_list.html:13
+msgid "Analytics Series"
+msgstr "Séries de análise"
+
+#: templates/pretix_event_analytics/series_form.html:51
+msgid "Save"
+msgstr "Guardar"
+
+#: templates/pretix_event_analytics/series_list.html:20
+msgid ""
+"\n"
+"          Series group your events for cross-edition analytics.\n"
+"          For example, all yearly editions of \"My Festival\" form one "
+"series.\n"
+"        "
+msgstr ""
+"\n"
+"          As séries agrupam os seus eventos para análise entre edições.\n"
+"          Por exemplo, todas as edições anuais de \"O Meu Festival\" formam "
+"uma série.\n"
+"        "
+
+#: templates/pretix_event_analytics/series_list.html:32
+msgid "Name"
+msgstr "Nome"
+
+#: templates/pretix_event_analytics/series_list.html:34
+msgid "Editions"
+msgstr "Edições"
+
+#: templates/pretix_event_analytics/series_list.html:35
+msgid "Created"
+msgstr "Criada"
+
+#: templates/pretix_event_analytics/series_list.html:48
+msgid "No editions linked"
+msgstr "Sem edições associadas"
+
+#: templates/pretix_event_analytics/series_list.html:51
+msgid "Imported list"
+msgstr "Lista importada"
+
+#: templates/pretix_event_analytics/series_list.html:62
+msgid "Edit"
+msgstr "Editar"
+
+#: templates/pretix_event_analytics/series_list.html:66
+msgid "Delete"
+msgstr "Eliminar"
+
+#: templates/pretix_event_analytics/series_list.html:77
+msgid ""
+"No series yet. Create your first series to enable cross-edition analytics."
+msgstr ""
+"Ainda não há séries. Crie a primeira série para ativar a análise entre "
+"edições."
+
+#: views.py:93
+msgid "Please configure analytics for this event before viewing the dashboard."
+msgstr "Configure a análise deste evento antes de ver o painel."
+
+#: views.py:153
+msgid "Last 7 days"
+msgstr "Últimos 7 dias"
+
+#: views.py:154
+msgid "Last 30 days"
+msgstr "Últimos 30 dias"
+
+#: views.py:155
+msgid "Last 90 days"
+msgstr "Últimos 90 dias"
+
+#: views.py:166
+msgid "All time"
+msgstr "Desde sempre"
+
+#: views.py:228
+msgid "Enter a date and a short description."
+msgstr "Introduza uma data e uma breve descrição."
+
+#: views.py:319
+msgid "Analytics configuration saved."
+msgstr "Configuração de análise guardada."
+
+#: views.py:322
+msgid "Run a resync to apply the new question selection to existing orders."
+msgstr ""
+"Execute uma ressincronização para aplicar a nova seleção de perguntas aos "
+"pedidos existentes."
+
+#: views.py:341
+#, python-format
+msgid "target %(n)s tickets"
+msgstr "objetivo %(n)s bilhetes"
+
+#: views.py:343
+#, python-format
+msgid "target %(n)s %(cur)s"
+msgstr "objetivo %(n)s %(cur)s"
+
+#: views.py:345
+#, python-format
+msgid "alert at %(n)s%% behind"
+msgstr "alerta com %(n)s%% de atraso"
+
+#: views.py:346
+msgid "Not set"
+msgstr "Não definido"
+
+#: views.py:351
+#, python-format
+msgid "%(n)s question analysed"
+msgid_plural "%(n)s questions analysed"
+msgstr[0] "%(n)s pergunta analisada"
+msgstr[1] "%(n)s perguntas analisadas"
+
+#: views.py:352
+msgid "None selected"
+msgstr "Nenhuma selecionada"
+
+#: views.py:355
+msgid "ID-document country on"
+msgstr "País do documento de identificação em"
+
+#: views.py:356
+msgid "Automatic"
+msgstr "Automático"
+
+#: views.py:408
+#, python-format
+msgid "Series \"%s\" created."
+msgstr "Série \"%s\" criada."
+
+#: views.py:413
+msgid "Create series"
+msgstr "Criar série"
+
+#: views.py:438
+msgid "Series updated."
+msgstr "Série atualizada."
+
+#: views.py:443
+msgid "Edit series"
+msgstr "Editar série"
+
+#: views.py:460
+#, python-format
+msgid "Series \"%s\" deleted."
+msgstr "Série \"%s\" eliminada."
+
+#: views.py:491
+msgid "You need order access to every edition of this series."
+msgstr "Precisa de acesso aos pedidos de todas as edições desta série."
+
+#: views.py:545
+#, python-format
+msgid ""
+"Imported %(n)s people (name + birth date) into “%(label)s”. The list itself "
+"was not stored."
+msgstr ""
+"Foram importadas %(n)s pessoas (nome + data de nascimento) para “%(label)s”. "
+"A lista em si não foi guardada."
+
+#: views.py:547
+#, python-format
+msgid ""
+"Imported %(n)s unique addresses into “%(label)s”. The list itself was not "
+"stored."
+msgstr ""
+"Foram importados %(n)s endereços únicos para “%(label)s”. A lista em si não "
+"foi guardada."
+
+#: views.py:562
+msgid "Legacy edition removed."
+msgstr "Edição anterior removida."
+
+#: views.py:576
+msgid ""
+"A resync for this series was started recently. Please wait a few minutes."
+msgstr ""
+"Foi iniciada recentemente uma ressincronização desta série. Aguarde alguns "
+"minutos."
+
+#: views.py:581
+msgid "Series resync queued. Figures update when it finishes."
+msgstr ""
+"Ressincronização da série em fila. Os valores são atualizados quando "
+"terminar."
+
+#: views.py:629
+msgid "Please wait a moment before triggering another resync."
+msgstr "Aguarde um momento antes de iniciar outra ressincronização."
+
+#: views.py:635
+msgid "A resync is already running for this event. Please wait a few minutes."
+msgstr ""
+"Já está a decorrer uma ressincronização para este evento. Aguarde alguns "
+"minutos."
+
+#: views.py:640
+msgid "Analytics resync queued. The dashboard will update shortly."
+msgstr ""
+"Ressincronização da análise em fila. O painel será atualizado em breve."

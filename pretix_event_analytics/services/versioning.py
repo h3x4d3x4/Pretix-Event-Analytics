@@ -42,11 +42,11 @@ def bump(organizer_id: int) -> None:
 
 def cached(organizer_id: int, key: str, fn, ttl: int = CACHE_TTL):
     """Return fn() memoised under (organizer version, key)."""
-    from .. import PretixPluginMeta
-
     # The plugin version is part of the key so an upgrade never serves
     # results computed by the previous code.
     import hashlib
+
+    from .. import PretixPluginMeta
 
     # Keys carry user input (filters, chosen editions): hash them so every
     # cache backend (memcached: 250 chars, no spaces) accepts them.

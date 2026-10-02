@@ -3,7 +3,6 @@ import json
 import re
 
 import pytest
-
 from conftest import make_team
 from django.urls import reverse
 from django_scopes import scopes_disabled

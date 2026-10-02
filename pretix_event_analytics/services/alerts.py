@@ -11,6 +11,7 @@ import logging
 from typing import Dict, Optional
 
 from django.db.models import Sum
+from django.utils import translation
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
 
@@ -97,10 +98,13 @@ def run_pace_alerts() -> int:
             url = settings.SITE_URL + reverse("plugins:pretix_event_analytics:sales", kwargs={
                 "organizer": cfg.event.organizer.slug, "event": cfg.event.slug})
             try:
+                # Subject in the event's language too (pretix renders the body in it).
+                with translation.override(cfg.event.settings.locale):
+                    subject = _("{event}: ticket sales {gap}% behind {previous}").format(
+                        event=cfg.event.name, gap=status["gap_pct"], previous=status["previous_label"])
                 mail(
                     recipients,
-                    _("{event}: ticket sales {gap}% behind {previous}").format(
-                        event=cfg.event.name, gap=status["gap_pct"], previous=status["previous_label"]),
+                    subject,
                     "pretix_event_analytics/email/pace_alert.txt",
                     {"event": cfg.event, "status": status, "threshold": cfg.pace_alert_threshold, "url": url},
                     event=cfg.event,

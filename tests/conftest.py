@@ -31,6 +31,15 @@ def _real_cache(settings):
 
 
 @pytest.fixture(autouse=True)
+def _english():
+    # pretix's middleware leaves the last request's language active in this thread.
+    from django.utils import translation
+    translation.activate("en")
+    yield
+    translation.activate("en")
+
+
+@pytest.fixture(autouse=True)
 def _clear_cache(_real_cache):
     from django.core.cache import cache
     cache.clear()

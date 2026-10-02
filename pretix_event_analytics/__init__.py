@@ -9,7 +9,7 @@ except ImportError:
 class PretixPluginMeta:
     name = _("Event Analytics")
     author = "Hexadexa"
-    version = "2.2.1"
+    version = "2.3.0"
     visible = True
     restricted = False
     description = _(

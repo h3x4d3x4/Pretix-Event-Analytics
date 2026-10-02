@@ -4,6 +4,7 @@ Series overview: every edition side by side (organizer level).
 from typing import Dict
 
 from django.db.models import Count, Q, Sum
+from django.utils import translation
 from django.utils.translation import gettext as _
 
 from ...models import AnalyticsOrderFact, AnalyticsTicketFact
@@ -15,7 +16,8 @@ from .scope import pct
 
 
 def build(series, unit: str = "people") -> Dict:
-    return cached(series.organizer_id, f"series:{series.pk}:{unit}", lambda: _build(series, unit))
+    return cached(series.organizer_id, f"series:{series.pk}:{unit}:{translation.get_language()}",
+                  lambda: _build(series, unit))
 
 
 def _build(series, unit: str) -> Dict:

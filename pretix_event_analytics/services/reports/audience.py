@@ -4,9 +4,9 @@ when they buy (personas) and how they group.
 """
 from typing import Dict
 
-import pycountry
 from django.db.models import Avg, Case, CharField, Count, F, Min, Q, Sum, Value, When
 from django.utils.translation import gettext as _, gettext_lazy as _lazy
+from django_countries import countries
 
 from ...forms import AGE_BUCKETS, provider_label
 from .charts import fold_other, serie, spec
@@ -22,8 +22,9 @@ def build(scope: ReportScope) -> Dict:
 def country_name(code: str) -> str:
     if not code:
         return _("Unknown")
-    c = pycountry.countries.get(alpha_2=code.upper())
-    return c.name if c else code
+    # django_countries (bundled with pretix) names countries in the user's language.
+    name = countries.name(code.upper())
+    return str(name) if name else code
 
 
 def country_flag(code: str) -> str:

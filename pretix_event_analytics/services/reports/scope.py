@@ -12,6 +12,7 @@ from typing import List, Optional
 from zoneinfo import ZoneInfo
 
 from django.db.models import Q, QuerySet
+from django.utils import translation
 
 from ..._compat import VIEW_ORDERS
 from ...forms import DashboardFilterForm
@@ -73,7 +74,8 @@ class ReportScope:
         return hashlib.sha1(raw.encode()).hexdigest()
 
     def cached(self, section: str, fn):
-        return cached(self.organizer_id, f"report:{section}:{self.cache_key}", fn)
+        # Reports carry translated labels: one cache entry per language.
+        return cached(self.organizer_id, f"report:{section}:{self.cache_key}:{translation.get_language()}", fn)
 
     # ── Querysets ─────────────────────────────────────────────────────────────
 

@@ -2,22 +2,12 @@
 
 Ideas agreed but not scheduled. Newest decisions first.
 
-## Next: 2.3.0 — pretix marketplace
+## Next
 
-Listing on [marketplace.pretix.eu](https://marketplace.pretix.eu) (new releases are pulled from PyPI).
-Before submitting, close the gaps against pretix's
-[plugin quality checklist](https://docs.pretix.eu/dev/development/api/quality.html):
-
-- **Security contact** — `SECURITY.md` and a line in the README.
-- **Action log** — settings changes, resyncs, series changes and attendee-list imports show up in
-  pretix's event / organizer log.
-- **Event copy** — copying an event carries over its analytics settings (series, home country,
-  tracked questions); the edition year is left for the organiser to set.
-- **Translations: German and Portuguese (pt_PT)** — the whole plugin (dashboards, settings, e-mails,
-  PDF). Strings are already wrapped; generate `locale/<lang>/LC_MESSAGES/django.po` with
-  `makemessages`, translate, and ship the compiled `.mo` files in the wheel. pt_PT was decided
-  2026-09-25; German added because most pretix organisers use it.
-- **Lint config** — flake8 + isort settings, run locally. (No hosted CI.)
+- **pretix marketplace listing** — 2.3.0 closed the checklist gaps (security contact, activity log,
+  event copy, German + Portuguese, lint config). Listing text drafted; needs the vendor account.
+- **Native review of the translations** — German and Portuguese were machine-assisted; a native
+  speaker's pass is welcome (edit `locale/<lang>/LC_MESSAGES/django.po`).
 
 ## Maybe
 
